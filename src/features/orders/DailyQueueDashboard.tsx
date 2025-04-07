@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Box,
   Paper,
@@ -15,7 +15,6 @@ import {
   ListItemText,
   ListItemIcon,
   IconButton,
-  Tooltip,
   TextField,
   InputAdornment,
   FormControl,
@@ -33,25 +32,22 @@ import {
 import {
   Search as SearchIcon,
   CheckCircle as CheckCircleIcon,
-  ShoppingCart as ShoppingCartIcon,
-  Person as PersonIcon,
   CalendarToday as CalendarIcon,
   Notes as NotesIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  FilterList as FilterIcon,
-  Sort as SortIcon
+  FilterList as FilterIcon
 } from '@mui/icons-material';
-import { Order, Client, OrderStatus } from '../../types';
+import { Order, Client } from '../../types';
 import { format } from 'date-fns';
 
 interface DailyQueueDashboardProps {
   orders: Order[];
   clients: Client[];
-  onStatusChange: (order: Order, newStatus: OrderStatus) => void;
+  onStatusChange: (order: Order, newStatus: Order['status']) => void;
   onEditOrder: (order: Order) => void;
   onDeleteOrder: (order: Order) => void;
-  onAddOrder?: () => void;
+  onAddOrder: () => void;
 }
 
 export default function DailyQueueDashboard({
@@ -63,9 +59,7 @@ export default function DailyQueueDashboard({
   onAddOrder
 }: DailyQueueDashboardProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all'>('all');
-  const [sortBy, setSortBy] = useState<'pickupDate' | 'clientName'>('pickupDate');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [filterStatus, setFilterStatus] = useState<Order['status'] | 'all'>('all');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -74,35 +68,10 @@ export default function DailyQueueDashboard({
 
   // Filter orders based on search query and status filter
   const filteredOrders = orders.filter(order => {
-    const client = clients.find(c => c.familyNumber === order.familySearchId);
-    const clientName = client ? `${client.firstName} ${client.lastName}`.toLowerCase() : '';
     const searchLower = searchQuery.toLowerCase();
-    
-    const matchesSearch = 
-      clientName.includes(searchLower) || 
-      order.items.toLowerCase().includes(searchLower) ||
-      order.notes?.toLowerCase().includes(searchLower) || '';
-    
+    const matchesSearch = order.notes?.toLowerCase().includes(searchLower) || '';
     const matchesStatus = filterStatus === 'all' || order.status === filterStatus;
-    
     return matchesSearch && matchesStatus;
-  });
-
-  // Sort orders based on selected criteria
-  const sortedOrders = [...filteredOrders].sort((a, b) => {
-    if (sortBy === 'pickupDate') {
-      const dateA = a.pickupDate ? new Date(a.pickupDate).getTime() : 0;
-      const dateB = b.pickupDate ? new Date(b.pickupDate).getTime() : 0;
-      return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
-    } else {
-      const clientA = clients.find(c => c.familyNumber === a.familySearchId);
-      const clientB = clients.find(c => c.familyNumber === b.familySearchId);
-      const nameA = clientA ? `${clientA.firstName} ${clientA.lastName}` : '';
-      const nameB = clientB ? `${clientB.firstName} ${clientB.lastName}` : '';
-      return sortOrder === 'asc' 
-        ? nameA.localeCompare(nameB) 
-        : nameB.localeCompare(nameA);
-    }
   });
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,18 +79,10 @@ export default function DailyQueueDashboard({
   };
 
   const handleFilterChange = (event: SelectChangeEvent) => {
-    setFilterStatus(event.target.value as OrderStatus | 'all');
+    setFilterStatus(event.target.value as Order['status'] | 'all');
   };
 
-  const handleSortChange = (event: SelectChangeEvent) => {
-    setSortBy(event.target.value as 'pickupDate' | 'clientName');
-  };
-
-  const handleSortOrderToggle = () => {
-    setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-  };
-
-  const handleStatusChange = (order: Order, newStatus: OrderStatus) => {
+  const handleStatusChange = (order: Order, newStatus: Order['status']) => {
     onStatusChange(order, newStatus);
     setSnackbarMessage(`Order status updated to ${newStatus}`);
     setSnackbarSeverity('success');
@@ -151,35 +112,124 @@ export default function DailyQueueDashboard({
     setSnackbarOpen(false);
   };
 
-  const getStatusColor = (status: OrderStatus) => {
+  const getStatusColor = (status: Order['status']) => {
     switch (status) {
       case 'pending':
         return 'warning';
-      case 'approved':
+      case 'scheduled':
         return 'info';
-      case 'denied':
-        return 'error';
-      case 'confirmed':
-        return 'primary';
-      case 'ready':
-        return 'secondary';
       case 'picked_up':
         return 'success';
       case 'cancelled':
+      case 'no_show':
         return 'error';
       default:
         return 'default';
     }
   };
 
-  const getClientName = (familySearchId: string) => {
-    const client = clients.find(c => c.familyNumber === familySearchId);
-    return client ? `${client.firstName} ${client.lastName}` : 'Unknown Client';
+  const getNextStatusOptions = (currentStatus: Order['status']): Order['status'][] => {
+    switch (currentStatus) {
+      case 'pending':
+        return ['scheduled', 'cancelled'];
+      case 'scheduled':
+        return ['picked_up', 'no_show', 'cancelled'];
+      case 'picked_up':
+      case 'cancelled':
+      case 'no_show':
+        return [];
+      default:
+        return [];
+    }
   };
 
-  const getClientPhone = (familySearchId: string) => {
-    const client = clients.find(c => c.familyNumber === familySearchId);
-    return client?.phone1 || 'No phone';
+  const renderOrderCard = (order: Order) => {
+    const client = clients.find(c => c.familyNumber === order.familySearchId);
+    const nextStatusOptions = getNextStatusOptions(order.status);
+    
+    return (
+      <Card key={order.id} sx={{ mb: 2 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+            <Box>
+              <Typography variant="h6" component="div">
+                {client ? `${client.firstName} ${client.lastName}` : 'Unknown Client'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {client?.phone1 || 'No phone'}
+              </Typography>
+            </Box>
+            <Chip 
+              label={order.status} 
+              color={getStatusColor(order.status) as any}
+              size="small"
+            />
+          </Box>
+          
+          <Divider sx={{ my: 1 }} />
+          
+          <Typography variant="subtitle2" gutterBottom>
+            Order Details:
+          </Typography>
+          <List dense>
+            <ListItem>
+              <ListItemIcon>
+                <CalendarIcon />
+              </ListItemIcon>
+              <ListItemText 
+                primary="Pickup Date"
+                secondary={order.pickupDate ? format(new Date(order.pickupDate), 'MMMM d, yyyy') : 'Not specified'}
+              />
+            </ListItem>
+            {order.notes && (
+              <ListItem>
+                <ListItemIcon>
+                  <NotesIcon />
+                </ListItemIcon>
+                <ListItemText 
+                  primary="Notes"
+                  secondary={order.notes}
+                />
+              </ListItem>
+            )}
+          </List>
+          
+        </CardContent>
+        
+        <CardActions>
+          {nextStatusOptions.length > 0 && (
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              {nextStatusOptions.map(status => (
+                <Button
+                  key={status}
+                  size="small"
+                  variant="outlined"
+                  onClick={() => handleStatusChange(order, status)}
+                >
+                  Mark as {status}
+                </Button>
+              ))}
+            </Box>
+          )}
+          <Box sx={{ flexGrow: 1 }} />
+          <IconButton 
+            aria-label="edit" 
+            onClick={() => onEditOrder(order)}
+            size="small"
+          >
+            <EditIcon />
+          </IconButton>
+          <IconButton 
+            aria-label="delete" 
+            onClick={() => handleDeleteClick(order)}
+            color="error"
+            size="small"
+          >
+            <DeleteIcon />
+          </IconButton>
+        </CardActions>
+      </Card>
+    );
   };
 
   return (
@@ -235,10 +285,10 @@ export default function DailyQueueDashboard({
               }}
             >
               <Typography variant="h4" component="div">
-                {orders.filter(o => o.status === 'approved').length}
+                {orders.filter(o => o.status === 'scheduled').length}
               </Typography>
               <Typography variant="body2">
-                Approved
+                Scheduled
               </Typography>
             </Paper>
           </Grid>
@@ -253,10 +303,10 @@ export default function DailyQueueDashboard({
               }}
             >
               <Typography variant="h4" component="div">
-                {orders.filter(o => o.status === 'ready').length}
+                {orders.filter(o => o.status === 'pending').length}
               </Typography>
               <Typography variant="body2">
-                Ready
+                Pending
               </Typography>
             </Paper>
           </Grid>
@@ -281,7 +331,7 @@ export default function DailyQueueDashboard({
         </Grid>
 
         <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid item xs={12} sm={6}>
             <TextField
               fullWidth
               placeholder="Search orders..."
@@ -296,7 +346,7 @@ export default function DailyQueueDashboard({
               }}
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid item xs={12} sm={6}>
             <FormControl fullWidth>
               <InputLabel id="filter-status-label">Filter by Status</InputLabel>
               <Select
@@ -311,28 +361,11 @@ export default function DailyQueueDashboard({
                 }
               >
                 <MenuItem value="all">All Statuses</MenuItem>
-                <MenuItem value="approved">Approved</MenuItem>
-                <MenuItem value="ready">Ready</MenuItem>
+                <MenuItem value="pending">Pending</MenuItem>
+                <MenuItem value="scheduled">Scheduled</MenuItem>
                 <MenuItem value="picked_up">Picked Up</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={6} md={4}>
-            <FormControl fullWidth>
-              <InputLabel id="sort-by-label">Sort by</InputLabel>
-              <Select
-                labelId="sort-by-label"
-                value={sortBy}
-                label="Sort by"
-                onChange={handleSortChange}
-                startAdornment={
-                  <InputAdornment position="start">
-                    <SortIcon />
-                  </InputAdornment>
-                }
-              >
-                <MenuItem value="pickupDate">Pickup Date</MenuItem>
-                <MenuItem value="clientName">Client Name</MenuItem>
+                <MenuItem value="cancelled">Cancelled</MenuItem>
+                <MenuItem value="no_show">No Show</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -340,120 +373,13 @@ export default function DailyQueueDashboard({
 
         <Divider sx={{ my: 2 }} />
 
-        {sortedOrders.length === 0 ? (
+        {filteredOrders.length === 0 ? (
           <Alert severity="info" sx={{ mt: 2 }}>
             No orders match your search criteria.
           </Alert>
         ) : (
           <Grid container spacing={3}>
-            {sortedOrders.map((order) => {
-              const client = clients.find(c => c.familyNumber === order.familySearchId);
-              return (
-                <Grid item xs={12} sm={6} md={4} key={order.id}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Typography variant="h6" component="div">
-                          Order #{order.id}
-                        </Typography>
-                        <Chip 
-                          label={order.status} 
-                          color={getStatusColor(order.status) as any} 
-                          size="small" 
-                        />
-                      </Box>
-                      
-                      <List dense>
-                        <ListItem>
-                          <ListItemIcon>
-                            <PersonIcon fontSize="small" />
-                          </ListItemIcon>
-                          <ListItemText 
-                            primary={getClientName(order.familySearchId)} 
-                            secondary={getClientPhone(order.familySearchId)} 
-                          />
-                        </ListItem>
-                        <ListItem>
-                          <ListItemIcon>
-                            <ShoppingCartIcon fontSize="small" />
-                          </ListItemIcon>
-                          <ListItemText 
-                            primary="Items" 
-                            secondary={order.items} 
-                          />
-                        </ListItem>
-                        <ListItem>
-                          <ListItemIcon>
-                            <CalendarIcon fontSize="small" />
-                          </ListItemIcon>
-                          <ListItemText 
-                            primary="Pickup Date" 
-                            secondary={order.pickupDate ? format(new Date(order.pickupDate), 'MMMM d, yyyy') : 'Not specified'} 
-                          />
-                        </ListItem>
-                        {order.notes && (
-                          <ListItem>
-                            <ListItemIcon>
-                              <NotesIcon fontSize="small" />
-                            </ListItemIcon>
-                            <ListItemText 
-                              primary="Notes" 
-                              secondary={order.notes} 
-                            />
-                          </ListItem>
-                        )}
-                      </List>
-                    </CardContent>
-                    <CardActions sx={{ justifyContent: 'space-between', p: 2 }}>
-                      <Box>
-                        <Tooltip title="Edit Order">
-                          <IconButton 
-                            size="small" 
-                            onClick={() => onEditOrder(order)}
-                            sx={{ mr: 1 }}
-                          >
-                            <EditIcon />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete Order">
-                          <IconButton 
-                            size="small" 
-                            color="error"
-                            onClick={() => handleDeleteClick(order)}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                      <Box>
-                        {order.status === 'approved' && (
-                          <Button
-                            variant="contained"
-                            color="secondary"
-                            size="small"
-                            startIcon={<CheckCircleIcon />}
-                            onClick={() => handleStatusChange(order, 'ready')}
-                          >
-                            Mark as Ready
-                          </Button>
-                        )}
-                        {order.status === 'ready' && (
-                          <Button
-                            variant="contained"
-                            color="success"
-                            size="small"
-                            startIcon={<CheckCircleIcon />}
-                            onClick={() => handleStatusChange(order, 'picked_up')}
-                          >
-                            Mark as Picked Up
-                          </Button>
-                        )}
-                      </Box>
-                    </CardActions>
-                  </Card>
-                </Grid>
-              );
-            })}
+            {filteredOrders.map((order) => renderOrderCard(order))}
           </Grid>
         )}
       </Paper>

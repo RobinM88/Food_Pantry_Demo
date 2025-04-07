@@ -20,14 +20,13 @@ import {
 import { 
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Email as EmailIcon,
   Phone as PhoneIcon,
   LocationOn as LocationIcon,
   People as PeopleIcon,
   Notes as NotesIcon,
   CalendarToday as CalendarIcon
 } from '@mui/icons-material';
-import { Client } from '../../types';
+import { Client, MemberStatus } from '../../types';
 import { format } from 'date-fns';
 
 interface ClientDetailsProps {
@@ -52,13 +51,13 @@ export default function ClientDetails({ client, onEdit, onDelete }: ClientDetail
     setDeleteDialogOpen(false);
   };
 
-  const getStatusColor = (status: Client['status']) => {
+  const getStatusColor = (status: Client['memberStatus']) => {
     switch (status) {
-      case 'active':
+      case MemberStatus.Active:
         return 'success';
-      case 'inactive':
+      case MemberStatus.Inactive:
         return 'error';
-      case 'pending':
+      case MemberStatus.Pending:
         return 'warning';
       default:
         return 'default';
@@ -110,15 +109,15 @@ export default function ClientDetails({ client, onEdit, onDelete }: ClientDetail
                   <PeopleIcon />
                 </ListItemIcon>
                 <ListItemText 
-                  primary={client.householdSize} 
+                  primary={client.familySize} 
                   secondary="Household Size" 
                 />
               </ListItem>
               <ListItem>
                 <ListItemIcon>
                   <Chip 
-                    label={client.status} 
-                    color={getStatusColor(client.status) as any}
+                    label={client.memberStatus} 
+                    color={getStatusColor(client.memberStatus) as any}
                     size="small"
                   />
                 </ListItemIcon>
@@ -134,35 +133,24 @@ export default function ClientDetails({ client, onEdit, onDelete }: ClientDetail
               Contact Information
             </Typography>
             <List>
-              {client.email && (
-                <ListItem>
-                  <ListItemIcon>
-                    <EmailIcon />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary={client.email} 
-                    secondary="Email" 
-                  />
-                </ListItem>
-              )}
-              {client.phone && (
+              {client.phone1 && (
                 <ListItem>
                   <ListItemIcon>
                     <PhoneIcon />
                   </ListItemIcon>
                   <ListItemText 
-                    primary={client.phone} 
+                    primary={client.phone1} 
                     secondary="Phone" 
                   />
                 </ListItem>
               )}
-              {(client.address || client.city || client.state || client.zipCode) && (
+              {(client.address || client.zipCode) && (
                 <ListItem>
                   <ListItemIcon>
                     <LocationIcon />
                   </ListItemIcon>
                   <ListItemText 
-                    primary={`${client.address || ''} ${client.city || ''}, ${client.state || ''} ${client.zipCode || ''}`}
+                    primary={`${client.address || ''} ${client.aptNumber ? `Apt ${client.aptNumber}` : ''}, ${client.zipCode || ''}`}
                     secondary="Address" 
                   />
                 </ListItem>
@@ -185,13 +173,13 @@ export default function ClientDetails({ client, onEdit, onDelete }: ClientDetail
                   secondary="Last Visit" 
                 />
               </ListItem>
-              {client.notes && (
+              {(client.foodNotes || client.officeNotes) && (
                 <ListItem>
                   <ListItemIcon>
                     <NotesIcon />
                   </ListItemIcon>
                   <ListItemText 
-                    primary={client.notes} 
+                    primary={client.foodNotes || client.officeNotes} 
                     secondary="Notes" 
                   />
                 </ListItem>

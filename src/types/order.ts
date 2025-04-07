@@ -17,7 +17,7 @@ export interface OrderItem {
   notes?: string;
 }
 
-export type OrderStatus = 'pending' | 'approved' | 'denied' | 'confirmed' | 'ready' | 'picked_up' | 'cancelled';
+export type OrderStatus = 'pending' | 'approved' | 'denied' | 'confirmed' | 'ready' | 'picked_up' | 'cancelled' | 'scheduled' | 'no_show';
 
 export type NewOrder = Omit<Order, 'id' | 'createdAt' | 'updatedAt'>;
 export type UpdateOrder = Partial<NewOrder>; 
