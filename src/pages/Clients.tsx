@@ -14,6 +14,17 @@ export default function Clients() {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
+  const getNextFamilyNumber = (): string => {
+    // Find the highest family number currently in use
+    const highestNumber = clients.reduce((max, client) => {
+      const currentNumber = parseInt(client.familyNumber);
+      return isNaN(currentNumber) ? max : Math.max(max, currentNumber);
+    }, 0);
+    
+    // Return the next number
+    return (highestNumber + 1).toString();
+  };
+
   const handleAddClient = () => {
     setSelectedClient(null);
     setViewMode('add');
@@ -46,8 +57,8 @@ export default function Clients() {
     } else {
       const newClient: Client = {
         ...clientData as NewClient,
-        familyNumber: Date.now().toString(),
-        searchKey: `${clientData.firstName}${clientData.lastName}${Date.now().toString()}`,
+        familyNumber: getNextFamilyNumber(),
+        searchKey: `${clientData.firstName}${clientData.lastName}${getNextFamilyNumber()}`,
         familySize: (clientData.adults || 0) + (clientData.schoolAged || 0) + (clientData.smallChildren || 0),
         totalVisits: 0,
         totalThisMonth: 0,

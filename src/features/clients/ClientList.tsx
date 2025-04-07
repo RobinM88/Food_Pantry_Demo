@@ -111,32 +111,67 @@ export default function ClientList({
           View and manage client information
         </Typography>
 
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={6} md={4}>
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={12} md={4}>
+            <Typography 
+              variant="body2" 
+              color="textSecondary"
+              sx={{ mb: 0 }}
+            >
+              Search
+            </Typography>
             <TextField
               fullWidth
-              label="Search Clients"
-              variant="outlined"
+              size="small"
+              placeholder="Search clients..."
               value={searchQuery}
               onChange={handleSearchChange}
+              sx={{
+                height: '40px',
+                '.MuiOutlinedInput-root': {
+                  height: '40px',
+                },
+                '.MuiOutlinedInput-input': {
+                  padding: '8px 14px',
+                  height: '24px',
+                  lineHeight: '24px',
+                },
+                mt: 0
+              }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <SearchIcon />
+                    <SearchIcon color="action" sx={{ ml: 0.5, height: '20px' }} />
                   </InputAdornment>
                 ),
               }}
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={4}>
-            <FormControl fullWidth>
-              <InputLabel>Status</InputLabel>
-              <Select<MemberStatus | 'all'>
+          <Grid item xs={12} md={4}>
+            <Typography 
+              variant="body2" 
+              color="textSecondary"
+              sx={{ mb: 0 }}
+            >
+              Filter by Status
+            </Typography>
+            <FormControl fullWidth size="small">
+              <Select
                 value={filterStatus}
-                label="Status"
                 onChange={(event: SelectChangeEvent<MemberStatus | 'all'>) => {
                   setFilterStatus(event.target.value as MemberStatus | 'all');
                   setPage(0);
+                }}
+                displayEmpty
+                sx={{
+                  height: '40px',
+                  '.MuiSelect-select': {
+                    padding: '8px 14px !important',
+                    height: '24px !important',
+                    lineHeight: '24px !important',
+                    display: 'flex !important',
+                    alignItems: 'center !important',
+                  }
                 }}
               >
                 <MenuItem value="all">All</MenuItem>

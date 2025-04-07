@@ -10,15 +10,9 @@ import {
   Button,
   Chip,
   Divider,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
   IconButton,
-  TextField,
   InputAdornment,
   FormControl,
-  InputLabel,
   Select,
   MenuItem,
   SelectChangeEvent,
@@ -30,7 +24,6 @@ import {
   Snackbar
 } from '@mui/material';
 import {
-  Search as SearchIcon,
   CheckCircle as CheckCircleIcon,
   CalendarToday as CalendarIcon,
   Notes as NotesIcon,
@@ -58,7 +51,6 @@ export default function DailyQueueDashboard({
   onDeleteOrder,
   onAddOrder
 }: DailyQueueDashboardProps) {
-  const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<Order['status'] | 'all'>('all');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -66,17 +58,10 @@ export default function DailyQueueDashboard({
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
-  // Filter orders based on search query and status filter
+  // Filter orders based on status filter only
   const filteredOrders = orders.filter(order => {
-    const searchLower = searchQuery.toLowerCase();
-    const matchesSearch = order.notes?.toLowerCase().includes(searchLower) || '';
-    const matchesStatus = filterStatus === 'all' || order.status === filterStatus;
-    return matchesSearch && matchesStatus;
+    return filterStatus === 'all' || order.status === filterStatus;
   });
-
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(event.target.value);
-  };
 
   const handleFilterChange = (event: SelectChangeEvent) => {
     setFilterStatus(event.target.value as Order['status'] | 'all');
@@ -148,11 +133,21 @@ export default function DailyQueueDashboard({
     const nextStatusOptions = getNextStatusOptions(order.status);
     
     return (
-      <Card key={order.id} sx={{ mb: 2 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+      <Card key={order.id} sx={{ 
+        mb: 2, 
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        <CardContent sx={{ 
+          flex: '1 0 auto', 
+          pb: '8px !important',
+          pt: 1.5,
+          px: 2
+        }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
             <Box>
-              <Typography variant="h6" component="div">
+              <Typography variant="subtitle1" component="div" sx={{ fontWeight: 500 }}>
                 {client ? `${client.firstName} ${client.lastName}` : 'Unknown Client'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -166,37 +161,21 @@ export default function DailyQueueDashboard({
             />
           </Box>
           
-          <Divider sx={{ my: 1 }} />
-          
-          <Typography variant="subtitle2" gutterBottom>
-            Order Details:
-          </Typography>
-          <List dense>
-            <ListItem>
-              <ListItemIcon>
-                <CalendarIcon />
-              </ListItemIcon>
-              <ListItemText 
-                primary="Pickup Date"
-                secondary={order.pickupDate ? format(new Date(order.pickupDate), 'MMMM d, yyyy') : 'Not specified'}
-              />
-            </ListItem>
+          <Box sx={{ mt: 1 }}>
+            <Typography variant="body2" component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+              <CalendarIcon fontSize="small" />
+              Pickup Date: {order.pickupDate ? format(new Date(order.pickupDate), 'MMMM d, yyyy') : 'Not specified'}
+            </Typography>
             {order.notes && (
-              <ListItem>
-                <ListItemIcon>
-                  <NotesIcon />
-                </ListItemIcon>
-                <ListItemText 
-                  primary="Notes"
-                  secondary={order.notes}
-                />
-              </ListItem>
+              <Typography variant="body2" component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <NotesIcon fontSize="small" />
+                Notes: {order.notes}
+              </Typography>
             )}
-          </List>
-          
+          </Box>
         </CardContent>
         
-        <CardActions>
+        <CardActions sx={{ px: 2, py: 1 }}>
           {nextStatusOptions.length > 0 && (
             <Box sx={{ display: 'flex', gap: 1 }}>
               {nextStatusOptions.map(status => (
@@ -236,23 +215,42 @@ export default function DailyQueueDashboard({
     <Box>
       <Paper sx={{ p: 3, mb: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h5" component="h2" gutterBottom>
+          <Typography variant="h5" component="h2">
             Daily Queue Dashboard
           </Typography>
-          {onAddOrder && (
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={onAddOrder}
-              startIcon={<CheckCircleIcon />}
-            >
-              Add New Order
-            </Button>
-          )}
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <Select
+                value={filterStatus}
+                onChange={handleFilterChange}
+                displayEmpty
+                startAdornment={
+                  <InputAdornment position="start">
+                    <FilterIcon />
+                  </InputAdornment>
+                }
+                renderValue={(value) => value === 'all' ? 'All Statuses' : value}
+              >
+                <MenuItem value="all">All Statuses</MenuItem>
+                <MenuItem value="pending">Pending</MenuItem>
+                <MenuItem value="scheduled">Scheduled</MenuItem>
+                <MenuItem value="picked_up">Picked Up</MenuItem>
+                <MenuItem value="cancelled">Cancelled</MenuItem>
+                <MenuItem value="no_show">No Show</MenuItem>
+              </Select>
+            </FormControl>
+            {onAddOrder && (
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={onAddOrder}
+                startIcon={<CheckCircleIcon />}
+              >
+                Add New Order
+              </Button>
+            )}
+          </Box>
         </Box>
-        <Typography variant="body1" color="text.secondary" paragraph>
-          Monitor and update approved orders for packing
-        </Typography>
 
         {/* Summary Statistics */}
         <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -327,47 +325,6 @@ export default function DailyQueueDashboard({
                 Picked Up
               </Typography>
             </Paper>
-          </Grid>
-        </Grid>
-
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              placeholder="Search orders..."
-              value={searchQuery}
-              onChange={handleSearchChange}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
-              <InputLabel id="filter-status-label">Filter by Status</InputLabel>
-              <Select
-                labelId="filter-status-label"
-                value={filterStatus}
-                label="Filter by Status"
-                onChange={handleFilterChange}
-                startAdornment={
-                  <InputAdornment position="start">
-                    <FilterIcon />
-                  </InputAdornment>
-                }
-              >
-                <MenuItem value="all">All Statuses</MenuItem>
-                <MenuItem value="pending">Pending</MenuItem>
-                <MenuItem value="scheduled">Scheduled</MenuItem>
-                <MenuItem value="picked_up">Picked Up</MenuItem>
-                <MenuItem value="cancelled">Cancelled</MenuItem>
-                <MenuItem value="no_show">No Show</MenuItem>
-              </Select>
-            </FormControl>
           </Grid>
         </Grid>
 
