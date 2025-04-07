@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="256" cy="256" r="256" fill="#1976d2"/>
+  
+  <!-- Food Basket -->
+  <path d="M384 192H128C128 128 192 64 256 64C320 64 384 128 384 192Z" fill="white"/>
+  <path d="M384 192H128V384C128 448 192 512 256 512C320 512 384 448 384 384V192Z" fill="white"/>
+  
+  <!-- Food Items -->
+  <rect x="192" y="224" width="128" height="16" rx="8" fill="#1976d2"/>
+  <rect x="192" y="256" width="128" height="16" rx="8" fill="#1976d2"/>
+  <rect x="192" y="288" width="128" height="16" rx="8" fill="#1976d2"/>
+</svg> 
