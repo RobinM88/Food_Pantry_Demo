@@ -40,7 +40,10 @@ const initialFormState: NewServiceRequest = {
   crateStatus: 'pending',
   visitStatus: 'scheduled',
   numberOfBoxes: 0,
-  seasonalItems: []
+  seasonalItems: [],
+  isNewClient: false,
+  approvalStatus: 'pending',
+  deliveryType: 'pickup'
 };
 
 export default function ServiceRequestForm({
@@ -245,10 +248,26 @@ export default function ServiceRequestForm({
               >
                 <MenuItem value="Pick Up">Pick Up</MenuItem>
                 <MenuItem value="Delivery">Delivery</MenuItem>
-                <MenuItem value="Proxy Pick Up">Proxy Pick Up</MenuItem>
               </Select>
             </FormControl>
           </Grid>
+
+          {formData.isNewClient && (
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>Approval Status</InputLabel>
+                <Select
+                  name="approvalStatus"
+                  value={formData.approvalStatus}
+                  onChange={handleSelectChange}
+                >
+                  <MenuItem value="pending">Pending Approval</MenuItem>
+                  <MenuItem value="approved">Approved</MenuItem>
+                  <MenuItem value="denied">Denied</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          )}
 
           <Grid item xs={12}>
             <Divider sx={{ my: 2 }} />

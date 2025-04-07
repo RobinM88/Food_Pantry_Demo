@@ -13,12 +13,12 @@ import {
   Paper,
   SelectChangeEvent
 } from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { NewOrder, OrderStatus } from '../../types/order';
 import { Client } from '../../types/client';
 
 interface OrderFormProps {
   onSubmit: (order: NewOrder) => void;
+  onCancel: () => void;
   initialData?: Partial<NewOrder>;
   clients: Client[];
 }
@@ -28,10 +28,12 @@ const initialFormState: NewOrder = {
   status: 'pending',
   notes: '',
   pickupDate: new Date(),
-  items: []
+  deliveryType: 'pickup',
+  isNewClient: false,
+  approvalStatus: 'pending'
 };
 
-export const OrderForm = ({ onSubmit, initialData, clients }: OrderFormProps) => {
+export const OrderForm = ({ onSubmit, onCancel, initialData, clients }: OrderFormProps) => {
   const [formData, setFormData] = useState<NewOrder>({
     ...initialFormState,
     ...initialData
@@ -58,6 +60,10 @@ export const OrderForm = ({ onSubmit, initialData, clients }: OrderFormProps) =>
         pickupDate: date
       });
     }
+  };
+
+  const handleCancel = () => {
+    onCancel();
   };
 
   return (
@@ -101,6 +107,37 @@ export const OrderForm = ({ onSubmit, initialData, clients }: OrderFormProps) =>
           </Grid>
 
           <Grid item xs={12}>
+            <FormControl fullWidth>
+              <InputLabel>Delivery Type</InputLabel>
+              <Select
+                value={formData.deliveryType}
+                onChange={handleChange('deliveryType')}
+                label="Delivery Type"
+              >
+                <MenuItem value="pickup">Pickup</MenuItem>
+                <MenuItem value="delivery">Delivery</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          {formData.isNewClient && (
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Approval Status</InputLabel>
+                <Select
+                  value={formData.approvalStatus}
+                  onChange={handleChange('approvalStatus')}
+                  label="Approval Status"
+                >
+                  <MenuItem value="pending">Pending Approval</MenuItem>
+                  <MenuItem value="approved">Approved</MenuItem>
+                  <MenuItem value="denied">Denied</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          )}
+
+          <Grid item xs={12}>
             <TextField
               fullWidth
               type="date"
@@ -134,7 +171,7 @@ export const OrderForm = ({ onSubmit, initialData, clients }: OrderFormProps) =>
 
           <Grid item xs={12}>
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-              <Button variant="outlined" type="button">
+              <Button variant="outlined" type="button" onClick={handleCancel}>
                 Cancel
               </Button>
               <Button variant="contained" type="submit">

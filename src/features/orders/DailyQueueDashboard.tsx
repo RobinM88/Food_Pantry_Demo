@@ -31,13 +31,13 @@ import {
   Delete as DeleteIcon,
   FilterList as FilterIcon
 } from '@mui/icons-material';
-import { Order, Client } from '../../types';
+import { Order, Client, OrderStatus } from '../../types';
 import { format } from 'date-fns';
 
 interface DailyQueueDashboardProps {
   orders: Order[];
   clients: Client[];
-  onStatusChange: (order: Order, newStatus: Order['status']) => void;
+  onStatusChange: (order: Order, newStatus: OrderStatus) => void;
   onEditOrder: (order: Order) => void;
   onDeleteOrder: (order: Order) => void;
   onAddOrder: () => void;
@@ -51,7 +51,7 @@ export default function DailyQueueDashboard({
   onDeleteOrder,
   onAddOrder
 }: DailyQueueDashboardProps) {
-  const [filterStatus, setFilterStatus] = useState<Order['status'] | 'all'>('all');
+  const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all'>('all');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -64,10 +64,10 @@ export default function DailyQueueDashboard({
   });
 
   const handleFilterChange = (event: SelectChangeEvent) => {
-    setFilterStatus(event.target.value as Order['status'] | 'all');
+    setFilterStatus(event.target.value as OrderStatus | 'all');
   };
 
-  const handleStatusChange = (order: Order, newStatus: Order['status']) => {
+  const handleStatusChange = (order: Order, newStatus: OrderStatus) => {
     onStatusChange(order, newStatus);
     setSnackbarMessage(`Order status updated to ${newStatus}`);
     setSnackbarSeverity('success');
@@ -97,29 +97,40 @@ export default function DailyQueueDashboard({
     setSnackbarOpen(false);
   };
 
-  const getStatusColor = (status: Order['status']) => {
+  const getStatusColor = (status: OrderStatus) => {
     switch (status) {
       case 'pending':
         return 'warning';
-      case 'scheduled':
+      case 'approved':
         return 'info';
+      case 'scheduled':
+        return 'primary';
+      case 'ready':
+        return 'success';
       case 'picked_up':
         return 'success';
       case 'cancelled':
       case 'no_show':
+        return 'error';
+      case 'denied':
         return 'error';
       default:
         return 'default';
     }
   };
 
-  const getNextStatusOptions = (currentStatus: Order['status']): Order['status'][] => {
+  const getNextStatusOptions = (currentStatus: OrderStatus): OrderStatus[] => {
     switch (currentStatus) {
       case 'pending':
+        return ['approved', 'denied', 'cancelled'];
+      case 'approved':
         return ['scheduled', 'cancelled'];
       case 'scheduled':
+        return ['ready', 'cancelled', 'no_show'];
+      case 'ready':
         return ['picked_up', 'no_show', 'cancelled'];
       case 'picked_up':
+      case 'denied':
       case 'cancelled':
       case 'no_show':
         return [];
@@ -232,8 +243,8 @@ export default function DailyQueueDashboard({
                 renderValue={(value) => value === 'all' ? 'All Statuses' : value}
               >
                 <MenuItem value="all">All Statuses</MenuItem>
-                <MenuItem value="pending">Pending</MenuItem>
                 <MenuItem value="scheduled">Scheduled</MenuItem>
+                <MenuItem value="ready">Ready</MenuItem>
                 <MenuItem value="picked_up">Picked Up</MenuItem>
                 <MenuItem value="cancelled">Cancelled</MenuItem>
                 <MenuItem value="no_show">No Show</MenuItem>

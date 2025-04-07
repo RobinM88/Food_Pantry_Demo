@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Box, Button, Tabs, Tab, Typography } from '@mui/material';
+import { Box, Button, Tabs, Tab, Typography, Paper } from '@mui/material';
 import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import DailyQueueDashboard from '../features/orders/DailyQueueDashboard';
+import PendingApprovalsDashboard from '../features/orders/PendingApprovalsDashboard';
 import { OrderForm } from '../features/orders/OrderForm';
 import OrderDetails from '../features/orders/OrderDetails';
-import { Order, NewOrder, UpdateOrder, Client } from '../types';
+import { Order, NewOrder, UpdateOrder, Client, OrderStatus } from '../types';
 import { mockOrders, mockClients } from '../utils/mockData';
 
 type ViewMode = 'dashboard' | 'add' | 'edit' | 'view';
@@ -39,7 +40,7 @@ export default function DailyQueue() {
     }
   };
 
-  const handleStatusChange = (order: Order, newStatus: Order['status']) => {
+  const handleStatusChange = (order: Order, newStatus: OrderStatus) => {
     const updatedOrder: Order = {
       ...order,
       status: newStatus,
@@ -120,12 +121,16 @@ export default function DailyQueue() {
       default:
         // Filter orders based on selected tab
         let filteredOrders = [...orders];
+        
+        // Exclude pending orders from the queue dashboard
+        filteredOrders = filteredOrders.filter(order => order.status !== 'pending');
+        
         if (selectedTab === 1) {
-          filteredOrders = orders.filter(order => order.status === 'approved');
+          filteredOrders = filteredOrders.filter(order => order.status === 'scheduled');
         } else if (selectedTab === 2) {
-          filteredOrders = orders.filter(order => order.status === 'ready');
+          filteredOrders = filteredOrders.filter(order => order.status === 'ready');
         } else if (selectedTab === 3) {
-          filteredOrders = orders.filter(order => order.status === 'picked_up');
+          filteredOrders = filteredOrders.filter(order => order.status === 'picked_up');
         }
         
         return (
@@ -133,11 +138,25 @@ export default function DailyQueue() {
             <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
               <Tabs value={selectedTab} onChange={handleTabChange} aria-label="daily queue tabs">
                 <Tab label="All Orders" />
-                <Tab label="Approved" />
+                <Tab label="Scheduled" />
                 <Tab label="Ready" />
                 <Tab label="Picked Up" />
               </Tabs>
             </Box>
+            
+            <Box sx={{ mb: 4 }}>
+              <PendingApprovalsDashboard 
+                orders={orders}
+                clients={clients}
+                onStatusChange={handleStatusChange}
+                onEditOrder={handleEditOrder}
+                onDeleteOrder={handleDeleteOrder}
+              />
+            </Box>
+            
+            <Typography variant="h5" gutterBottom>
+              Order Queue
+            </Typography>
             
             <DailyQueueDashboard 
               orders={filteredOrders}

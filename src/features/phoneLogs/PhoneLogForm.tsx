@@ -560,6 +560,7 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
         <DialogContent>
           <OrderForm
             onSubmit={handleOrderSubmit}
+            onCancel={() => setOrderDialogOpen(false)}
             initialData={selectedClient ? { clientId: selectedClient.familyNumber } : undefined}
             clients={clients}
           />
