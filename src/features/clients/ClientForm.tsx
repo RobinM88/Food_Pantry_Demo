@@ -21,6 +21,7 @@ interface ClientFormProps {
   client?: Client;
   onSubmit: (client: NewClient | UpdateClient) => void;
   onCancel: () => void;
+  initialData?: Partial<NewClient>;
 }
 
 const initialFormState: NewClient = {
@@ -54,10 +55,12 @@ const initialFormState: NewClient = {
 export default function ClientForm({ 
   client, 
   onSubmit, 
-  onCancel
+  onCancel,
+  initialData
 }: ClientFormProps) {
   const [formData, setFormData] = useState<NewClient>({
     ...initialFormState,
+    ...initialData,
     temporaryMembers: undefined
   });
   const [errors, setErrors] = useState<Record<string, string>>({});

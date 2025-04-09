@@ -240,21 +240,20 @@ const PhoneLogs: React.FC = () => {
   return (
     <Box>
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h5" component="h2" gutterBottom>
-          Phone Logs
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h5" component="h2">
+            Phone Logs
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleAddPhoneLog}
+          >
+            Add Phone Log
+          </Button>
+        </Box>
         {renderContent()}
       </Paper>
-
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleAddPhoneLog}
-        >
-          Add Phone Log
-        </Button>
-      </Box>
 
       <Dialog
         open={formDialogOpen}
@@ -312,7 +311,6 @@ const PhoneLogs: React.FC = () => {
         open={notification.open}
         autoHideDuration={6000}
         onClose={handleCloseNotification}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
         <Alert
           onClose={handleCloseNotification}

@@ -226,6 +226,7 @@ export default function Clients() {
         const state = location.state as { 
           fromPhoneLog?: boolean; 
           phoneNumber?: string;
+          nameSearch?: string;
           phoneLogState?: any;
         } | null;
         
@@ -235,6 +236,7 @@ export default function Clients() {
             state: {
               fromClientAdd: true,
               phoneNumber: clientData.phone1,
+              nameSearch: state.nameSearch,
               phoneLogState: state.phoneLogState
             },
             replace: true
@@ -303,6 +305,11 @@ export default function Clients() {
           <ClientForm
             onSubmit={handleSaveClient}
             onCancel={handleCancel}
+            initialData={location.state?.nameSearch ? {
+              firstName: location.state.nameSearch.split(' ')[0] || '',
+              lastName: location.state.nameSearch.split(' ').slice(1).join(' ') || '',
+              phone1: location.state.phoneNumber || ''
+            } : undefined}
           />
         } />
         <Route path="/edit" element={
