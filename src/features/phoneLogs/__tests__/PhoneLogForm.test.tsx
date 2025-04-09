@@ -3,31 +3,37 @@ import userEvent from '@testing-library/user-event';
 import PhoneLogForm from '../PhoneLogForm';
 import { Client, PhoneLog, MemberStatus } from '../../../types';
 
-const mockClients: Client[] = [
-  {
-    familyNumber: '1',
-    searchKey: 'johndoe1',
-    firstName: 'John',
-    lastName: 'Doe',
-    phone1: '(555) 123-4567',
-    phone2: '',
-    address: '123 Main St',
-    aptNumber: '',
-    zipCode: '12345',
-    adults: 1,
-    schoolAged: 1,
-    smallChildren: 1,
-    familySize: 3,
-    foodNotes: 'Prefers gluten-free items',
-    officeNotes: '',
-    totalVisits: 5,
-    totalThisMonth: 1,
-    connectedFamilies: [],
-    memberStatus: MemberStatus.Active,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  }
-];
+const mockClient: Client = {
+  familyNumber: 'f1',
+  firstName: 'John',
+  lastName: 'Doe',
+  email: 'john.doe@example.com',
+  address: '123 Main St',
+  aptNumber: '',
+  zipCode: '12345',
+  phone1: '(555) 123-4567',
+  phone2: '',
+  isUnhoused: false,
+  isTemporary: false,
+  adults: 1,
+  schoolAged: 0,
+  smallChildren: 0,
+  temporaryMembers: {
+    adults: 0,
+    schoolAged: 0,
+    smallChildren: 0
+  },
+  familySize: 1,
+  foodNotes: 'Prefers gluten-free items',
+  officeNotes: '',
+  totalVisits: 5,
+  totalThisMonth: 1,
+  connectedFamilies: [],
+  memberStatus: MemberStatus.Active,
+  createdAt: new Date('2023-01-15'),
+  updatedAt: new Date('2023-01-15'),
+  lastVisit: new Date('2023-03-10')
+};
 
 describe('PhoneLogForm', () => {
   const mockOnSavePhoneLog = jest.fn();
@@ -42,7 +48,7 @@ describe('PhoneLogForm', () => {
     it('should start with the Call Information step', () => {
       render(
         <PhoneLogForm
-          clients={mockClients}
+          clients={[mockClient]}
           onSavePhoneLog={mockOnSavePhoneLog}
           onSaveClient={mockOnSaveClient}
           onSaveOrder={mockOnSaveOrder}
@@ -59,7 +65,7 @@ describe('PhoneLogForm', () => {
       const user = userEvent.setup();
       render(
         <PhoneLogForm
-          clients={mockClients}
+          clients={[mockClient]}
           onSavePhoneLog={mockOnSavePhoneLog}
           onSaveClient={mockOnSaveClient}
           onSaveOrder={mockOnSaveOrder}
@@ -75,7 +81,7 @@ describe('PhoneLogForm', () => {
       const user = userEvent.setup();
       render(
         <PhoneLogForm
-          clients={mockClients}
+          clients={[mockClient]}
           onSavePhoneLog={mockOnSavePhoneLog}
           onSaveClient={mockOnSaveClient}
           onSaveOrder={mockOnSaveOrder}
@@ -100,7 +106,7 @@ describe('PhoneLogForm', () => {
       const user = userEvent.setup();
       render(
         <PhoneLogForm
-          clients={mockClients}
+          clients={[mockClient]}
           onSavePhoneLog={mockOnSavePhoneLog}
           onSaveClient={mockOnSaveClient}
           onSaveOrder={mockOnSaveOrder}
@@ -135,7 +141,7 @@ describe('PhoneLogForm', () => {
       const user = userEvent.setup();
       render(
         <PhoneLogForm
-          clients={mockClients}
+          clients={[mockClient]}
           onSavePhoneLog={mockOnSavePhoneLog}
           onSaveClient={mockOnSaveClient}
           onSaveOrder={mockOnSaveOrder}
@@ -203,7 +209,7 @@ describe('PhoneLogForm', () => {
       const user = userEvent.setup();
       render(
         <PhoneLogForm
-          clients={mockClients}
+          clients={[mockClient]}
           onSavePhoneLog={mockOnSavePhoneLog}
           onSaveClient={mockOnSaveClient}
           onSaveOrder={mockOnSaveOrder}
@@ -260,7 +266,7 @@ describe('PhoneLogForm', () => {
           callType: 'incoming',
           phoneNumber: '(555) 123-4567',
           callOutcome: 'completed',
-          clientId: '1'
+          clientId: 'f1'
         })
       );
     });

@@ -30,19 +30,26 @@ const mockPhoneLog: PhoneLog = {
 };
 
 const mockClient: Client = {
-  familyNumber: '1',
-  searchKey: 'johndoe1',
+  familyNumber: 'f1',
   firstName: 'John',
   lastName: 'Doe',
-  phone1: '(555) 123-4567',
-  phone2: '',
+  email: 'john.doe@example.com',
   address: '123 Main St',
   aptNumber: '',
   zipCode: '12345',
+  phone1: '(555) 123-4567',
+  phone2: '',
+  isUnhoused: false,
+  isTemporary: false,
   adults: 1,
-  schoolAged: 1,
-  smallChildren: 1,
-  familySize: 3,
+  schoolAged: 0,
+  smallChildren: 0,
+  temporaryMembers: {
+    adults: 0,
+    schoolAged: 0,
+    smallChildren: 0
+  },
+  familySize: 1,
   foodNotes: 'Prefers gluten-free items',
   officeNotes: '',
   totalVisits: 5,

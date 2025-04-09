@@ -16,13 +16,11 @@ import {
 } from '@mui/material';
 import { Client, NewClient, UpdateClient, MemberStatus } from '../../types';
 import { formatPhoneNumber, isValidUSPhoneNumber } from '../../utils/phoneNumberUtils';
-import { addNewClient, updateClient } from '../../utils/testDataUtils';
 
 interface ClientFormProps {
   client?: Client;
   onSubmit: (client: NewClient | UpdateClient) => void;
   onCancel: () => void;
-  isEdit?: boolean;
 }
 
 const initialFormState: NewClient = {
@@ -48,43 +46,55 @@ const initialFormState: NewClient = {
   foodNotes: '',
   officeNotes: '',
   connectedFamilies: [],
-  memberStatus: MemberStatus.Pending
+  memberStatus: MemberStatus.Pending,
+  totalVisits: 0,
+  totalThisMonth: 0
 };
 
 export default function ClientForm({ 
   client, 
   onSubmit, 
-  onCancel,
-  isEdit = false
+  onCancel
 }: ClientFormProps) {
-  const [formData, setFormData] = useState<NewClient>(initialFormState);
+  const [formData, setFormData] = useState<NewClient>({
+    ...initialFormState,
+    temporaryMembers: undefined
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (client) {
-      setFormData({
-        ...client,
-        // Remove calculated fields
-        searchKey: undefined,
-        familySize: undefined,
-        totalVisits: undefined,
-        totalThisMonth: undefined,
-        softAddressCheck: undefined,
-        hardAddressCheck: undefined,
-        phoneCheck1: undefined,
-        phoneCheck2: undefined,
-        createdAt: undefined,
-        updatedAt: undefined,
-        lastVisit: undefined
-      } as NewClient);
+      const { createdAt, updatedAt, lastVisit, familySize, ...clientData } = client;
+      const newFormData: NewClient = {
+        ...clientData,
+        email: client.email || '',
+        aptNumber: client.aptNumber || '',
+        phone2: client.phone2 || '',
+        temporaryMembers: client.isTemporary ? {
+          adults: client.temporaryMembers?.adults ?? 0,
+          schoolAged: client.temporaryMembers?.schoolAged ?? 0,
+          smallChildren: client.temporaryMembers?.smallChildren ?? 0
+        } : undefined,
+        foodNotes: client.foodNotes || '',
+        officeNotes: client.officeNotes || '',
+        connectedFamilies: client.connectedFamilies || []
+      };
+      setFormData(newFormData);
     }
   }, [client]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    let processedValue = value;
+    
+    // Convert names to lowercase
+    if (name === 'firstName' || name === 'lastName') {
+      processedValue = value.toLowerCase();
+    }
+
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: processedValue
     }));
     
     if (errors[name]) {
@@ -105,21 +115,29 @@ export default function ClientForm({
     }));
   };
 
-  const handleTemporaryMemberChange = (field: keyof typeof formData.temporaryMembers) => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTemporaryMemberChange = (field: 'adults' | 'schoolAged' | 'smallChildren') => (e: React.ChangeEvent<HTMLInputElement>) => {
     const numValue = parseInt(e.target.value) || 0;
     setFormData(prev => ({
       ...prev,
       temporaryMembers: {
-        ...prev.temporaryMembers,
+        adults: prev.temporaryMembers?.adults ?? 0,
+        schoolAged: prev.temporaryMembers?.schoolAged ?? 0,
+        smallChildren: prev.temporaryMembers?.smallChildren ?? 0,
         [field]: numValue
       }
     }));
   };
 
   const handleCheckboxChange = (field: 'isUnhoused' | 'isTemporary') => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
     setFormData(prev => ({
       ...prev,
-      [field]: e.target.checked
+      [field]: checked,
+      temporaryMembers: checked && field === 'isTemporary' ? {
+        adults: 0,
+        schoolAged: 0,
+        smallChildren: 0
+      } : undefined
     }));
   };
 
@@ -154,12 +172,18 @@ export default function ClientForm({
       newErrors.email = 'Please enter a valid email address';
     }
     
-    if (formData.phone1 && !isValidUSPhoneNumber(formData.phone1)) {
+    if (!formData.phone1 || !isValidUSPhoneNumber(formData.phone1)) {
       newErrors.phone1 = 'Please enter a valid US phone number';
     }
     
     if (formData.phone2 && !isValidUSPhoneNumber(formData.phone2)) {
       newErrors.phone2 = 'Please enter a valid US phone number';
+    }
+
+    if (formData.isUnhoused && !formData.zipCode.trim()) {
+      newErrors.zipCode = 'ZIP code is required for unhoused clients';
+    } else if (!formData.isUnhoused && !formData.address.trim()) {
+      newErrors.address = 'Address is required for non-unhoused clients';
     }
     
     if (formData.adults < 1) {
@@ -174,7 +198,7 @@ export default function ClientForm({
       newErrors.smallChildren = 'Cannot be negative';
     }
 
-    if (formData.isTemporary) {
+    if (formData.isTemporary && formData.temporaryMembers) {
       if (formData.temporaryMembers.adults < 0) {
         newErrors.temporaryAdults = 'Cannot be negative';
       }
@@ -186,34 +210,36 @@ export default function ClientForm({
       }
     }
     
+    console.log('Form validation errors:', newErrors);
+    console.log('Form data:', formData);
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submit triggered');
     
     if (validateForm()) {
-      if (isEdit && client) {
-        // Update existing client
-        const updatedClient: Client = {
-          ...client,
-          ...formData,
-          updatedAt: new Date()
-        };
-        updateClient(updatedClient);
-      } else {
-        // Add new client
-        addNewClient(formData);
-      }
-      onSubmit(formData);
+      // Create a copy of form data and remove temporaryMembers if not temporary
+      const submissionData = {
+        ...formData,
+        // Only include temporaryMembers if isTemporary is true
+        temporaryMembers: formData.isTemporary ? formData.temporaryMembers : undefined
+      };
+      
+      console.log('Form validation passed, submitting data:', submissionData);
+      onSubmit(submissionData);
+    } else {
+      console.log('Form validation failed');
     }
   };
 
   return (
     <Paper sx={{ p: 3 }}>
       <Typography variant="h5" gutterBottom>
-        {isEdit ? 'Edit Client' : 'Add New Client'}
+        {client ? 'Update Client' : 'Add New Client'}
       </Typography>
       
       <Box component="form" onSubmit={handleSubmit} noValidate>
@@ -418,12 +444,14 @@ export default function ClientForm({
             />
           </Grid>
 
-          {formData.isTemporary && (
+          {formData.isTemporary && formData.temporaryMembers && (
             <>
               <Grid item xs={12}>
-                <Typography variant="subtitle1">Temporary Household Members</Typography>
+                <Typography variant="subtitle1" gutterBottom>
+                  Temporary Family Members
+                </Typography>
               </Grid>
-
+              
               <Grid item xs={12} sm={4}>
                 <TextField
                   fullWidth
@@ -509,6 +537,8 @@ export default function ClientForm({
                 <MenuItem value={MemberStatus.Active}>Active</MenuItem>
                 <MenuItem value={MemberStatus.Inactive}>Inactive</MenuItem>
                 <MenuItem value={MemberStatus.Pending}>Pending</MenuItem>
+                <MenuItem value={MemberStatus.Suspended}>Suspended</MenuItem>
+                <MenuItem value={MemberStatus.Banned}>Banned</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -518,8 +548,12 @@ export default function ClientForm({
           <Button onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" variant="contained" color="primary">
-            {isEdit ? 'Update Client' : 'Add Client'}
+          <Button 
+            type="submit"
+            variant="contained" 
+            color="primary"
+          >
+            {client ? 'Update Client' : 'Add Client'}
           </Button>
         </Box>
       </Box>

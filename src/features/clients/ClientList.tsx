@@ -94,6 +94,9 @@ export default function ClientList({
   };
 
   const handleEditClient = (client: Client) => {
+    // Close the details dialog if it's open
+    setDetailsDialogOpen(false);
+    // Call the parent's edit handler
     onEditClient(client);
   };
 
@@ -178,6 +181,8 @@ export default function ClientList({
                 <MenuItem value={MemberStatus.Active}>Active</MenuItem>
                 <MenuItem value={MemberStatus.Inactive}>Inactive</MenuItem>
                 <MenuItem value={MemberStatus.Pending}>Pending</MenuItem>
+                <MenuItem value={MemberStatus.Suspended}>Suspended</MenuItem>
+                <MenuItem value={MemberStatus.Banned}>Banned</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -278,7 +283,10 @@ export default function ClientList({
           {selectedClient && (
             <ClientDetails
               client={selectedClient}
-              onEdit={onEditClient}
+              onEdit={(client) => {
+                handleCloseDetailsDialog();
+                onEditClient(client);
+              }}
               onDelete={onDeleteClient}
             />
           )}

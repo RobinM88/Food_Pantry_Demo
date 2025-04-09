@@ -82,23 +82,37 @@ const PhoneLogs: React.FC = () => {
       setClients(updatedClients);
     } else {
       // This is a NewClient
-      if (!clientData.firstName || !clientData.lastName) {
-        return; // Don't proceed if required fields are missing
+      if (!clientData.firstName || !clientData.lastName || 
+          !clientData.phone1 || !clientData.zipCode ||
+          (!clientData.isUnhoused && !clientData.address)) {
+        setNotification({
+          open: true,
+          message: 'Please fill in all required fields',
+          severity: 'error',
+        });
+        return;
       }
       const newFamilyNumber = generateNextFamilyNumber(clients);
       const newClient: Client = {
         familyNumber: newFamilyNumber,
-        searchKey: `${clientData.firstName.toLowerCase()}${clientData.lastName.toLowerCase()}${newFamilyNumber}`,
         firstName: clientData.firstName,
         lastName: clientData.lastName,
-        address: clientData.address || '',
-        aptNumber: clientData.aptNumber || '',
-        zipCode: clientData.zipCode || '',
-        phone1: clientData.phone1 || '',
+        email: clientData.email || '',
+        address: clientData.isUnhoused ? '' : (clientData.address || ''),
+        aptNumber: clientData.isUnhoused ? '' : (clientData.aptNumber || ''),
+        zipCode: clientData.zipCode,
+        phone1: clientData.phone1,
         phone2: clientData.phone2 || '',
+        isUnhoused: clientData.isUnhoused || false,
+        isTemporary: clientData.isTemporary || false,
         adults: clientData.adults || 0,
         schoolAged: clientData.schoolAged || 0,
         smallChildren: clientData.smallChildren || 0,
+        temporaryMembers: clientData.temporaryMembers || {
+          adults: 0,
+          schoolAged: 0,
+          smallChildren: 0
+        },
         familySize: (clientData.adults || 0) + (clientData.schoolAged || 0) + (clientData.smallChildren || 0),
         foodNotes: clientData.foodNotes || '',
         officeNotes: clientData.officeNotes || '',
@@ -115,6 +129,18 @@ const PhoneLogs: React.FC = () => {
     setNotification({
       open: true,
       message: 'Client saved successfully',
+      severity: 'success',
+    });
+  };
+
+  const handleSaveOrder = (orderData: any) => {
+    // In a real application, you would save the order data to your backend
+    // For now, we'll just show a success notification
+    console.log('Order saved:', orderData);
+    
+    setNotification({
+      open: true,
+      message: 'Order saved successfully',
       severity: 'success',
     });
   };
@@ -143,13 +169,7 @@ const PhoneLogs: React.FC = () => {
             clients={clients}
             onSavePhoneLog={handleSavePhoneLog}
             onSaveClient={handleSaveClient}
-            onSaveOrder={() => {
-              setNotification({
-                open: true,
-                message: 'Order saved successfully',
-                severity: 'success',
-              });
-            }}
+            onSaveOrder={handleSaveOrder}
           />
         );
       case 'details':
@@ -206,13 +226,7 @@ const PhoneLogs: React.FC = () => {
             clients={clients}
             onSavePhoneLog={handleSavePhoneLog}
             onSaveClient={handleSaveClient}
-            onSaveOrder={() => {
-              setNotification({
-                open: true,
-                message: 'Order saved successfully',
-                severity: 'success',
-              });
-            }}
+            onSaveOrder={handleSaveOrder}
           />
         </DialogContent>
         <DialogActions>

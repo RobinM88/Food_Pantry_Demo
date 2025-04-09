@@ -1,0 +1,57 @@
+Required Fields Documentation
+
+NewClient Required Fields:
+1. familyNumber
+2. firstName
+3. lastName
+4. address
+5. zipCode
+6. phone1
+7. isUnhoused
+8. isTemporary
+9. adults
+10. schoolAged
+11. smallChildren
+12. temporaryMembers (required object with adults, schoolAged, smallChildren)
+13. memberStatus
+
+Client Required Fields:
+1. familyNumber
+2. 
+3. firstName
+4. lastName
+5. address
+6. zipCode
+7. phone1
+8. isUnhoused
+9. isTemporary
+10. adults
+11. schoolAged
+12. smallChildren
+13. familySize
+14. totalVisits
+15. totalThisMonth
+16. memberStatus
+17. createdAt
+18. updatedAt
+
+Optional Fields (in both interfaces):
+1. email
+2. aptNumber
+3. phone2
+4. foodNotes
+5. officeNotes
+6. connectedFamilies
+
+Key Differences:
+1. Client requires more calculated fields:
+   - searchKey
+   - familySize
+   - totalVisits
+   - totalThisMonth
+
+2. Client requires system fields:
+   - createdAt
+   - updatedAt
+
+3. NewClient requires temporaryMembers while it's optional in Client 

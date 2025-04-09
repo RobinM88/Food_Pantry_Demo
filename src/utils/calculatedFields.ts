@@ -1,8 +1,4 @@
-import { Client, ServiceRequest } from '../types';
-
-export const calculateSearchKey = (client: Client): string => {
-  return `${client.firstName}${client.lastName}${client.familyNumber}`.toLowerCase();
-};
+import { Client, Order } from '../types';
 
 export const calculateFamilySize = (client: Client): number => {
   const baseSize = client.adults + client.schoolAged + client.smallChildren;
@@ -55,36 +51,30 @@ export const calculatePhoneMatches = (
   return { phone1Matches, phone2Matches };
 };
 
-export const calculateVisitTotals = (
-  serviceRequests: ServiceRequest[],
-  familyNumber: string
-): { totalVisits: number; totalThisMonth: number } => {
-  const now = new Date();
-  const thisMonth = now.getMonth();
-  const thisYear = now.getFullYear();
-
-  const clientVisits = serviceRequests.filter(sr => sr.familySearchId === familyNumber);
-  
-  const totalVisits = clientVisits.length;
-  const totalThisMonth = clientVisits.filter(visit => {
-    const visitDate = new Date(visit.assignedVisitDate);
-    return visitDate.getMonth() === thisMonth && visitDate.getFullYear() === thisYear;
-  }).length;
-
-  return { totalVisits, totalThisMonth };
+export const calculateTotalVisits = (
+  familyNumber: string,
+  orders: Order[]
+): number => {
+  const clientVisits = orders.filter(order => order.familySearchId === familyNumber);
+  return clientVisits.length;
 };
 
-export const calculateVisitTotalsForRequest = (
-  client: Client,
-  additionalPeople: ServiceRequest['additionalPeople']
-): ServiceRequest['visitTotals'] => {
+export const calculateVisitTotals = (
+  additionalPeople: {
+    adults: number;
+    smallChildren: number;
+    schoolAged: number;
+  }
+): {
+  adults: number;
+  smallChildren: number;
+  schoolAged: number;
+  total: number;
+} => {
   return {
-    adults: client.adults + (additionalPeople.adults || 0),
-    smallChildren: client.smallChildren + (additionalPeople.smallChildren || 0),
-    schoolAged: client.schoolAged + (additionalPeople.schoolAged || 0),
-    total: calculateFamilySize(client) + 
-           (additionalPeople.adults || 0) + 
-           (additionalPeople.smallChildren || 0) + 
-           (additionalPeople.schoolAged || 0)
+    adults: additionalPeople.adults,
+    smallChildren: additionalPeople.smallChildren,
+    schoolAged: additionalPeople.schoolAged,
+    total: additionalPeople.adults + additionalPeople.smallChildren + additionalPeople.schoolAged
   };
 }; 

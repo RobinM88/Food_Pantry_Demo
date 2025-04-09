@@ -3,7 +3,6 @@ import { Client, Order, PhoneLog, MemberStatus } from '../types';
 export const mockClients: Client[] = [
   {
     familyNumber: 'f1',
-    searchKey: 'johndoe1',
     firstName: 'John',
     lastName: 'Doe',
     email: 'john.doe@example.com',
@@ -35,7 +34,6 @@ export const mockClients: Client[] = [
   },
   {
     familyNumber: 'f2',
-    searchKey: 'janesmith2',
     firstName: 'Jane',
     lastName: 'Smith',
     email: 'jane.smith@example.com',
@@ -67,7 +65,6 @@ export const mockClients: Client[] = [
   },
   {
     familyNumber: 'f3',
-    searchKey: 'bobjohnson3',
     firstName: 'Bob',
     lastName: 'Johnson',
     email: 'bob.johnson@example.com',
@@ -105,37 +102,105 @@ export const mockOrders: Order[] = [
     familySearchId: '1',
     status: 'pending',
     notes: 'Gluten-free items requested',
-    pickupDate: '2024-03-20',
+    pickupDate: new Date('2024-03-20'),
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
+    deliveryType: 'pickup',
+    isNewClient: false,
+    approvalStatus: 'pending',
+    numberOfBoxes: 2,
+    additionalPeople: {
+      adults: 0,
+      smallChildren: 0,
+      schoolAged: 0
+    },
+    visitTotals: {
+      adults: 1,
+      smallChildren: 0,
+      schoolAged: 0,
+      total: 1
+    },
+    seasonalItems: ['Spring vegetables'],
+    visitContact: '(555) 123-4567'
   },
   {
     id: '2',
     familySearchId: '2',
     status: 'scheduled',
     notes: 'Client requested low-sodium options',
-    pickupDate: '2023-04-02',
-    createdAt: new Date('2023-03-26'),
-    updatedAt: new Date('2023-03-26'),
+    pickupDate: new Date('2023-04-02'),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    deliveryType: 'delivery',
+    isNewClient: false,
+    approvalStatus: 'approved',
+    numberOfBoxes: 3,
+    additionalPeople: {
+      adults: 1,
+      smallChildren: 0,
+      schoolAged: 0
+    },
+    visitTotals: {
+      adults: 3,
+      smallChildren: 0,
+      schoolAged: 0,
+      total: 3
+    },
+    seasonalItems: ['Spring vegetables', 'Fruits'],
+    visitContact: '(555) 987-6543'
   },
   {
     id: '3',
     familySearchId: '3',
-    status: 'scheduled',
-    notes: 'Client requested gluten-free options',
-    pickupDate: '2023-04-03',
-    createdAt: new Date('2023-03-27'),
-    updatedAt: new Date('2023-03-27'),
+    status: 'picked_up',
+    notes: 'Client requested extra fruits',
+    pickupDate: new Date('2023-03-15'),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    deliveryType: 'pickup',
+    isNewClient: true,
+    approvalStatus: 'approved',
+    numberOfBoxes: 1,
+    additionalPeople: {
+      adults: 0,
+      smallChildren: 0,
+      schoolAged: 0
+    },
+    visitTotals: {
+      adults: 1,
+      smallChildren: 0,
+      schoolAged: 0,
+      total: 1
+    },
+    seasonalItems: ['Fruits'],
+    visitContact: '(555) 555-5555'
   },
   {
     id: '4',
     familySearchId: '1',
-    status: 'picked_up',
-    notes: 'Client picked up on time',
-    pickupDate: '2023-03-20',
-    createdAt: new Date('2023-03-15'),
-    updatedAt: new Date('2023-03-20'),
-  },
+    status: 'cancelled',
+    notes: 'Client called to cancel',
+    pickupDate: new Date('2023-03-10'),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    deliveryType: 'pickup',
+    isNewClient: false,
+    approvalStatus: 'denied',
+    numberOfBoxes: 2,
+    additionalPeople: {
+      adults: 0,
+      smallChildren: 0,
+      schoolAged: 0
+    },
+    visitTotals: {
+      adults: 1,
+      smallChildren: 0,
+      schoolAged: 0,
+      total: 1
+    },
+    seasonalItems: ['Spring vegetables'],
+    visitContact: '(555) 123-4567'
+  }
 ];
 
 export const mockPhoneLogs: PhoneLog[] = [

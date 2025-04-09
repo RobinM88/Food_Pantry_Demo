@@ -2,13 +2,14 @@
 export enum MemberStatus {
   Active = 'active',
   Inactive = 'inactive',
-  Pending = 'pending'
+  Pending = 'pending',
+  Suspended = 'suspended',
+  Banned = 'banned'
 }
 
 export interface Client {
   // Primary identifiers
   familyNumber: string;
-  searchKey: string;          // Calculated: firstName + lastName + familyNumber
   
   // Basic information
   firstName: string;
@@ -28,9 +29,9 @@ export interface Client {
   adults: number;
   schoolAged: number;
   smallChildren: number;
-  familySize: number;         // Calculated: adults + schoolAged + smallChildren
+  familySize: number; // Total family size including temporary members
   
-  // Temporary family members (if isTemporary is true)
+  // Temporary family members (only present if isTemporary is true)
   temporaryMembers?: {
     adults: number;
     schoolAged: number;
@@ -42,16 +43,10 @@ export interface Client {
   officeNotes?: string;
   
   // Tracking and relationships
-  totalVisits: number;        // Calculated from ServiceRequests
-  totalThisMonth: number;     // Calculated from ServiceRequests
   connectedFamilies?: string[]; // Array of related familyNumbers
   memberStatus: MemberStatus;
-  
-  // Address and phone verification
-  softAddressCheck?: number;  // Calculated: count of common addresses
-  hardAddressCheck?: number;  // Calculated: count of exact address matches
-  phoneCheck1?: number;       // Calculated: count of common phone1
-  phoneCheck2?: number;       // Calculated: count of common phone2
+  totalVisits: number;
+  totalThisMonth: number;
   
   // System fields
   createdAt: Date;
@@ -60,7 +55,10 @@ export interface Client {
 }
 
 export interface NewClient {
+  // Primary identifiers
   familyNumber: string;
+  
+  // Basic information
   firstName: string;
   lastName: string;
   email?: string;
@@ -69,20 +67,61 @@ export interface NewClient {
   zipCode: string;
   phone1: string;
   phone2?: string;
+  
+  // Status flags
   isUnhoused: boolean;
   isTemporary: boolean;
+  
+  // Household composition
   adults: number;
   schoolAged: number;
   smallChildren: number;
-  temporaryMembers: {
+  
+  // Temporary family members (only present if isTemporary is true)
+  temporaryMembers?: {
     adults: number;
     schoolAged: number;
     smallChildren: number;
   };
+  
+  // Notes and additional information
   foodNotes?: string;
   officeNotes?: string;
-  connectedFamilies?: string[];
+  
+  // Tracking and relationships
+  connectedFamilies?: string[]; // Array of related familyNumbers
   memberStatus: MemberStatus;
+  totalVisits: number;
+  totalThisMonth: number;
 }
+
+// Default values for new clients
+export const defaultNewClient: NewClient = {
+  familyNumber: '',
+  firstName: '',
+  lastName: '',
+  address: '',
+  aptNumber: '',
+  zipCode: '',
+  phone1: '',
+  phone2: '',
+  email: '',
+  adults: 1,
+  schoolAged: 0,
+  smallChildren: 0,
+  isUnhoused: false,
+  isTemporary: false,
+  temporaryMembers: {
+    adults: 0,
+    schoolAged: 0,
+    smallChildren: 0
+  },
+  memberStatus: MemberStatus.Pending,
+  totalVisits: 0,
+  totalThisMonth: 0,
+  foodNotes: '',
+  officeNotes: '',
+  connectedFamilies: []
+};
 
 export type UpdateClient = Partial<NewClient>; 

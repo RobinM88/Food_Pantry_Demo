@@ -1,26 +1,13 @@
 export interface PhoneLog {
   id: string;
-  clientId: string;
-  callDate: Date;
-  callType: CallType;
-  outcome: CallOutcome;
-  notes: string;
-  followUpRequired: boolean;
-  followUpDate?: Date;
+  familySearchId: string;
+  phoneNumber: string;
+  callType: 'incoming' | 'outgoing';
+  callOutcome: 'completed' | 'voicemail' | 'no_answer' | 'wrong_number';
+  notes?: string;
   createdAt: Date;
   updatedAt: Date;
 }
-
-export type CallType = 'incoming' | 'outgoing';
-
-export type CallOutcome = 
-  | 'order-placed'
-  | 'order-updated'
-  | 'order-cancelled'
-  | 'information-request'
-  | 'no-answer'
-  | 'wrong-number'
-  | 'other';
 
 export type NewPhoneLog = Omit<PhoneLog, 'id' | 'createdAt' | 'updatedAt'>;
 export type UpdatePhoneLog = Partial<NewPhoneLog>; 

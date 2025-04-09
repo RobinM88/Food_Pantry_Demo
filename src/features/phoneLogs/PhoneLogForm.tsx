@@ -28,11 +28,12 @@ import {
   ShoppingCart as OrderIcon,
   Add as AddIcon,
   Edit as EditIcon,
+  CalendarToday as VisitIcon,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { Client, PhoneLog, NewClient, UpdateClient } from '../../types';
-import ClientForm from '../clients/ClientForm';
 import { OrderForm } from '../orders/OrderForm';
+import ClientForm from '../clients/ClientForm';
 import { formatPhoneNumber, isValidUSPhoneNumber } from '../../utils/phoneNumberUtils';
 import { addPhoneLog, updatePhoneLog } from '../../utils/testDataUtils';
 
@@ -144,7 +145,6 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
     if (isNewClient) {
       const newClient: Client = {
         ...clientData as NewClient,
-        searchKey: `${clientData.firstName}${clientData.lastName}${clientData.familyNumber}`.toLowerCase(),
         familySize: (clientData.adults || 0) + (clientData.schoolAged || 0) + (clientData.smallChildren || 0),
         totalVisits: 0,
         totalThisMonth: 0,
@@ -350,14 +350,6 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
                       color="primary" 
                       onClick={handleUpdateClient}
                     />
-                    <Tooltip title="Place Order">
-                      <IconButton 
-                        color="secondary" 
-                        onClick={handlePlaceOrder}
-                      >
-                        <OrderIcon />
-                      </IconButton>
-                    </Tooltip>
                   </Box>
                 </Box>
                 <Grid container spacing={2}>
@@ -539,6 +531,26 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
               </StepContent>
             </Step>
           ))}
+          
+          <Step>
+            <StepLabel>Actions</StepLabel>
+            <StepContent>
+              <Box sx={{ mb: 2 }}>
+                <Grid container spacing={2}>
+                  <Grid item>
+                    <Button
+                      variant="contained"
+                      startIcon={<OrderIcon />}
+                      onClick={handlePlaceOrder}
+                      disabled={!selectedClient}
+                    >
+                      Place Order
+                    </Button>
+                  </Grid>
+                </Grid>
+              </Box>
+            </StepContent>
+          </Step>
         </Stepper>
       </Paper>
       

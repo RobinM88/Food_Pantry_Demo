@@ -15,7 +15,9 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  Menu,
+  MenuItem
 } from '@mui/material';
 import { 
   Edit as EditIcon,
@@ -24,7 +26,8 @@ import {
   LocationOn as LocationIcon,
   People as PeopleIcon,
   Notes as NotesIcon,
-  CalendarToday as CalendarIcon
+  CalendarToday as CalendarIcon,
+  MoreVert as MoreVertIcon
 } from '@mui/icons-material';
 import { Client, MemberStatus } from '../../types';
 import { format } from 'date-fns';
@@ -33,10 +36,17 @@ interface ClientDetailsProps {
   client: Client;
   onEdit: (client: Client) => void;
   onDelete: (client: Client) => void;
+  onStatusChange?: (client: Client, newStatus: MemberStatus) => void;
 }
 
-export default function ClientDetails({ client, onEdit, onDelete }: ClientDetailsProps) {
+export default function ClientDetails({ 
+  client, 
+  onEdit, 
+  onDelete,
+  onStatusChange 
+}: ClientDetailsProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [statusMenuAnchor, setStatusMenuAnchor] = useState<null | HTMLElement>(null);
 
   const handleDeleteClick = () => {
     setDeleteDialogOpen(true);
@@ -51,6 +61,21 @@ export default function ClientDetails({ client, onEdit, onDelete }: ClientDetail
     setDeleteDialogOpen(false);
   };
 
+  const handleStatusClick = (event: React.MouseEvent<HTMLElement>) => {
+    setStatusMenuAnchor(event.currentTarget);
+  };
+
+  const handleStatusClose = () => {
+    setStatusMenuAnchor(null);
+  };
+
+  const handleStatusChange = (newStatus: MemberStatus) => {
+    if (onStatusChange) {
+      onStatusChange(client, newStatus);
+    }
+    handleStatusClose();
+  };
+
   const getStatusColor = (status: Client['memberStatus']) => {
     switch (status) {
       case MemberStatus.Active:
@@ -59,6 +84,10 @@ export default function ClientDetails({ client, onEdit, onDelete }: ClientDetail
         return 'error';
       case MemberStatus.Pending:
         return 'warning';
+      case MemberStatus.Suspended:
+        return 'warning';
+      case MemberStatus.Banned:
+        return 'error';
       default:
         return 'default';
     }
@@ -115,14 +144,26 @@ export default function ClientDetails({ client, onEdit, onDelete }: ClientDetail
               </ListItem>
               <ListItem>
                 <ListItemIcon>
-                  <Chip 
-                    label={client.memberStatus} 
-                    color={getStatusColor(client.memberStatus) as any}
-                    size="small"
-                  />
+                  <IconButton size="small" onClick={handleStatusClick}>
+                    <MoreVertIcon />
+                  </IconButton>
                 </ListItemIcon>
                 <ListItemText 
-                  primary="Status" 
+                  primary={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Chip 
+                        label={client.memberStatus} 
+                        color={getStatusColor(client.memberStatus) as any}
+                        size="small"
+                      />
+                      {onStatusChange && (
+                        <Typography variant="caption" color="text.secondary">
+                          (Click dots to change)
+                        </Typography>
+                      )}
+                    </Box>
+                  }
+                  secondary="Status" 
                 />
               </ListItem>
             </List>
@@ -188,6 +229,74 @@ export default function ClientDetails({ client, onEdit, onDelete }: ClientDetail
           </Grid>
         </Grid>
       </Paper>
+
+      {/* Status Change Menu */}
+      <Menu
+        anchorEl={statusMenuAnchor}
+        open={Boolean(statusMenuAnchor)}
+        onClose={handleStatusClose}
+      >
+        <MenuItem 
+          onClick={() => handleStatusChange(MemberStatus.Active)}
+          disabled={client.memberStatus === MemberStatus.Active}
+        >
+          <Chip 
+            label="Active" 
+            color="success" 
+            size="small" 
+            sx={{ mr: 1 }} 
+          />
+          Set as Active
+        </MenuItem>
+        <MenuItem 
+          onClick={() => handleStatusChange(MemberStatus.Pending)}
+          disabled={client.memberStatus === MemberStatus.Pending}
+        >
+          <Chip 
+            label="Pending" 
+            color="warning" 
+            size="small" 
+            sx={{ mr: 1 }} 
+          />
+          Set as Pending
+        </MenuItem>
+        <MenuItem 
+          onClick={() => handleStatusChange(MemberStatus.Inactive)}
+          disabled={client.memberStatus === MemberStatus.Inactive}
+        >
+          <Chip 
+            label="Inactive" 
+            color="error" 
+            size="small" 
+            sx={{ mr: 1 }} 
+          />
+          Set as Inactive
+        </MenuItem>
+        <MenuItem 
+          onClick={() => handleStatusChange(MemberStatus.Suspended)}
+          disabled={client.memberStatus === MemberStatus.Suspended}
+        >
+          <Chip 
+            label="Suspended" 
+            color="warning" 
+            size="small" 
+            sx={{ mr: 1 }} 
+          />
+          Set as Suspended
+        </MenuItem>
+        <MenuItem 
+          onClick={() => handleStatusChange(MemberStatus.Banned)}
+          disabled={client.memberStatus === MemberStatus.Banned}
+        >
+          <Chip 
+            label="Banned" 
+            color="error" 
+            size="small" 
+            sx={{ mr: 1 }} 
+          />
+          Set as Banned
+        </MenuItem>
+      </Menu>
 
       {/* Delete Confirmation Dialog */}
       <Dialog

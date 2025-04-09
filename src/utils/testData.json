@@ -2,7 +2,6 @@
   "clients": [
     {
       "familyNumber": "f1",
-      "searchKey": "johndoe1",
       "firstName": "John",
       "lastName": "Doe",
       "email": "john.doe@example.com",
@@ -34,7 +33,6 @@
     },
     {
       "familyNumber": "f2",
-      "searchKey": "janesmith2",
       "firstName": "Jane",
       "lastName": "Smith",
       "email": "jane.smith@example.com",
@@ -66,7 +64,6 @@
     },
     {
       "familyNumber": "f3",
-      "searchKey": "bobjohnson3",
       "firstName": "Bob",
       "lastName": "Johnson",
       "email": "bob.johnson@example.com",
@@ -98,7 +95,6 @@
     },
     {
       "familyNumber": "f4",
-      "searchKey": "sarahwilliams4",
       "firstName": "Sarah",
       "lastName": "Williams",
       "email": "sarah.williams@example.com",
@@ -130,7 +126,6 @@
     },
     {
       "familyNumber": "f5",
-      "searchKey": "michaelbrown5",
       "firstName": "Michael",
       "lastName": "Brown",
       "email": "michael.brown@example.com",
@@ -211,28 +206,56 @@
   ],
   "orders": [
     {
-      "id": "o1",
-      "clientId": "f1",
+      "id": "1",
+      "familySearchId": "f1",
       "status": "pending",
+      "pickupDate": "2024-03-20T00:00:00.000Z",
       "notes": "Gluten-free items requested",
-      "pickupDate": "2023-05-15T00:00:00.000Z",
+      "createdAt": "2024-03-15T00:00:00.000Z",
+      "updatedAt": "2024-03-15T00:00:00.000Z",
       "deliveryType": "pickup",
       "isNewClient": false,
-      "approvalStatus": "approved",
-      "createdAt": "2023-05-10T00:00:00.000Z",
-      "updatedAt": "2023-05-10T00:00:00.000Z"
+      "approvalStatus": "pending",
+      "numberOfBoxes": 2,
+      "additionalPeople": {
+        "adults": 0,
+        "smallChildren": 0,
+        "schoolAged": 0
+      },
+      "visitTotals": {
+        "adults": 1,
+        "smallChildren": 0,
+        "schoolAged": 0,
+        "total": 1
+      },
+      "seasonalItems": ["Spring vegetables"],
+      "visitContact": "(555) 123-4567"
     },
     {
-      "id": "o2",
-      "clientId": "f2",
-      "status": "completed",
-      "notes": "Allergic to peanuts",
-      "pickupDate": "2023-05-12T00:00:00.000Z",
+      "id": "2",
+      "familySearchId": "f2",
+      "status": "scheduled",
+      "pickupDate": "2023-04-02T00:00:00.000Z",
+      "notes": "Client requested low-sodium options",
+      "createdAt": "2023-03-26T00:00:00.000Z",
+      "updatedAt": "2023-03-26T00:00:00.000Z",
       "deliveryType": "delivery",
       "isNewClient": false,
       "approvalStatus": "approved",
-      "createdAt": "2023-05-08T00:00:00.000Z",
-      "updatedAt": "2023-05-12T00:00:00.000Z"
+      "numberOfBoxes": 3,
+      "additionalPeople": {
+        "adults": 1,
+        "smallChildren": 0,
+        "schoolAged": 0
+      },
+      "visitTotals": {
+        "adults": 3,
+        "smallChildren": 0,
+        "schoolAged": 0,
+        "total": 3
+      },
+      "seasonalItems": ["Spring vegetables", "Fruits"],
+      "visitContact": "(555) 987-6543"
     }
   ],
   "phoneLogs": [

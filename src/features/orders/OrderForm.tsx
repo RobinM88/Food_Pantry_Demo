@@ -10,7 +10,8 @@ import {
   Grid,
   Typography,
   Paper,
-  SelectChangeEvent
+  SelectChangeEvent,
+  Divider
 } from '@mui/material';
 import { NewOrder, OrderStatus } from '../../types/order';
 import { Client } from '../../types/client';
@@ -30,7 +31,14 @@ const initialFormState: NewOrder = {
   pickupDate: new Date(),
   deliveryType: 'pickup',
   isNewClient: false,
-  approvalStatus: 'pending'
+  approvalStatus: 'pending',
+  numberOfBoxes: 0,
+  additionalPeople: {
+    adults: 0,
+    smallChildren: 0,
+    schoolAged: 0
+  },
+  seasonalItems: []
 };
 
 export const OrderForm = ({ onSubmit, onCancel, initialData, clients }: OrderFormProps) => {
@@ -64,6 +72,26 @@ export const OrderForm = ({ onSubmit, onCancel, initialData, clients }: OrderFor
       ...formData,
       [field]: e.target.value
     });
+  };
+
+  const handleNumberChange = (field: string, value: string) => {
+    const numValue = parseInt(value) || 0;
+    
+    if (field.startsWith('additional')) {
+      const personType = field.replace('additional', '').toLowerCase() as keyof typeof formData.additionalPeople;
+      setFormData({
+        ...formData,
+        additionalPeople: {
+          ...formData.additionalPeople,
+          [personType]: numValue
+        }
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [field]: numValue
+      });
+    }
   };
 
   const handleDateChange = (date: Date | null) => {
@@ -167,28 +195,77 @@ export const OrderForm = ({ onSubmit, onCancel, initialData, clients }: OrderFor
           </Grid>
 
           <Grid item xs={12}>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="h6">Additional People</Typography>
+          </Grid>
+
+          <Grid item xs={12} sm={4}>
+            <TextField
+              fullWidth
+              type="number"
+              label="Additional Adults"
+              value={formData.additionalPeople.adults}
+              onChange={(e) => handleNumberChange('additionalAdults', e.target.value)}
+              inputProps={{ min: 0 }}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={4}>
+            <TextField
+              fullWidth
+              type="number"
+              label="Additional School Aged"
+              value={formData.additionalPeople.schoolAged}
+              onChange={(e) => handleNumberChange('additionalSchoolAged', e.target.value)}
+              inputProps={{ min: 0 }}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={4}>
+            <TextField
+              fullWidth
+              type="number"
+              label="Additional Small Children"
+              value={formData.additionalPeople.smallChildren}
+              onChange={(e) => handleNumberChange('additionalSmallChildren', e.target.value)}
+              inputProps={{ min: 0 }}
+            />
+          </Grid>
+
+          <Grid item xs={12}>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="h6">Order Details</Typography>
+          </Grid>
+
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              type="number"
+              label="Number of Boxes"
+              value={formData.numberOfBoxes}
+              onChange={(e) => handleNumberChange('numberOfBoxes', e.target.value)}
+              inputProps={{ min: 0 }}
+            />
+          </Grid>
+
+          <Grid item xs={12}>
             <TextField
               fullWidth
               multiline
-              rows={4}
+              rows={3}
               label="Notes"
               value={formData.notes}
-              onChange={(e) => {
-                setFormData({
-                  ...formData,
-                  notes: e.target.value
-                });
-              }}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
             />
           </Grid>
 
           <Grid item xs={12}>
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-              <Button variant="outlined" type="button" onClick={handleCancel}>
+              <Button onClick={handleCancel}>
                 Cancel
               </Button>
-              <Button variant="contained" type="submit">
-                Save Order
+              <Button type="submit" variant="contained" color="primary">
+                {initialData ? 'Update Order' : 'Create Order'}
               </Button>
             </Box>
           </Grid>
