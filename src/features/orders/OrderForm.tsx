@@ -13,19 +13,19 @@ import {
   SelectChangeEvent,
   Divider
 } from '@mui/material';
-import { NewOrder, OrderStatus } from '../../types/order';
+import { NewOrder, Order } from '../../types/order';
 import { Client } from '../../types/client';
 import { addOrder, updateOrder } from '../../utils/testDataUtils';
 
 interface OrderFormProps {
   onSubmit: (order: NewOrder) => void;
   onCancel: () => void;
-  initialData?: Partial<NewOrder>;
+  initialData?: Partial<Order>;
   clients: Client[];
 }
 
 const initialFormState: NewOrder = {
-  clientId: '',
+  familySearchId: '',
   status: 'pending',
   notes: '',
   pickupDate: new Date(),
@@ -50,19 +50,21 @@ export const OrderForm = ({ onSubmit, onCancel, initialData, clients }: OrderFor
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (initialData) {
+    if (initialData?.id) {
       // Update existing order
-      const updatedOrder = {
-        ...initialData,
+      const updatedOrder: Order = {
         ...formData,
+        id: initialData.id,
+        createdAt: initialData.createdAt || new Date(),
         updatedAt: new Date()
       };
       updateOrder(updatedOrder);
+      onSubmit(formData);
     } else {
       // Add new order
       addOrder(formData);
+      onSubmit(formData);
     }
-    onSubmit(formData);
   };
 
   const handleChange = (field: keyof NewOrder) => (
@@ -115,8 +117,8 @@ export const OrderForm = ({ onSubmit, onCancel, initialData, clients }: OrderFor
             <FormControl fullWidth>
               <InputLabel>Client</InputLabel>
               <Select
-                value={formData.clientId}
-                onChange={handleChange('clientId')}
+                value={formData.familySearchId}
+                onChange={handleChange('familySearchId')}
                 label="Client"
               >
                 {clients.map((client) => (

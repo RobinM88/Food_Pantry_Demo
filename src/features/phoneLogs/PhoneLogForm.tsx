@@ -1,9 +1,7 @@
-import { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
-  Paper,
   Typography,
-  Grid,
   TextField,
   Button,
   FormControl,
@@ -13,600 +11,276 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  Snackbar,
-  Alert,
-  Autocomplete,
-  Tooltip,
-  IconButton,
-  Stepper,
-  Step,
-  StepLabel,
-  StepContent,
+  DialogActions,
+  List,
+  ListItem,
+  ListItemText,
 } from '@mui/material';
-import {
-  Save as SaveIcon,
-  ShoppingCart as OrderIcon,
-  Add as AddIcon,
-  Edit as EditIcon,
-  CalendarToday as VisitIcon,
-} from '@mui/icons-material';
-import { format } from 'date-fns';
-import { Client, PhoneLog, NewClient, UpdateClient } from '../../types';
-import { OrderForm } from '../orders/OrderForm';
-import ClientForm from '../clients/ClientForm';
-import { formatPhoneNumber, isValidUSPhoneNumber } from '../../utils/phoneNumberUtils';
-import { addPhoneLog, updatePhoneLog } from '../../utils/testDataUtils';
+import { Client, PhoneLog } from '../../types';
+import { usePhoneLogForm } from '../../hooks/usePhoneLogForm';
+import { useNavigate } from 'react-router-dom';
 
 interface PhoneLogFormProps {
   phoneLog?: PhoneLog | null;
   clients: Client[];
   onSavePhoneLog: (phoneLog: PhoneLog) => void;
-  onSaveClient: (client: NewClient | UpdateClient) => void;
-  onSaveOrder: (order: any) => void;
+  onComplete?: () => void;
+  open?: boolean;
+  onClose?: () => void;
+  initialPhoneNumber?: string;
 }
 
-type CallType = 'incoming' | 'outgoing';
-type CallOutcome = 'completed' | 'voicemail' | 'no_answer' | 'wrong_number';
-
 const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
-  phoneLog,
   clients,
   onSavePhoneLog,
-  onSaveClient,
-  onSaveOrder,
+  onComplete = () => {},
+  open = true,
+  onClose = () => {},
+  initialPhoneNumber = '',
 }) => {
-  const [activeStep, setActiveStep] = useState(0);
-  const [callType, setCallType] = useState<CallType>(phoneLog?.callType || 'incoming');
-  const [phoneNumber, setPhoneNumber] = useState(phoneLog?.phoneNumber || '');
-  const [callOutcome, setCallOutcome] = useState<CallOutcome>(phoneLog?.callOutcome || 'completed');
-  const [notes, setNotes] = useState(phoneLog?.notes || '');
-  const [selectedClient, setSelectedClient] = useState<Client | null>(
-    phoneLog ? clients.find(c => c.familyNumber === phoneLog.familySearchId) || null : null
-  );
-  const [isNewClient, setIsNewClient] = useState(false);
-  const [isUpdatingClient, setIsUpdatingClient] = useState(false);
-  const [clientDialogOpen, setClientDialogOpen] = useState(false);
-  const [orderDialogOpen, setOrderDialogOpen] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
-  const [searchResults, setSearchResults] = useState<Client[]>([]);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const navigate = useNavigate();
+  const [isSaving, setIsSaving] = useState(false);
+  const [matchingClients, setMatchingClients] = useState<Client[]>([]);
 
-  // Handle phone number input change
-  const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formattedNumber = formatPhoneNumber(e.target.value);
-    setPhoneNumber(formattedNumber);
-    
-    // Clear any existing phone number error
-    if (errors.phoneNumber) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors.phoneNumber;
-        return newErrors;
+  const {
+    state,
+    errors,
+    handlePhoneNumberChange,
+    handleCallTypeChange,
+    handleCallOutcomeChange,
+    handleNotesChange,
+    handleClientSelect,
+    handleCreateNewClient,
+    handleSubmit,
+    reset
+  } = usePhoneLogForm({
+    onComplete: () => {
+      onClose();
+      reset();
+      onComplete();
+    },
+    onCreateNewClient: (phoneNumber) => {
+      // Navigate to new client form with phone number pre-filled
+      navigate('/clients/add', { 
+        state: { 
+          phoneNumber,
+          fromPhoneLog: true,
+          phoneLogState: {
+            callType: state.callType,
+            callOutcome: state.callOutcome,
+            notes: state.notes
+          }
+        } 
       });
     }
-  };
+  });
 
-  const handleNext = () => {
-    if (validateForm()) {
-      setActiveStep((prevActiveStep) => prevActiveStep + 1);
+  // Initialize with phone number if provided
+  useEffect(() => {
+    if (initialPhoneNumber && !state.phoneNumber) {
+      handlePhoneNumberChange(initialPhoneNumber);
     }
-  };
+  }, [initialPhoneNumber, state.phoneNumber, handlePhoneNumberChange]);
 
-  const handleBack = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep - 1);
-  };
+  // Auto-select client if there's exactly one match
+  useEffect(() => {
+    if (matchingClients.length === 1 && !state.selectedClient) {
+      handleClientSelect(matchingClients[0]);
+    }
+  }, [matchingClients, state.selectedClient, handleClientSelect]);
 
   useEffect(() => {
-    if (phoneNumber && phoneNumber.length >= 7) {
-      const filteredClients = clients.filter(client => 
-        client.phone1?.includes(phoneNumber) || 
-        phoneNumber.includes(client.phone1 || '')
-      );
-      setSearchResults(filteredClients);
+    if (state.phoneNumber && state.phoneNumber.length >= 7) {
+      const normalizedSearchNumber = state.phoneNumber.replace(/\D/g, '');
+      const filteredClients = clients.filter(client => {
+        const phone1Normalized = client.phone1?.replace(/\D/g, '') || '';
+        const phone2Normalized = client.phone2?.replace(/\D/g, '') || '';
+        return phone1Normalized.includes(normalizedSearchNumber) || 
+               phone2Normalized.includes(normalizedSearchNumber);
+      });
+      setMatchingClients(filteredClients);
     } else {
-      setSearchResults([]);
+      setMatchingClients([]);
     }
-  }, [phoneNumber, clients]);
+  }, [state.phoneNumber, clients]);
 
-  const handleClientSearch = (_event: React.SyntheticEvent, value: Client | null) => {
-    setSelectedClient(value);
-    if (value) {
-      setPhoneNumber(value.phone1 || '');
-    }
-    setIsNewClient(false);
-    setIsUpdatingClient(false);
-  };
-
-  const handleNewClient = () => {
-    setIsNewClient(true);
-    setSelectedClient(null);
-    setClientDialogOpen(true);
-  };
-
-  const handleUpdateClient = () => {
-    if (selectedClient) {
-      setIsUpdatingClient(true);
-      setClientDialogOpen(true);
+  const handleClose = () => {
+    if (!isSaving) {
+      reset();
+      setMatchingClients([]);
+      onClose();
     }
   };
 
-  const handlePlaceOrder = () => {
-    if (selectedClient) {
-      setOrderDialogOpen(true);
+  const handleSave = async () => {
+    if (isSaving) return;
+    
+    try {
+      setIsSaving(true);
+      const success = await handleSubmit();
+      
+      if (success && state.selectedClient) {
+        const newPhoneLog: PhoneLog = {
+          id: Date.now().toString(),
+          familySearchId: state.selectedClient.familyNumber,
+          phoneNumber: state.phoneNumber,
+          callType: state.callType,
+          callOutcome: state.callOutcome,
+          notes: state.notes,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        onSavePhoneLog(newPhoneLog);
+        onComplete();
+        handleClose();
+        
+        // Add navigation state to track the flow
+        navigate('/phone-logs', {
+          state: {
+            fromPhoneLog: true,
+            phoneNumber: state.phoneNumber,
+            success: true,
+            phoneLogState: {
+              callType: state.callType,
+              callOutcome: state.callOutcome,
+              notes: state.notes
+            }
+          },
+          replace: true
+        });
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
-
-  const handleClientSubmit = (clientData: NewClient | UpdateClient) => {
-    onSaveClient(clientData);
-    setClientDialogOpen(false);
-    
-    if (isNewClient) {
-      const newClient: Client = {
-        ...clientData as NewClient,
-        familySize: (clientData.adults || 0) + (clientData.schoolAged || 0) + (clientData.smallChildren || 0),
-        totalVisits: 0,
-        totalThisMonth: 0,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      setSelectedClient(newClient);
-      setIsNewClient(false);
-    } else if (isUpdatingClient && selectedClient) {
-      const updatedClient: Client = {
-        ...selectedClient,
-        ...clientData,
-        updatedAt: new Date()
-      };
-      setSelectedClient(updatedClient);
-      setIsUpdatingClient(false);
-    }
-    
-    setSnackbarMessage(isNewClient ? 'New client added successfully' : 'Client updated successfully');
-    setSnackbarSeverity('success');
-    setSnackbarOpen(true);
-  };
-
-  const handleOrderSubmit = (orderData: any) => {
-    onSaveOrder(orderData);
-    setOrderDialogOpen(false);
-    
-    setSnackbarMessage('Order placed successfully');
-    setSnackbarSeverity('success');
-    setSnackbarOpen(true);
-  };
-
-  const handleSavePhoneLog = () => {
-    if (!selectedClient && !isNewClient) {
-      setSnackbarMessage('Please select or create a client');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
-      return;
-    }
-
-    const newPhoneLog: PhoneLog = {
-      id: Date.now().toString(),
-      familySearchId: selectedClient?.familyNumber || '',
-      phoneNumber: phoneNumber || selectedClient?.phone1 || '',
-      callType,
-      callOutcome,
-      notes,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    if (phoneLog) {
-      // Update existing phone log
-      const updatedPhoneLog: PhoneLog = {
-        ...phoneLog,
-        ...newPhoneLog,
-        updatedAt: new Date()
-      };
-      updatePhoneLog(updatedPhoneLog);
-    } else {
-      // Add new phone log
-      addPhoneLog(newPhoneLog);
-    }
-    onSavePhoneLog(newPhoneLog);
-    
-    setSnackbarMessage('Phone log saved successfully');
-    setSnackbarSeverity('success');
-    setSnackbarOpen(true);
-    
-    // Reset the form after saving
-    resetForm();
-  };
-
-  const handleSnackbarClose = () => {
-    setSnackbarOpen(false);
-  };
-
-  const resetForm = () => {
-    setActiveStep(0);
-    setCallType('incoming');
-    setPhoneNumber('');
-    setCallOutcome('completed');
-    setNotes('');
-    setSelectedClient(null);
-    setIsNewClient(false);
-    setIsUpdatingClient(false);
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    
-    if (!phoneNumber) {
-      newErrors.phoneNumber = 'Phone number is required';
-    } else if (!isValidUSPhoneNumber(phoneNumber)) {
-      newErrors.phoneNumber = 'Please enter a valid US phone number: (XXX) XXX-XXXX';
-    }
-    
-    // ... other validations ...
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const steps = [
-    {
-      label: 'Call Information',
-      content: (
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <FormControl fullWidth>
-              <InputLabel>Call Type</InputLabel>
-              <Select
-                value={callType}
-                onChange={(e) => setCallType(e.target.value as CallType)}
-                label="Call Type"
-              >
-                <MenuItem value="incoming">Incoming</MenuItem>
-                <MenuItem value="outgoing">Outgoing</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Phone Number"
-              value={phoneNumber}
-              onChange={handlePhoneNumberChange}
-              error={!!errors.phoneNumber}
-              helperText={errors.phoneNumber}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <FormControl fullWidth>
-              <InputLabel>Call Outcome</InputLabel>
-              <Select
-                value={callOutcome}
-                onChange={(e) => setCallOutcome(e.target.value as CallOutcome)}
-                label="Call Outcome"
-              >
-                <MenuItem value="completed">Completed</MenuItem>
-                <MenuItem value="no_answer">No Answer</MenuItem>
-                <MenuItem value="voicemail">Left Voicemail</MenuItem>
-                <MenuItem value="wrong_number">Wrong Number</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Notes"
-              multiline
-              rows={4}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Enter call notes here..."
-            />
-          </Grid>
-        </Grid>
-      ),
-    },
-    {
-      label: 'Client Information',
-      content: (
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <Typography variant="subtitle1" gutterBottom>
-              Search for an existing client or create a new one
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-              <Autocomplete
-                sx={{ flexGrow: 1 }}
-                options={searchResults.length > 0 ? searchResults : clients}
-                getOptionLabel={(client) => `${client.firstName} ${client.lastName} (${client.phone1 || 'No phone'})`}
-                value={selectedClient}
-                onChange={handleClientSearch}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Search Clients"
-                    variant="outlined"
-                  />
-                )}
-              />
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={handleNewClient}
-              >
-                New Client
-              </Button>
-            </Box>
-          </Grid>
-          
-          {selectedClient && (
-            <Grid item xs={12}>
-              <Paper variant="outlined" sx={{ p: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6">
-                    {selectedClient.firstName} {selectedClient.lastName}
-                  </Typography>
-                  <Box>
-                    <EditIcon 
-                      color="primary" 
-                      onClick={handleUpdateClient}
-                    />
-                  </Box>
-                </Box>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">
-                      Name: {selectedClient.firstName} {selectedClient.lastName}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Phone: {selectedClient.phone1 || 'No phone number'}
-                    </Typography>
-                    {selectedClient.phone2 && (
-                      <Typography variant="body2" color="text.secondary">
-                        Secondary Phone: {selectedClient.phone2}
-                      </Typography>
-                    )}
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">
-                      Address: {selectedClient.address}
-                      {selectedClient.aptNumber && `, Apt ${selectedClient.aptNumber}`}
-                      {`, ${selectedClient.zipCode}`}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Family Size: {selectedClient.familySize}
-                    </Typography>
-                  </Grid>
-                  {selectedClient.foodNotes && (
-                    <Grid item xs={12}>
-                      <Typography variant="body2" color="text.secondary">
-                        Food Notes: {selectedClient.foodNotes}
-                      </Typography>
-                    </Grid>
-                  )}
-                  {selectedClient.officeNotes && (
-                    <Grid item xs={12}>
-                      <Typography variant="body2" color="text.secondary">
-                        Office Notes: {selectedClient.officeNotes}
-                      </Typography>
-                    </Grid>
-                  )}
-                </Grid>
-              </Paper>
-            </Grid>
-          )}
-          
-          {isNewClient && (
-            <Grid item xs={12}>
-              <Alert severity="info">
-                Creating a new client. Please fill out the client information.
-              </Alert>
-            </Grid>
-          )}
-        </Grid>
-      ),
-    },
-    {
-      label: 'Review & Save',
-      content: (
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Call Summary
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="body2" color="text.secondary">
-                    Call Type: {callType === 'incoming' ? 'Incoming' : 'Outgoing'}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Phone Number: {phoneNumber || selectedClient?.phone1 || 'N/A'}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Call Outcome: {callOutcome}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="body2" color="text.secondary">
-                    Date: {format(new Date(), 'MMMM d, yyyy')}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Time: {format(new Date(), 'h:mm a')}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12}>
-                  <Typography variant="body2" color="text.secondary">
-                    Notes: {notes || 'No notes provided'}
-                  </Typography>
-                </Grid>
-              </Grid>
-            </Paper>
-            
-            {selectedClient && (
-              <Paper variant="outlined" sx={{ p: 2 }}>
-                <Typography variant="h6" gutterBottom>
-                  Client Information
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">
-                      Name: {selectedClient.firstName} {selectedClient.lastName}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Phone: {selectedClient.phone1 || 'No phone number'}
-                    </Typography>
-                    {selectedClient.phone2 && (
-                      <Typography variant="body2" color="text.secondary">
-                        Secondary Phone: {selectedClient.phone2}
-                      </Typography>
-                    )}
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">
-                      Address: {selectedClient.address}
-                      {selectedClient.aptNumber && `, Apt ${selectedClient.aptNumber}`}
-                      {`, ${selectedClient.zipCode}`}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Family Size: {selectedClient.familySize}
-                    </Typography>
-                  </Grid>
-                  {selectedClient.foodNotes && (
-                    <Grid item xs={12}>
-                      <Typography variant="body2" color="text.secondary">
-                        Food Notes: {selectedClient.foodNotes}
-                      </Typography>
-                    </Grid>
-                  )}
-                  {selectedClient.officeNotes && (
-                    <Grid item xs={12}>
-                      <Typography variant="body2" color="text.secondary">
-                        Office Notes: {selectedClient.officeNotes}
-                      </Typography>
-                    </Grid>
-                  )}
-                </Grid>
-              </Paper>
-            )}
-          </Grid>
-        </Grid>
-      ),
-    },
-  ];
 
   return (
-    <Box sx={{ width: '100%' }}>
-      <Paper elevation={3} sx={{ p: 3 }}>
-        <Typography variant="h5" gutterBottom>
-          Phone Log Entry
-        </Typography>
-        <Typography variant="body1" paragraph>
-          Log phone calls, manage client information, and place orders
-        </Typography>
-        <Stepper activeStep={activeStep} orientation="vertical">
-          {steps.map((step, index) => (
-            <Step key={step.label}>
-              <StepLabel>{step.label}</StepLabel>
-              <StepContent>
-                {step.content}
-                <Box sx={{ mb: 2 }}>
-                  <div>
-                    <Button
-                      variant="contained"
-                      onClick={index === steps.length - 1 ? handleSavePhoneLog : handleNext}
-                      sx={{ mt: 1, mr: 1 }}
-                      endIcon={index === steps.length - 1 ? <SaveIcon /> : null}
-                    >
-                      {index === steps.length - 1 ? 'Save' : 'Continue'}
-                    </Button>
-                    <Button
-                      disabled={index === 0}
-                      onClick={handleBack}
-                      sx={{ mt: 1, mr: 1 }}
-                    >
-                      Back
-                    </Button>
-                  </div>
-                </Box>
-              </StepContent>
-            </Step>
-          ))}
-          
-          <Step>
-            <StepLabel>Actions</StepLabel>
-            <StepContent>
-              <Box sx={{ mb: 2 }}>
-                <Grid container spacing={2}>
-                  <Grid item>
-                    <Button
-                      variant="contained"
-                      startIcon={<OrderIcon />}
-                      onClick={handlePlaceOrder}
-                      disabled={!selectedClient}
-                    >
-                      Place Order
-                    </Button>
-                  </Grid>
-                </Grid>
-              </Box>
-            </StepContent>
-          </Step>
-        </Stepper>
-      </Paper>
-      
-      {/* Client Dialog */}
-      <Dialog 
-        open={clientDialogOpen} 
-        onClose={() => setClientDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          {isNewClient ? 'Add New Client' : 'Edit Client'}
-        </DialogTitle>
-        <DialogContent>
-          <ClientForm
-            client={isUpdatingClient && selectedClient ? selectedClient : undefined}
-            onSubmit={handleClientSubmit}
-            onCancel={() => setClientDialogOpen(false)}
-            isEdit={isUpdatingClient}
+    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+      <DialogTitle>Phone Log Entry</DialogTitle>
+      <DialogContent>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+          <TextField
+            label="Phone Number"
+            value={state.phoneNumber}
+            onChange={(e) => handlePhoneNumberChange(e.target.value)}
+            error={!!errors.phoneNumber}
+            helperText={errors.phoneNumber}
+            fullWidth
+            disabled={isSaving}
+            placeholder="(XXX) XXX-XXXX"
+            autoFocus
           />
-        </DialogContent>
-      </Dialog>
 
-      {/* Order Dialog */}
-      <Dialog
-        open={orderDialogOpen}
-        onClose={() => setOrderDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Place Order</DialogTitle>
-        <DialogContent>
-          <OrderForm
-            onSubmit={handleOrderSubmit}
-            onCancel={() => setOrderDialogOpen(false)}
-            initialData={selectedClient ? { clientId: selectedClient.familyNumber } : undefined}
-            clients={clients}
-          />
-        </DialogContent>
-      </Dialog>
+          {matchingClients.length > 0 ? (
+            <Box>
+              <Typography variant="subtitle1">Select a Client:</Typography>
+              <List>
+                {matchingClients.map((client: Client) => (
+                  <ListItem
+                    key={client.familyNumber}
+                    button
+                    onClick={() => handleClientSelect(client)}
+                    selected={state.selectedClient?.familyNumber === client.familyNumber}
+                    disabled={isSaving}
+                    sx={{ 
+                      '&:hover': { backgroundColor: 'action.hover' },
+                      backgroundColor: state.selectedClient?.familyNumber === client.familyNumber ? 'action.selected' : 'inherit'
+                    }}
+                  >
+                    <ListItemText
+                      primary={`${client.firstName} ${client.lastName}`}
+                      secondary={
+                        <>
+                          {client.phone1 && `Primary: ${client.phone1}`}
+                          {client.phone2 && <><br />Secondary: {client.phone2}</>}
+                        </>
+                      }
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </Box>
+          ) : state.phoneNumber && !errors.phoneNumber && (
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="body1" sx={{ mb: 2 }}>
+                No clients found with this phone number
+              </Typography>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleCreateNewClient}
+                disabled={isSaving}
+              >
+                Create New Client
+              </Button>
+            </Box>
+          )}
 
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={6000}
-        onClose={handleSnackbarClose}
-      >
-        <Alert 
-          onClose={handleSnackbarClose} 
-          severity={snackbarSeverity}
-          sx={{ width: '100%' }}
-        >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
-    </Box>
+          {state.selectedClient && (
+            <Box sx={{ mt: 2 }}>
+              <FormControl fullWidth sx={{ mb: 2 }} error={!!errors.callType}>
+                <InputLabel>Call Type</InputLabel>
+                <Select
+                  value={state.callType}
+                  onChange={(e) => handleCallTypeChange(e.target.value as 'incoming' | 'outgoing')}
+                  label="Call Type"
+                  disabled={isSaving}
+                >
+                  <MenuItem value="incoming">Incoming</MenuItem>
+                  <MenuItem value="outgoing">Outgoing</MenuItem>
+                </Select>
+              </FormControl>
+
+              <FormControl fullWidth sx={{ mb: 2 }} error={!!errors.callOutcome}>
+                <InputLabel>Call Outcome</InputLabel>
+                <Select
+                  value={state.callOutcome}
+                  onChange={(e) => handleCallOutcomeChange(e.target.value as 'completed' | 'voicemail' | 'no_answer' | 'wrong_number')}
+                  label="Call Outcome"
+                  disabled={isSaving}
+                >
+                  <MenuItem value="completed">Completed</MenuItem>
+                  <MenuItem value="voicemail">Voicemail</MenuItem>
+                  <MenuItem value="no_answer">No Answer</MenuItem>
+                  <MenuItem value="wrong_number">Wrong Number</MenuItem>
+                </Select>
+              </FormControl>
+
+              <TextField
+                label="Notes"
+                value={state.notes}
+                onChange={(e) => handleNotesChange(e.target.value)}
+                multiline
+                rows={4}
+                fullWidth
+                disabled={isSaving}
+              />
+            </Box>
+          )}
+
+          {errors.client && (
+            <Typography color="error" variant="caption">
+              {errors.client}
+            </Typography>
+          )}
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleClose} disabled={isSaving}>
+          Cancel
+        </Button>
+        {state.selectedClient && (
+          <Button
+            onClick={handleSave}
+            disabled={Object.keys(errors).length > 0 || isSaving}
+            variant="contained"
+            color="primary"
+          >
+            {isSaving ? 'Saving...' : 'Save Phone Log'}
+          </Button>
+        )}
+      </DialogActions>
+    </Dialog>
   );
 }
 

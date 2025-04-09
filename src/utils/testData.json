@@ -8,7 +8,7 @@
       "address": "123 Main St",
       "aptNumber": "",
       "zipCode": "12345",
-      "phone1": "(555) 123-4567",
+      "phone1": "(314) 123-4567",
       "phone2": "",
       "isUnhoused": false,
       "isTemporary": false,
@@ -39,7 +39,7 @@
       "address": "456 Oak Ave",
       "aptNumber": "",
       "zipCode": "67890",
-      "phone1": "(555) 987-6543",
+      "phone1": "(314) 987-6543",
       "phone2": "",
       "isUnhoused": false,
       "isTemporary": false,
@@ -164,7 +164,7 @@
       "address": "202 Maple Ave",
       "aptNumber": "5C",
       "zipCode": "97531",
-      "phone1": "(555) 741-8529",
+      "phone1": "(314) 741-8529",
       "phone2": "",
       "isUnhoused": false,
       "isTemporary": false,
@@ -187,7 +187,7 @@
       "address": "",
       "aptNumber": "",
       "zipCode": "86420",
-      "phone1": "(555) 963-7410",
+      "phone1": "(314) 963-7410",
       "phone2": "",
       "isUnhoused": true,
       "isTemporary": true,
@@ -229,7 +229,7 @@
         "total": 1
       },
       "seasonalItems": ["Spring vegetables"],
-      "visitContact": "(555) 123-4567"
+      "visitContact": "(314) 123-4567"
     },
     {
       "id": "2",
@@ -255,14 +255,14 @@
         "total": 3
       },
       "seasonalItems": ["Spring vegetables", "Fruits"],
-      "visitContact": "(555) 987-6543"
+      "visitContact": "(314) 987-6543"
     }
   ],
   "phoneLogs": [
     {
       "id": "pl1",
       "familySearchId": "f1",
-      "phoneNumber": "(555) 123-4567",
+      "phoneNumber": "(314) 123-4567",
       "callType": "incoming",
       "callOutcome": "completed",
       "notes": "Client called to confirm pickup time",
@@ -272,7 +272,7 @@
     {
       "id": "pl2",
       "familySearchId": "f2",
-      "phoneNumber": "(555) 987-6543",
+      "phoneNumber": "(314) 987-6543",
       "callType": "outgoing",
       "callOutcome": "voicemail",
       "notes": "Called to remind about upcoming delivery",

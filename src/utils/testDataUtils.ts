@@ -1,7 +1,7 @@
 import { Client, NewClient } from '../types/client';
 import { Order, NewOrder } from '../types/order';
 import { PhoneLog } from '../types';
-import { MemberStatus } from '../types';
+import { mockClients, mockPhoneLogs } from './mockData';
 
 interface TestData {
   clients: Client[];
@@ -12,92 +12,15 @@ interface TestData {
 
 const STORAGE_KEY = 'food_pantry_test_data';
 
-// Mock data for initial load
-const mockClients: Client[] = [
-  {
-    familyNumber: 'f1001',
-    firstName: 'john',
-    lastName: 'doe',
-    email: 'john.doe@example.com',
-    address: '123 Main St',
-    zipCode: '12345',
-    phone1: '(555) 123-4567',
-    isUnhoused: false,
-    isTemporary: false,
-    adults: 2,
-    schoolAged: 1,
-    smallChildren: 1,
-    familySize: 4,
-    memberStatus: MemberStatus.Active,
-    totalVisits: 5,
-    totalThisMonth: 1,
-    createdAt: new Date('2024-01-01'),
-    updatedAt: new Date('2024-03-01'),
-    lastVisit: new Date('2024-03-01')
-  },
-  {
-    familyNumber: 'f1002',
-    firstName: 'jane',
-    lastName: 'smith',
-    email: 'jane.smith@example.com',
-    address: '456 Oak Ave',
-    zipCode: '12345',
-    phone1: '(555) 234-5678',
-    isUnhoused: false,
-    isTemporary: true,
-    adults: 1,
-    schoolAged: 2,
-    smallChildren: 0,
-    familySize: 3,
-    temporaryMembers: {
-      adults: 1,
-      schoolAged: 1,
-      smallChildren: 0
-    },
-    memberStatus: MemberStatus.Active,
-    totalVisits: 3,
-    totalThisMonth: 1,
-    createdAt: new Date('2024-02-01'),
-    updatedAt: new Date('2024-03-01'),
-    lastVisit: new Date('2024-03-01')
-  },
-  {
-    familyNumber: 'f1003',
-    firstName: 'robert',
-    lastName: 'johnson',
-    email: '',
-    address: '',
-    zipCode: '12345',
-    phone1: '(555) 345-6789',
-    isUnhoused: true,
-    isTemporary: false,
-    adults: 1,
-    schoolAged: 0,
-    smallChildren: 0,
-    familySize: 1,
-    memberStatus: MemberStatus.Pending,
-    totalVisits: 0,
-    totalThisMonth: 0,
-    createdAt: new Date('2024-03-01'),
-    updatedAt: new Date('2024-03-01'),
-    lastVisit: undefined
-  }
-];
-
-const defaultTestData: TestData = {
-  clients: [],
-  newClients: [],
-  orders: [],
-  phoneLogs: []
-};
-
 // Initialize storage with mock data if empty
 const initializeStorageWithMockData = () => {
   const storedData = localStorage.getItem(STORAGE_KEY);
   if (!storedData) {
     const initialData: TestData = {
-      ...defaultTestData,
-      clients: mockClients
+      clients: mockClients,
+      newClients: [],
+      orders: [],
+      phoneLogs: mockPhoneLogs
     };
     saveTestData(initialData);
     console.log('Initialized storage with mock data');
@@ -110,7 +33,16 @@ export const loadTestData = (): TestData => {
     initializeStorageWithMockData();
     
     const storedData = localStorage.getItem(STORAGE_KEY);
-    const data = storedData ? JSON.parse(storedData) : defaultTestData;
+    if (!storedData) {
+      return {
+        clients: mockClients,
+        newClients: [],
+        orders: [],
+        phoneLogs: mockPhoneLogs
+      };
+    }
+
+    const data = JSON.parse(storedData);
     
     // Convert date strings back to Date objects
     data.clients = data.clients.map((client: Client) => ({
@@ -119,30 +51,29 @@ export const loadTestData = (): TestData => {
       updatedAt: new Date(client.updatedAt),
       lastVisit: client.lastVisit ? new Date(client.lastVisit) : undefined
     }));
+
+    data.phoneLogs = data.phoneLogs.map((log: PhoneLog) => ({
+      ...log,
+      createdAt: new Date(log.createdAt),
+      updatedAt: new Date(log.updatedAt)
+    }));
     
-    console.log('Data loaded successfully:', {
-      clientsCount: data.clients.length,
-      newClientsCount: data.newClients.length,
-      ordersCount: data.orders.length,
-      phoneLogsCount: data.phoneLogs.length
-    });
     return data;
   } catch (error) {
     console.error('Error loading test data:', error);
-    return defaultTestData;
+    // Return mock data as fallback
+    return {
+      clients: mockClients,
+      newClients: [],
+      orders: [],
+      phoneLogs: mockPhoneLogs
+    };
   }
 };
 
 export const saveTestData = (data: TestData): void => {
   try {
-    const jsonData = JSON.stringify(data);
-    localStorage.setItem(STORAGE_KEY, jsonData);
-    console.log('Data saved successfully:', {
-      clientsCount: data.clients.length,
-      newClientsCount: data.newClients.length,
-      ordersCount: data.orders.length,
-      phoneLogsCount: data.phoneLogs.length
-    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch (error) {
     console.error('Error saving test data:', error);
   }
@@ -150,10 +81,8 @@ export const saveTestData = (data: TestData): void => {
 
 export const addNewClient = (client: Client): void => {
   const data = loadTestData();
-  console.log('Current data before adding:', data);
   data.clients.push(client);
   saveTestData(data);
-  console.log('Data after adding client:', data);
 };
 
 export const updateClient = (updatedClient: Client): void => {
@@ -214,24 +143,15 @@ export const getOrdersByClientId = (clientId: string): Order[] => {
 
 export const addPhoneLog = (phoneLog: PhoneLog): void => {
   const data = loadTestData();
-  const newPhoneLog: PhoneLog = {
-    ...phoneLog,
-    id: `pl${data.phoneLogs.length + 1}`,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  };
-  data.phoneLogs.push(newPhoneLog);
+  data.phoneLogs.push(phoneLog);
   saveTestData(data);
 };
 
-export const updatePhoneLog = (updatedPhoneLog: PhoneLog): void => {
+export const updatePhoneLog = (updatedLog: PhoneLog): void => {
   const data = loadTestData();
-  const index = data.phoneLogs.findIndex(pl => pl.id === updatedPhoneLog.id);
+  const index = data.phoneLogs.findIndex(log => log.id === updatedLog.id);
   if (index !== -1) {
-    data.phoneLogs[index] = {
-      ...updatedPhoneLog,
-      updatedAt: new Date()
-    };
+    data.phoneLogs[index] = updatedLog;
     saveTestData(data);
   }
 };

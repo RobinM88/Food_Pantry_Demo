@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Box,
   Paper,
@@ -23,7 +22,7 @@ import {
   AccessTime as AccessTimeIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
-import { PhoneLog, Client } from '../../types';
+import { PhoneLog, Client, MemberStatus } from '../../types';
 
 interface PhoneLogDetailsProps {
   phoneLog: PhoneLog;
@@ -181,7 +180,7 @@ export default function PhoneLogDetails({ phoneLog, client }: PhoneLogDetailsPro
                   </ListItemIcon>
                   <ListItemText
                     primary="Client Phone"
-                    secondary={client.phoneNumber}
+                    secondary={client.phone1}
                   />
                 </ListItem>
                 <ListItem>
@@ -193,9 +192,9 @@ export default function PhoneLogDetails({ phoneLog, client }: PhoneLogDetailsPro
                     secondary={
                       <Box component="span">
                         <Chip
-                          label={client.status}
+                          label={client.memberStatus}
                           size="small"
-                          color={client.status === 'active' ? 'success' : 'default'}
+                          color={client.memberStatus === MemberStatus.Active ? 'success' : 'default'}
                         />
                       </Box>
                     }

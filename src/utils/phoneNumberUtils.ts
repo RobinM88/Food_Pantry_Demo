@@ -17,11 +17,7 @@ export const isValidUSPhoneNumber = (phone: string): boolean => {
     return false;
   }
 
-  // Check if the exchange code (next 3 digits) starts with a valid digit (2-9)
-  if (!/^[2-9]/.test(digits.substring(3, 4))) {
-    return false;
-  }
-
+  // Exchange codes can now start with any digit (1-9)
   return true;
 };
 

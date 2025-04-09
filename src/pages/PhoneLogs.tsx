@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
   Snackbar,
   Alert,
   IconButton,
@@ -13,23 +12,27 @@ import {
   Typography,
 } from '@mui/material';
 import { Add as AddIcon, Close as CloseIcon } from '@mui/icons-material';
+import { useLocation, useNavigate } from 'react-router-dom';
 import PhoneLogList from '../features/phoneLogs/PhoneLogList';
 import PhoneLogForm from '../features/phoneLogs/PhoneLogForm';
 import PhoneLogDetails from '../features/phoneLogs/PhoneLogDetails';
 import ClientForm from '../features/clients/ClientForm';
 import { Client, PhoneLog, NewClient, UpdateClient, MemberStatus } from '../types';
-import { mockClients, mockPhoneLogs } from '../utils/mockData';
 import { generateNextFamilyNumber } from '../utils/familyNumberUtils';
+import { addNewClient, updateClient, addPhoneLog, updatePhoneLog, getClients, getPhoneLogs } from '../utils/testDataUtils';
 
 type ViewMode = 'list' | 'form' | 'details' | 'clientForm';
 
 const PhoneLogs: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedPhoneLog, setSelectedPhoneLog] = useState<PhoneLog | null>(null);
-  const [clients, setClients] = useState<Client[]>(mockClients);
-  const [phoneLogs, setPhoneLogs] = useState<PhoneLog[]>(mockPhoneLogs);
+  const [clients, setClients] = useState<Client[]>(getClients());
+  const [phoneLogs, setPhoneLogs] = useState<PhoneLog[]>(getPhoneLogs());
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [pendingPhoneNumber, setPendingPhoneNumber] = useState<string | null>(null);
   const [notification, setNotification] = useState<{
     open: boolean;
     message: string;
@@ -40,14 +43,33 @@ const PhoneLogs: React.FC = () => {
     severity: 'success',
   });
 
+  // Handle return from client creation
+  useEffect(() => {
+    const state = location.state as { fromClientAdd?: boolean; phoneNumber?: string } | null;
+    if (state?.fromClientAdd && state.phoneNumber) {
+      setPendingPhoneNumber(state.phoneNumber);
+      setFormDialogOpen(true);
+    }
+  }, [location]);
+
+  // Keep clients and phone logs in sync with localStorage
+  useEffect(() => {
+    const updatedClients = getClients();
+    const updatedPhoneLogs = getPhoneLogs();
+    setClients(updatedClients);
+    setPhoneLogs(updatedPhoneLogs);
+  }, [formDialogOpen]); // Refresh when dialog closes
+
   const handleAddPhoneLog = () => {
     setSelectedPhoneLog(null);
+    setPendingPhoneNumber(null);
     setFormDialogOpen(true);
   };
 
   const handleCloseFormDialog = () => {
     setFormDialogOpen(false);
     setSelectedPhoneLog(null);
+    setPendingPhoneNumber(null);
   };
 
   const handleCloseDetailsDialog = () => {
@@ -57,13 +79,19 @@ const PhoneLogs: React.FC = () => {
 
   const handleSavePhoneLog = (phoneLog: PhoneLog) => {
     if (selectedPhoneLog) {
-      setPhoneLogs(phoneLogs.map(log => 
-        log.id === phoneLog.id ? phoneLog : log
-      ));
+      // Update existing phone log
+      updatePhoneLog(phoneLog);
     } else {
-      setPhoneLogs([...phoneLogs, phoneLog]);
+      // Add new phone log
+      addPhoneLog(phoneLog);
     }
+    
+    // Update the state with fresh data from storage
+    const updatedPhoneLogs = getPhoneLogs();
+    setPhoneLogs(updatedPhoneLogs);
+    
     setFormDialogOpen(false);
+    setPendingPhoneNumber(null);
     setNotification({
       open: true,
       message: selectedPhoneLog ? 'Phone log updated successfully' : 'Phone log added successfully',
@@ -74,11 +102,27 @@ const PhoneLogs: React.FC = () => {
   const handleSaveClient = (clientData: NewClient | UpdateClient) => {
     if ('familyNumber' in clientData) {
       // This is an UpdateClient
-      const updatedClients = clients.map(client => 
-        client.familyNumber === clientData.familyNumber 
-          ? { ...client, ...clientData }
-          : client
-      );
+      const existingClient = clients.find(c => c.familyNumber === clientData.familyNumber);
+      if (!existingClient) {
+        setNotification({
+          open: true,
+          message: 'Client not found',
+          severity: 'error',
+        });
+        return;
+      }
+
+      const updatedClient: Client = {
+        ...existingClient,
+        ...clientData,
+        familySize: (clientData.adults || existingClient.adults || 0) + 
+                   (clientData.schoolAged || existingClient.schoolAged || 0) + 
+                   (clientData.smallChildren || existingClient.smallChildren || 0),
+        updatedAt: new Date()
+      };
+      
+      updateClient(updatedClient);
+      const updatedClients = getClients();
       setClients(updatedClients);
     } else {
       // This is a NewClient
@@ -124,25 +168,36 @@ const PhoneLogs: React.FC = () => {
         updatedAt: new Date(),
         lastVisit: new Date()
       };
-      setClients([...clients, newClient]);
-    }
-    setNotification({
-      open: true,
-      message: 'Client saved successfully',
-      severity: 'success',
-    });
-  };
+      
+      // Save the new client
+      addNewClient(newClient);
+      
+      // Update the state with fresh data
+      const updatedClients = getClients();
+      setClients(updatedClients);
+      
+      // Show success notification
+      setNotification({
+        open: true,
+        message: 'Client added successfully',
+        severity: 'success',
+      });
 
-  const handleSaveOrder = (orderData: any) => {
-    // In a real application, you would save the order data to your backend
-    // For now, we'll just show a success notification
-    console.log('Order saved:', orderData);
-    
-    setNotification({
-      open: true,
-      message: 'Order saved successfully',
-      severity: 'success',
-    });
+      // Return to phone log form if we came from there
+      const state = location.state as { fromPhoneLog?: boolean; phoneNumber?: string } | null;
+      if (state?.fromPhoneLog) {
+        // Navigate back to phone logs
+        navigate('/phone-logs', {
+          state: {
+            fromClientAdd: true,
+            phoneNumber: clientData.phone1
+          },
+          replace: true // Replace the current entry in the history stack
+        });
+      }
+      
+      return newClient.familyNumber;
+    }
   };
 
   const handleCloseNotification = () => {
@@ -160,16 +215,6 @@ const PhoneLogs: React.FC = () => {
               setSelectedPhoneLog(phoneLog);
               setDetailsDialogOpen(true);
             }}
-          />
-        );
-      case 'form':
-        return (
-          <PhoneLogForm
-            phoneLog={selectedPhoneLog}
-            clients={clients}
-            onSavePhoneLog={handleSavePhoneLog}
-            onSaveClient={handleSaveClient}
-            onSaveOrder={handleSaveOrder}
           />
         );
       case 'details':
@@ -225,13 +270,12 @@ const PhoneLogs: React.FC = () => {
             phoneLog={selectedPhoneLog}
             clients={clients}
             onSavePhoneLog={handleSavePhoneLog}
-            onSaveClient={handleSaveClient}
-            onSaveOrder={handleSaveOrder}
+            onComplete={handleCloseFormDialog}
+            open={formDialogOpen}
+            onClose={handleCloseFormDialog}
+            initialPhoneNumber={pendingPhoneNumber || ''}
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseFormDialog}>Cancel</Button>
-        </DialogActions>
       </Dialog>
 
       <Dialog
