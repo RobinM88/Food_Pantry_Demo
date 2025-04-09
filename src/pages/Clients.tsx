@@ -200,7 +200,6 @@ export default function Clients() {
       console.log('Adding new client:', newClient);
       addNewClient(newClient);
       const updatedClients = getClients();
-      console.log('Updated clients after add:', updatedClients);
       setClients(updatedClients);
       
       setNotification({
@@ -209,8 +208,10 @@ export default function Clients() {
         severity: 'success',
       });
       
+      // Navigate back to the client list
       setViewMode('list');
       setSelectedClient(null);
+      navigate('/clients');
     }
   };
 

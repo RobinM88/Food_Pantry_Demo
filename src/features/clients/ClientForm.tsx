@@ -85,16 +85,9 @@ export default function ClientForm({
 
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    let processedValue = value;
-    
-    // Convert names to lowercase
-    if (name === 'firstName' || name === 'lastName') {
-      processedValue = value.toLowerCase();
-    }
-
     setFormData(prev => ({
       ...prev,
-      [name]: processedValue
+      [name]: value
     }));
     
     if (errors[name]) {
@@ -180,10 +173,12 @@ export default function ClientForm({
       newErrors.phone2 = 'Please enter a valid US phone number';
     }
 
-    if (formData.isUnhoused && !formData.zipCode.trim()) {
-      newErrors.zipCode = 'ZIP code is required for unhoused clients';
-    } else if (!formData.isUnhoused && !formData.address.trim()) {
-      newErrors.address = 'Address is required for non-unhoused clients';
+    if (!formData.zipCode.trim()) {
+      newErrors.zipCode = 'ZIP code is required';
+    }
+
+    if (!formData.isUnhoused && !formData.address.trim()) {
+      newErrors.address = 'Address is required for housed clients';
     }
     
     if (formData.adults < 1) {
@@ -225,6 +220,9 @@ export default function ClientForm({
       // Create a copy of form data and remove temporaryMembers if not temporary
       const submissionData = {
         ...formData,
+        // Convert names to lowercase when submitting
+        firstName: formData.firstName.toLowerCase(),
+        lastName: formData.lastName.toLowerCase(),
         // Only include temporaryMembers if isTemporary is true
         temporaryMembers: formData.isTemporary ? formData.temporaryMembers : undefined
       };
@@ -349,8 +347,7 @@ export default function ClientForm({
               label="ZIP Code"
               value={formData.zipCode}
               onChange={handleTextChange}
-              disabled={!formData.isUnhoused}
-              required={formData.isUnhoused}
+              required
             />
           </Grid>
 
