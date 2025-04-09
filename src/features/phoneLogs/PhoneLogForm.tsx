@@ -34,6 +34,7 @@ import { Client, PhoneLog, NewClient, UpdateClient } from '../../types';
 import ClientForm from '../clients/ClientForm';
 import { OrderForm } from '../orders/OrderForm';
 import { formatPhoneNumber, isValidUSPhoneNumber } from '../../utils/phoneNumberUtils';
+import { addPhoneLog, updatePhoneLog } from '../../utils/testDataUtils';
 
 interface PhoneLogFormProps {
   phoneLog?: PhoneLog | null;
@@ -184,7 +185,7 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
       return;
     }
 
-    const phoneLog: PhoneLog = {
+    const newPhoneLog: PhoneLog = {
       id: Date.now().toString(),
       familySearchId: selectedClient?.familyNumber || '',
       phoneNumber: phoneNumber || selectedClient?.phone1 || '',
@@ -195,7 +196,19 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
       updatedAt: new Date()
     };
 
-    onSavePhoneLog(phoneLog);
+    if (phoneLog) {
+      // Update existing phone log
+      const updatedPhoneLog: PhoneLog = {
+        ...phoneLog,
+        ...newPhoneLog,
+        updatedAt: new Date()
+      };
+      updatePhoneLog(updatedPhoneLog);
+    } else {
+      // Add new phone log
+      addPhoneLog(newPhoneLog);
+    }
+    onSavePhoneLog(newPhoneLog);
     
     setSnackbarMessage('Phone log saved successfully');
     setSnackbarSeverity('success');

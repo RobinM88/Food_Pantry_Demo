@@ -5,7 +5,14 @@ export const calculateSearchKey = (client: Client): string => {
 };
 
 export const calculateFamilySize = (client: Client): number => {
-  return client.adults + client.schoolAged + client.smallChildren;
+  const baseSize = client.adults + client.schoolAged + client.smallChildren;
+  if (client.isTemporary && client.temporaryMembers) {
+    return baseSize + 
+           client.temporaryMembers.adults + 
+           client.temporaryMembers.schoolAged + 
+           client.temporaryMembers.smallChildren;
+  }
+  return baseSize;
 };
 
 export const calculateAddressMatches = (

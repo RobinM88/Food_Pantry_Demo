@@ -10,10 +10,13 @@ import {
   MenuItem, 
   Typography,
   Paper,
-  Divider
+  Divider,
+  Checkbox,
+  FormControlLabel
 } from '@mui/material';
 import { Client, NewClient, UpdateClient, MemberStatus } from '../../types';
 import { formatPhoneNumber, isValidUSPhoneNumber } from '../../utils/phoneNumberUtils';
+import { addNewClient, updateClient } from '../../utils/testDataUtils';
 
 interface ClientFormProps {
   client?: Client;
@@ -26,14 +29,22 @@ const initialFormState: NewClient = {
   familyNumber: '',
   firstName: '',
   lastName: '',
+  email: '',
   address: '',
   aptNumber: '',
   zipCode: '',
   phone1: '',
   phone2: '',
+  isUnhoused: false,
+  isTemporary: false,
   adults: 1,
   schoolAged: 0,
   smallChildren: 0,
+  temporaryMembers: {
+    adults: 0,
+    schoolAged: 0,
+    smallChildren: 0
+  },
   foodNotes: '',
   officeNotes: '',
   connectedFamilies: [],
@@ -94,6 +105,24 @@ export default function ClientForm({
     }));
   };
 
+  const handleTemporaryMemberChange = (field: keyof typeof formData.temporaryMembers) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const numValue = parseInt(e.target.value) || 0;
+    setFormData(prev => ({
+      ...prev,
+      temporaryMembers: {
+        ...prev.temporaryMembers,
+        [field]: numValue
+      }
+    }));
+  };
+
+  const handleCheckboxChange = (field: 'isUnhoused' | 'isTemporary') => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: e.target.checked
+    }));
+  };
+
   const handlePhoneChange = (field: 'phone1' | 'phone2') => (e: React.ChangeEvent<HTMLInputElement>) => {
     const formattedNumber = formatPhoneNumber(e.target.value);
     setFormData(prev => ({
@@ -121,6 +150,10 @@ export default function ClientForm({
       newErrors.lastName = 'Last name is required';
     }
     
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+    
     if (formData.phone1 && !isValidUSPhoneNumber(formData.phone1)) {
       newErrors.phone1 = 'Please enter a valid US phone number';
     }
@@ -140,6 +173,18 @@ export default function ClientForm({
     if (formData.smallChildren < 0) {
       newErrors.smallChildren = 'Cannot be negative';
     }
+
+    if (formData.isTemporary) {
+      if (formData.temporaryMembers.adults < 0) {
+        newErrors.temporaryAdults = 'Cannot be negative';
+      }
+      if (formData.temporaryMembers.schoolAged < 0) {
+        newErrors.temporarySchoolAged = 'Cannot be negative';
+      }
+      if (formData.temporaryMembers.smallChildren < 0) {
+        newErrors.temporarySmallChildren = 'Cannot be negative';
+      }
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -149,6 +194,18 @@ export default function ClientForm({
     e.preventDefault();
     
     if (validateForm()) {
+      if (isEdit && client) {
+        // Update existing client
+        const updatedClient: Client = {
+          ...client,
+          ...formData,
+          updatedAt: new Date()
+        };
+        updateClient(updatedClient);
+      } else {
+        // Add new client
+        addNewClient(formData);
+      }
       onSubmit(formData);
     }
   };
@@ -174,7 +231,10 @@ export default function ClientForm({
               label="Family Number"
               value={formData.familyNumber}
               onChange={handleTextChange}
-              disabled={isEdit}
+              disabled={true}
+              InputProps={{
+                readOnly: true,
+              }}
             />
           </Grid>
           
@@ -204,6 +264,31 @@ export default function ClientForm({
             />
           </Grid>
 
+          <Grid item xs={12} sm={4}>
+            <TextField
+              fullWidth
+              name="email"
+              label="Email"
+              type="email"
+              value={formData.email}
+              onChange={handleTextChange}
+              error={!!errors.email}
+              helperText={errors.email}
+            />
+          </Grid>
+
+          <Grid item xs={12}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={formData.isUnhoused}
+                  onChange={handleCheckboxChange('isUnhoused')}
+                />
+              }
+              label="Unhoused"
+            />
+          </Grid>
+
           <Grid item xs={12}>
             <Divider sx={{ my: 2 }} />
             <Typography variant="h6">Contact Information</Typography>
@@ -216,6 +301,7 @@ export default function ClientForm({
               label="Street Address"
               value={formData.address}
               onChange={handleTextChange}
+              disabled={formData.isUnhoused}
             />
           </Grid>
           
@@ -226,6 +312,7 @@ export default function ClientForm({
               label="Apartment Number"
               value={formData.aptNumber}
               onChange={handleTextChange}
+              disabled={formData.isUnhoused}
             />
           </Grid>
 
@@ -236,6 +323,8 @@ export default function ClientForm({
               label="ZIP Code"
               value={formData.zipCode}
               onChange={handleTextChange}
+              disabled={!formData.isUnhoused}
+              required={formData.isUnhoused}
             />
           </Grid>
 
@@ -266,6 +355,22 @@ export default function ClientForm({
           <Grid item xs={12}>
             <Divider sx={{ my: 2 }} />
             <Typography variant="h6">Household Information</Typography>
+          </Grid>
+
+          <Grid item xs={12}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={formData.isTemporary}
+                  onChange={handleCheckboxChange('isTemporary')}
+                />
+              }
+              label="Temporary Family Members"
+            />
+          </Grid>
+
+          <Grid item xs={12}>
+            <Typography variant="subtitle1">Primary Household Members</Typography>
           </Grid>
 
           <Grid item xs={12} sm={4}>
@@ -312,6 +417,56 @@ export default function ClientForm({
               inputProps={{ min: 0 }}
             />
           </Grid>
+
+          {formData.isTemporary && (
+            <>
+              <Grid item xs={12}>
+                <Typography variant="subtitle1">Temporary Household Members</Typography>
+              </Grid>
+
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  name="temporaryAdults"
+                  label="Number of Adults"
+                  value={formData.temporaryMembers.adults}
+                  onChange={handleTemporaryMemberChange('adults')}
+                  error={!!errors.temporaryAdults}
+                  helperText={errors.temporaryAdults}
+                  inputProps={{ min: 0 }}
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  name="temporarySchoolAged"
+                  label="School Aged Children"
+                  value={formData.temporaryMembers.schoolAged}
+                  onChange={handleTemporaryMemberChange('schoolAged')}
+                  error={!!errors.temporarySchoolAged}
+                  helperText={errors.temporarySchoolAged}
+                  inputProps={{ min: 0 }}
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  name="temporarySmallChildren"
+                  label="Small Children"
+                  value={formData.temporaryMembers.smallChildren}
+                  onChange={handleTemporaryMemberChange('smallChildren')}
+                  error={!!errors.temporarySmallChildren}
+                  helperText={errors.temporarySmallChildren}
+                  inputProps={{ min: 0 }}
+                />
+              </Grid>
+            </>
+          )}
 
           <Grid item xs={12}>
             <Divider sx={{ my: 2 }} />

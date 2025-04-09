@@ -6,6 +6,7 @@ import ClientForm from '../features/clients/ClientForm';
 import ClientDetails from '../features/clients/ClientDetails';
 import { Client, NewClient, UpdateClient } from '../types';
 import { mockClients } from '../utils/mockData';
+import { generateNextFamilyNumber } from '../utils/familyNumberUtils';
 
 type ViewMode = 'list' | 'add' | 'edit' | 'view';
 
@@ -13,17 +14,6 @@ export default function Clients() {
   const [clients, setClients] = useState<Client[]>(mockClients);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-
-  const getNextFamilyNumber = (): string => {
-    // Find the highest family number currently in use
-    const highestNumber = clients.reduce((max, client) => {
-      const currentNumber = parseInt(client.familyNumber);
-      return isNaN(currentNumber) ? max : Math.max(max, currentNumber);
-    }, 0);
-    
-    // Return the next number
-    return (highestNumber + 1).toString();
-  };
 
   const handleAddClient = () => {
     setSelectedClient(null);
@@ -55,10 +45,11 @@ export default function Clients() {
       };
       setClients(clients.map(c => c.familyNumber === updatedClient.familyNumber ? updatedClient : c));
     } else {
+      const newFamilyNumber = generateNextFamilyNumber(clients);
       const newClient: Client = {
         ...clientData as NewClient,
-        familyNumber: getNextFamilyNumber(),
-        searchKey: `${clientData.firstName}${clientData.lastName}${getNextFamilyNumber()}`,
+        familyNumber: newFamilyNumber,
+        searchKey: `${clientData.firstName}${clientData.lastName}${newFamilyNumber}`,
         familySize: (clientData.adults || 0) + (clientData.schoolAged || 0) + (clientData.smallChildren || 0),
         totalVisits: 0,
         totalThisMonth: 0,

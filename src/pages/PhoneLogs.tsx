@@ -19,6 +19,7 @@ import PhoneLogDetails from '../features/phoneLogs/PhoneLogDetails';
 import ClientForm from '../features/clients/ClientForm';
 import { Client, PhoneLog, NewClient, UpdateClient, MemberStatus } from '../types';
 import { mockClients, mockPhoneLogs } from '../utils/mockData';
+import { generateNextFamilyNumber } from '../utils/familyNumberUtils';
 
 type ViewMode = 'list' | 'form' | 'details' | 'clientForm';
 
@@ -84,9 +85,10 @@ const PhoneLogs: React.FC = () => {
       if (!clientData.firstName || !clientData.lastName) {
         return; // Don't proceed if required fields are missing
       }
+      const newFamilyNumber = generateNextFamilyNumber(clients);
       const newClient: Client = {
-        familyNumber: String(clients.length + 1),
-        searchKey: `${clientData.firstName.toLowerCase()}${clientData.lastName.toLowerCase()}${clients.length + 1}`,
+        familyNumber: newFamilyNumber,
+        searchKey: `${clientData.firstName.toLowerCase()}${clientData.lastName.toLowerCase()}${newFamilyNumber}`,
         firstName: clientData.firstName,
         lastName: clientData.lastName,
         address: clientData.address || '',

@@ -13,17 +13,29 @@ export interface Client {
   // Basic information
   firstName: string;
   lastName: string;
+  email?: string;
   address: string;
   aptNumber?: string;
   zipCode: string;
   phone1: string;
   phone2?: string;
   
+  // Status flags
+  isUnhoused: boolean;
+  isTemporary: boolean;
+  
   // Household composition
   adults: number;
   schoolAged: number;
   smallChildren: number;
   familySize: number;         // Calculated: adults + schoolAged + smallChildren
+  
+  // Temporary family members (if isTemporary is true)
+  temporaryMembers?: {
+    adults: number;
+    schoolAged: number;
+    smallChildren: number;
+  };
   
   // Notes and additional information
   foodNotes?: string;
@@ -47,17 +59,30 @@ export interface Client {
   lastVisit?: Date;
 }
 
-export type NewClient = Omit<Client, 
-  | 'searchKey' 
-  | 'familySize' 
-  | 'totalVisits' 
-  | 'totalThisMonth' 
-  | 'softAddressCheck'
-  | 'hardAddressCheck'
-  | 'phoneCheck1'
-  | 'phoneCheck2'
-  | 'createdAt'
-  | 'updatedAt'
->;
+export interface NewClient {
+  familyNumber: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  address: string;
+  aptNumber?: string;
+  zipCode: string;
+  phone1: string;
+  phone2?: string;
+  isUnhoused: boolean;
+  isTemporary: boolean;
+  adults: number;
+  schoolAged: number;
+  smallChildren: number;
+  temporaryMembers: {
+    adults: number;
+    schoolAged: number;
+    smallChildren: number;
+  };
+  foodNotes?: string;
+  officeNotes?: string;
+  connectedFamilies?: string[];
+  memberStatus: MemberStatus;
+}
 
 export type UpdateClient = Partial<NewClient>; 

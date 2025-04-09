@@ -1,5 +1,4 @@
-import React from 'react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Button,
@@ -15,6 +14,7 @@ import {
 } from '@mui/material';
 import { NewOrder, OrderStatus } from '../../types/order';
 import { Client } from '../../types/client';
+import { addOrder, updateOrder } from '../../utils/testDataUtils';
 
 interface OrderFormProps {
   onSubmit: (order: NewOrder) => void;
@@ -41,6 +41,19 @@ export const OrderForm = ({ onSubmit, onCancel, initialData, clients }: OrderFor
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (initialData) {
+      // Update existing order
+      const updatedOrder = {
+        ...initialData,
+        ...formData,
+        updatedAt: new Date()
+      };
+      updateOrder(updatedOrder);
+    } else {
+      // Add new order
+      addOrder(formData);
+    }
     onSubmit(formData);
   };
 
