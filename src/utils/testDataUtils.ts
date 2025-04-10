@@ -52,6 +52,13 @@ export const loadTestData = (): TestData => {
       lastVisit: client.lastVisit ? new Date(client.lastVisit) : undefined
     }));
 
+    data.orders = data.orders.map((order: Order) => ({
+      ...order,
+      createdAt: new Date(order.createdAt),
+      updatedAt: new Date(order.updatedAt),
+      pickupDate: order.pickupDate ? new Date(order.pickupDate) : undefined
+    }));
+
     data.phoneLogs = data.phoneLogs.map((log: PhoneLog) => ({
       ...log,
       createdAt: new Date(log.createdAt),
@@ -139,6 +146,13 @@ export const getOrders = (): Order[] => {
 
 export const getOrdersByClientId = (clientId: string): Order[] => {
   return loadTestData().orders.filter(o => o.familySearchId === clientId);
+};
+
+export const deleteOrder = (orderId: string): void => {
+  const data = loadTestData();
+  data.orders = data.orders.filter(o => o.id !== orderId);
+  saveTestData(data);
+  console.log('Order deleted:', orderId);
 };
 
 export const addPhoneLog = (phoneLog: PhoneLog): void => {

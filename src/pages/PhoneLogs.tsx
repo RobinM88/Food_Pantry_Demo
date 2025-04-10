@@ -18,8 +18,9 @@ import PhoneLogForm from '../features/phoneLogs/PhoneLogForm';
 import PhoneLogDetails from '../features/phoneLogs/PhoneLogDetails';
 import ClientForm from '../features/clients/ClientForm';
 import { Client, PhoneLog, NewClient, UpdateClient, MemberStatus } from '../types';
+import { NewOrder } from '../types/order';
 import { generateNextFamilyNumber } from '../utils/familyNumberUtils';
-import { addNewClient, updateClient, addPhoneLog, updatePhoneLog, getClients, getPhoneLogs } from '../utils/testDataUtils';
+import { addNewClient, updateClient, addPhoneLog, updatePhoneLog, getClients, getPhoneLogs, addOrder } from '../utils/testDataUtils';
 
 type ViewMode = 'list' | 'form' | 'details' | 'clientForm';
 
@@ -94,7 +95,16 @@ const PhoneLogs: React.FC = () => {
     setPendingPhoneNumber(null);
     setNotification({
       open: true,
-      message: selectedPhoneLog ? 'Phone log updated successfully' : 'Phone log added successfully',
+      message: selectedPhoneLog ? 'Phone log updated successfully' : 'Phone log and service request saved successfully',
+      severity: 'success',
+    });
+  };
+
+  const handleSaveOrder = (order: NewOrder) => {
+    addOrder(order);
+    setNotification({
+      open: true,
+      message: 'Service request created successfully',
       severity: 'success',
     });
   };
@@ -269,7 +279,15 @@ const PhoneLogs: React.FC = () => {
             phoneLog={selectedPhoneLog}
             clients={clients}
             onSavePhoneLog={handleSavePhoneLog}
-            onComplete={handleCloseFormDialog}
+            onSaveOrder={handleSaveOrder}
+            onComplete={() => {
+              handleCloseFormDialog();
+              setNotification({
+                open: true,
+                message: 'Phone log saved successfully',
+                severity: 'success',
+              });
+            }}
             open={formDialogOpen}
             onClose={handleCloseFormDialog}
             initialPhoneNumber={pendingPhoneNumber || ''}
@@ -311,6 +329,7 @@ const PhoneLogs: React.FC = () => {
         open={notification.open}
         autoHideDuration={6000}
         onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
         <Alert
           onClose={handleCloseNotification}

@@ -17,14 +17,18 @@ import {
   Grid,
   Paper,
 } from '@mui/material';
-import { Client, PhoneLog } from '../../types';
+import { Client } from '../../types/client';
+import { PhoneLog } from '../../types';
+import { NewOrder } from '../../types/order';
 import { usePhoneLogForm } from '../../hooks/usePhoneLogForm';
 import { useNavigate } from 'react-router-dom';
+import { addOrder } from '../../utils/testDataUtils';
 
 interface PhoneLogFormProps {
   phoneLog?: PhoneLog | null;
   clients: Client[];
   onSavePhoneLog: (phoneLog: PhoneLog) => void;
+  onSaveOrder?: (order: NewOrder) => void;
   onComplete?: () => void;
   open?: boolean;
   onClose?: () => void;
@@ -34,6 +38,7 @@ interface PhoneLogFormProps {
 const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
   clients,
   onSavePhoneLog,
+  onSaveOrder,
   onComplete = () => {},
   open = true,
   onClose = () => {},
@@ -43,6 +48,24 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [matchingClients, setMatchingClients] = useState<Client[]>([]);
   const [nameSearch, setNameSearch] = useState('');
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+  const [orderData, setOrderData] = useState<NewOrder>({
+    familySearchId: '',
+    status: 'pending',
+    notes: '',
+    pickupDate: new Date(),
+    deliveryType: 'pickup',
+    isNewClient: false,
+    approvalStatus: 'pending',
+    numberOfBoxes: 1,
+    additionalPeople: {
+      adults: 0,
+      smallChildren: 0,
+      schoolAged: 0
+    },
+    seasonalItems: [],
+    items: []
+  });
 
   const {
     state,
@@ -140,11 +163,27 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
           createdAt: new Date(),
           updatedAt: new Date()
         };
+
+        // Save the order if we're creating one
+        if (isCreatingOrder) {
+          const newOrder: NewOrder = {
+            ...orderData,
+            familySearchId: state.selectedClient.familyNumber,
+            notes: `${orderData.notes}\n\nPhone Log Notes: ${state.notes}`.trim(),
+            isNewClient: false
+          };
+          
+          if (onSaveOrder) {
+            onSaveOrder(newOrder);
+          } else {
+            addOrder(newOrder);
+          }
+        }
+
         onSavePhoneLog(newPhoneLog);
         onComplete();
         handleClose();
         
-        // Add navigation state to track the flow
         navigate('/phone-logs', {
           state: {
             fromPhoneLog: true,
@@ -302,59 +341,199 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
           ))}
 
           {state.selectedClient && (
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 500 }}>Call Details</Typography>
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth error={!!errors.callType}>
-                    <InputLabel>Call Type</InputLabel>
-                    <Select
-                      value={state.callType}
-                      onChange={(e) => handleCallTypeChange(e.target.value as 'incoming' | 'outgoing')}
-                      label="Call Type"
+            <>
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: 500 }}>Call Details</Typography>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth error={!!errors.callType}>
+                      <InputLabel>Call Type</InputLabel>
+                      <Select
+                        value={state.callType}
+                        onChange={(e) => handleCallTypeChange(e.target.value as 'incoming' | 'outgoing')}
+                        label="Call Type"
+                        disabled={isSaving}
+                        sx={{ backgroundColor: 'background.paper' }}
+                      >
+                        <MenuItem value="incoming">Incoming</MenuItem>
+                        <MenuItem value="outgoing">Outgoing</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth error={!!errors.callOutcome}>
+                      <InputLabel>Call Outcome</InputLabel>
+                      <Select
+                        value={state.callOutcome}
+                        onChange={(e) => handleCallOutcomeChange(e.target.value as 'completed' | 'voicemail' | 'no_answer' | 'wrong_number')}
+                        label="Call Outcome"
+                        disabled={isSaving}
+                        sx={{ backgroundColor: 'background.paper' }}
+                      >
+                        <MenuItem value="completed">Completed</MenuItem>
+                        <MenuItem value="voicemail">Voicemail</MenuItem>
+                        <MenuItem value="no_answer">No Answer</MenuItem>
+                        <MenuItem value="wrong_number">Wrong Number</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      label="Notes"
+                      value={state.notes}
+                      onChange={(e) => handleNotesChange(e.target.value)}
+                      multiline
+                      rows={4}
+                      fullWidth
                       disabled={isSaving}
-                      sx={{ backgroundColor: 'background.paper' }}
-                    >
-                      <MenuItem value="incoming">Incoming</MenuItem>
-                      <MenuItem value="outgoing">Outgoing</MenuItem>
-                    </Select>
-                  </FormControl>
+                      sx={{ 
+                        '& .MuiInputBase-root': { 
+                          backgroundColor: 'background.paper',
+                        }
+                      }}
+                    />
+                  </Grid>
                 </Grid>
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth error={!!errors.callOutcome}>
-                    <InputLabel>Call Outcome</InputLabel>
-                    <Select
-                      value={state.callOutcome}
-                      onChange={(e) => handleCallOutcomeChange(e.target.value as 'completed' | 'voicemail' | 'no_answer' | 'wrong_number')}
-                      label="Call Outcome"
-                      disabled={isSaving}
-                      sx={{ backgroundColor: 'background.paper' }}
-                    >
-                      <MenuItem value="completed">Completed</MenuItem>
-                      <MenuItem value="voicemail">Voicemail</MenuItem>
-                      <MenuItem value="no_answer">No Answer</MenuItem>
-                      <MenuItem value="wrong_number">Wrong Number</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    label="Notes"
-                    value={state.notes}
-                    onChange={(e) => handleNotesChange(e.target.value)}
-                    multiline
-                    rows={4}
-                    fullWidth
-                    disabled={isSaving}
-                    sx={{ 
-                      '& .MuiInputBase-root': { 
-                        backgroundColor: 'background.paper',
-                      }
-                    }}
-                  />
-                </Grid>
-              </Grid>
-            </Box>
+              </Box>
+
+              <Box sx={{ mt: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 500 }}>Service Request</Typography>
+                  <Button
+                    variant={isCreatingOrder ? "contained" : "outlined"}
+                    color="primary"
+                    onClick={() => setIsCreatingOrder(!isCreatingOrder)}
+                    size="large"
+                  >
+                    {isCreatingOrder ? 'Cancel Order' : 'Create Order'}
+                  </Button>
+                </Box>
+
+                {isCreatingOrder && (
+                  <Paper variant="outlined" sx={{ p: 3, mt: 2 }}>
+                    <Grid container spacing={3}>
+                      <Grid item xs={12} md={6}>
+                        <FormControl fullWidth>
+                          <InputLabel>Delivery Type</InputLabel>
+                          <Select
+                            value={orderData.deliveryType}
+                            onChange={(e) => setOrderData(prev => ({
+                              ...prev,
+                              deliveryType: e.target.value as 'pickup' | 'delivery'
+                            }))}
+                            label="Delivery Type"
+                          >
+                            <MenuItem value="pickup">Pickup</MenuItem>
+                            <MenuItem value="delivery">Delivery</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Grid>
+
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          fullWidth
+                          type="date"
+                          label="Pickup/Delivery Date"
+                          value={orderData.pickupDate?.toISOString().split('T')[0] || ''}
+                          onChange={(e) => {
+                            const date = new Date(e.target.value);
+                            setOrderData(prev => ({
+                              ...prev,
+                              pickupDate: date
+                            }));
+                          }}
+                          InputLabelProps={{
+                            shrink: true,
+                          }}
+                        />
+                      </Grid>
+
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          fullWidth
+                          type="number"
+                          label="Number of Boxes"
+                          value={orderData.numberOfBoxes}
+                          onChange={(e) => setOrderData(prev => ({
+                            ...prev,
+                            numberOfBoxes: parseInt(e.target.value) || 1
+                          }))}
+                          inputProps={{ min: 1 }}
+                        />
+                      </Grid>
+
+                      <Grid item xs={12}>
+                        <Typography variant="subtitle1" sx={{ mb: 2 }}>Additional People</Typography>
+                        <Grid container spacing={2}>
+                          <Grid item xs={12} md={4}>
+                            <TextField
+                              fullWidth
+                              type="number"
+                              label="Adults"
+                              value={orderData.additionalPeople.adults}
+                              onChange={(e) => setOrderData(prev => ({
+                                ...prev,
+                                additionalPeople: {
+                                  ...prev.additionalPeople,
+                                  adults: parseInt(e.target.value) || 0
+                                }
+                              }))}
+                              inputProps={{ min: 0 }}
+                            />
+                          </Grid>
+                          <Grid item xs={12} md={4}>
+                            <TextField
+                              fullWidth
+                              type="number"
+                              label="School-Aged Children"
+                              value={orderData.additionalPeople.schoolAged}
+                              onChange={(e) => setOrderData(prev => ({
+                                ...prev,
+                                additionalPeople: {
+                                  ...prev.additionalPeople,
+                                  schoolAged: parseInt(e.target.value) || 0
+                                }
+                              }))}
+                              inputProps={{ min: 0 }}
+                            />
+                          </Grid>
+                          <Grid item xs={12} md={4}>
+                            <TextField
+                              fullWidth
+                              type="number"
+                              label="Small Children"
+                              value={orderData.additionalPeople.smallChildren}
+                              onChange={(e) => setOrderData(prev => ({
+                                ...prev,
+                                additionalPeople: {
+                                  ...prev.additionalPeople,
+                                  smallChildren: parseInt(e.target.value) || 0
+                                }
+                              }))}
+                              inputProps={{ min: 0 }}
+                            />
+                          </Grid>
+                        </Grid>
+                      </Grid>
+
+                      <Grid item xs={12}>
+                        <TextField
+                          label="Order Notes"
+                          value={orderData.notes}
+                          onChange={(e) => setOrderData(prev => ({
+                            ...prev,
+                            notes: e.target.value
+                          }))}
+                          multiline
+                          rows={3}
+                          fullWidth
+                        />
+                      </Grid>
+                    </Grid>
+                  </Paper>
+                )}
+              </Box>
+            </>
           )}
 
           {errors.client && (

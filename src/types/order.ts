@@ -23,6 +23,7 @@ export interface Order {
   };
   seasonalItems?: string[];
   visitContact?: string;
+  items: string[];
 }
 
 export type OrderStatus = 'pending' | 'approved' | 'denied' | 'scheduled' | 'ready' | 'picked_up' | 'cancelled' | 'no_show';

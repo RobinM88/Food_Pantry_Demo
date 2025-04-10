@@ -109,7 +109,7 @@ export default function OrderList({
   };
 
   const filteredOrders = orders.filter(order => {
-    const client = clients.find(c => c.id === order.clientId);
+    const client = clients.find(c => c.familyNumber === order.familySearchId);
     const searchLower = searchQuery.toLowerCase();
     return (
       client?.firstName.toLowerCase().includes(searchLower) ||
@@ -125,14 +125,6 @@ export default function OrderList({
         <Typography variant="h5" component="h2">
           Orders
         </Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={onAddOrder}
-        >
-          Add Order
-        </Button>
       </Box>
 
       <TextField
@@ -166,7 +158,7 @@ export default function OrderList({
             {filteredOrders
               .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
               .map((order) => {
-                const client = clients.find(c => c.id === order.clientId);
+                const client = clients.find(c => c.familyNumber === order.familySearchId);
                 return (
                   <TableRow key={order.id}>
                     <TableCell>

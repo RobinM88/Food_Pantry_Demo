@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Box, Button, Tabs, Tab, Typography, Paper } from '@mui/material';
 import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import DailyQueueDashboard from '../features/orders/DailyQueueDashboard';
@@ -7,15 +7,46 @@ import { OrderForm } from '../features/orders/OrderForm';
 import OrderDetails from '../features/orders/OrderDetails';
 import { Order, NewOrder, UpdateOrder, Client, OrderStatus } from '../types';
 import { mockOrders, mockClients } from '../utils/mockData';
+import { getOrders, getClients, addOrder, updateOrder, deleteOrder } from '../utils/testDataUtils';
 
 type ViewMode = 'dashboard' | 'add' | 'edit' | 'view';
 
 export default function DailyQueue() {
-  const [orders, setOrders] = useState<Order[]>(mockOrders);
-  const [clients] = useState<Client[]>(mockClients);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [selectedTab, setSelectedTab] = useState(0);
+
+  // Load data from localStorage
+  useEffect(() => {
+    const storedOrders = getOrders();
+    const storedClients = getClients();
+    
+    // If there's no stored data, initialize with mock data
+    if (storedOrders.length === 0) {
+      mockOrders.forEach(order => {
+        addOrder(order);
+      });
+      setOrders(mockOrders);
+    } else {
+      setOrders(storedOrders);
+    }
+
+    if (storedClients.length === 0) {
+      mockClients.forEach(client => {
+        const clientToAdd = {
+          ...client,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        addNewClient(clientToAdd);
+      });
+      setClients(mockClients);
+    } else {
+      setClients(storedClients);
+    }
+  }, []);
 
   const handleAddOrder = () => {
     setSelectedOrder(null);
@@ -33,7 +64,8 @@ export default function DailyQueue() {
   };
 
   const handleDeleteOrder = (order: Order) => {
-    setOrders(orders.filter(o => o.id !== order.id));
+    deleteOrder(order.id);
+    setOrders(prevOrders => prevOrders.filter(o => o.id !== order.id));
     if (viewMode === 'view' && selectedOrder?.id === order.id) {
       setViewMode('dashboard');
       setSelectedOrder(null);
@@ -46,7 +78,14 @@ export default function DailyQueue() {
       status: newStatus,
       updatedAt: new Date()
     };
-    setOrders(orders.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+    
+    // Update in localStorage
+    updateOrder(updatedOrder);
+    
+    // Update in state
+    setOrders(prevOrders => 
+      prevOrders.map(o => o.id === updatedOrder.id ? updatedOrder : o)
+    );
     
     // If we're viewing the order that was just updated, update the selected order
     if (viewMode === 'view' && selectedOrder?.id === order.id) {
@@ -59,11 +98,12 @@ export default function DailyQueue() {
       // Add new order
       const newOrder: Order = {
         ...orderData as NewOrder,
-        id: Date.now().toString(), // Simple ID generation
+        id: `o${Date.now()}`,
         createdAt: new Date(),
         updatedAt: new Date()
       };
-      setOrders([...orders, newOrder]);
+      addOrder(newOrder);
+      setOrders(prevOrders => [...prevOrders, newOrder]);
     } else if (viewMode === 'edit' && selectedOrder) {
       // Update existing order
       const updatedOrder: Order = {
@@ -71,7 +111,10 @@ export default function DailyQueue() {
         ...orderData,
         updatedAt: new Date()
       };
-      setOrders(orders.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+      updateOrder(updatedOrder);
+      setOrders(prevOrders => 
+        prevOrders.map(o => o.id === updatedOrder.id ? updatedOrder : o)
+      );
     }
     
     setViewMode('dashboard');

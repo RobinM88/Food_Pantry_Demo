@@ -1,16 +1,6 @@
 export type CallType = 'incoming' | 'outgoing';
 export type CallOutcome = 'completed' | 'voicemail' | 'no_answer' | 'wrong_number';
 
-export interface PhoneLogFormState {
-  phoneNumber: string;
-  callType: CallType;
-  callOutcome: CallOutcome;
-  notes: string;
-  selectedClient: Client | null;
-  matchingClients: Client[];
-  showNewClientForm: boolean;
-}
-
 export interface PhoneLog {
   id: string;
   familySearchId: string;
@@ -20,6 +10,16 @@ export interface PhoneLog {
   notes: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface PhoneLogFormState {
+  phoneNumber: string;
+  callType: CallType;
+  callOutcome: CallOutcome;
+  notes: string;
+  selectedClient: Client | null;
+  matchingClients: Client[];
+  showNewClientForm: boolean;
 }
 
 export type NewPhoneLog = Omit<PhoneLog, 'id' | 'createdAt' | 'updatedAt'>;

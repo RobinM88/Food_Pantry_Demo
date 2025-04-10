@@ -1,3 +1,5 @@
+import { Order } from './order';
+
 export * from './client';
 export * from './order';
 export * from './phoneLog';

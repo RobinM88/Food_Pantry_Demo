@@ -131,7 +131,7 @@ export default function PendingApprovalsDashboard({
   };
 
   const renderOrderCard = (order: Order) => {
-    const client = clients.find(c => c.familyNumber === order.clientId);
+    const client = clients.find(c => c.familyNumber === order.familySearchId);
     
     return (
       <Card key={order.id} sx={{ 
