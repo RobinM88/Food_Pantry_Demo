@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import { Client, NewClient, UpdateClient, MemberStatus } from '../../types';
 import { formatPhoneNumber, isValidUSPhoneNumber } from '../../utils/phoneNumberUtils';
+import { ConnectedFamilyService } from '../../services/connectedFamily.service';
 
 interface ClientFormProps {
   client?: Client;
@@ -46,7 +47,6 @@ const initialFormState: NewClient = {
   },
   foodNotes: '',
   officeNotes: '',
-  connectedFamilies: [],
   memberStatus: MemberStatus.Pending,
   totalVisits: 0,
   totalThisMonth: 0
@@ -58,12 +58,40 @@ export default function ClientForm({
   onCancel,
   initialData
 }: ClientFormProps) {
-  const [formData, setFormData] = useState<NewClient>({
-    ...initialFormState,
-    ...initialData,
-    temporaryMembers: undefined
-  });
+  const [formData, setFormData] = useState<NewClient>(
+    client
+      ? {
+          familyNumber: client.familyNumber,
+          firstName: client.firstName,
+          lastName: client.lastName,
+          email: client.email || '',
+          address: client.address,
+          aptNumber: client.aptNumber || '',
+          zipCode: client.zipCode,
+          phone1: client.phone1,
+          phone2: client.phone2 || '',
+          isUnhoused: client.isUnhoused,
+          isTemporary: client.isTemporary,
+          adults: client.adults,
+          schoolAged: client.schoolAged,
+          smallChildren: client.smallChildren,
+          temporaryMembers: client.temporaryMembers || {
+            adults: 0,
+            schoolAged: 0,
+            smallChildren: 0
+          },
+          foodNotes: client.foodNotes || '',
+          officeNotes: client.officeNotes || '',
+          memberStatus: client.memberStatus,
+          totalVisits: client.totalVisits,
+          totalThisMonth: client.totalThisMonth
+        }
+      : { ...initialFormState, ...initialData, memberStatus: MemberStatus.Pending }
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // State for connected families
+  const [connectedFamilyIds, setConnectedFamilyIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (client) {
@@ -79,10 +107,22 @@ export default function ClientForm({
           smallChildren: client.temporaryMembers?.smallChildren ?? 0
         } : undefined,
         foodNotes: client.foodNotes || '',
-        officeNotes: client.officeNotes || '',
-        connectedFamilies: client.connectedFamilies || []
+        officeNotes: client.officeNotes || ''
       };
       setFormData(newFormData);
+    }
+  }, [client]);
+
+  // Load connected families when editing an existing client
+  useEffect(() => {
+    if (client?.id) {
+      ConnectedFamilyService.getByClientId(client.id)
+        .then(connections => {
+          setConnectedFamilyIds(connections.map(c => c.connectedTo));
+        })
+        .catch(error => {
+          console.error('Error loading connected families:', error);
+        });
     }
   }, [client]);
 
@@ -212,28 +252,61 @@ export default function ClientForm({
     console.log('Form data:', formData);
     
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return newErrors;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submit triggered');
     
-    if (validateForm()) {
-      // Create a copy of form data and remove temporaryMembers if not temporary
-      const submissionData = {
-        ...formData,
-        // Convert names to lowercase when submitting
-        firstName: formData.firstName.toLowerCase(),
-        lastName: formData.lastName.toLowerCase(),
-        // Only include temporaryMembers if isTemporary is true
-        temporaryMembers: formData.isTemporary ? formData.temporaryMembers : undefined
-      };
-      
-      console.log('Form validation passed, submitting data:', submissionData);
-      onSubmit(submissionData);
-    } else {
-      console.log('Form validation failed');
+    const validationErrors = validateForm();
+    if (Object.keys(validationErrors).length > 0) {
+      return;
+    }
+
+    // Create a clean copy of formData without any fields that don't exist in the database
+    const { connectedFamilies, ...clientData } = formData;
+    
+    // Calculate familySize if not already set
+    if (clientData.familySize === undefined) {
+      clientData.familySize = clientData.adults + clientData.schoolAged + clientData.smallChildren;
+      if (clientData.isTemporary && clientData.temporaryMembers) {
+        clientData.familySize += 
+          clientData.temporaryMembers.adults + 
+          clientData.temporaryMembers.schoolAged + 
+          clientData.temporaryMembers.smallChildren;
+      }
+    }
+
+    // Force new clients to be set to pending status
+    if (!client) {
+      // Override any potential status changes to ensure new clients are pending
+      clientData.memberStatus = MemberStatus.Pending;
+      console.log('Setting new client status to pending:', clientData);
+    }
+
+    // Submit the client data first
+    onSubmit(clientData);
+    
+    // If we're editing an existing client and have their ID, handle connected families
+    if (client?.id) {
+      try {
+        // Delete existing connections
+        await ConnectedFamilyService.deleteByClientId(client.id);
+        
+        // Create new connections if any exist
+        if (connectedFamilyIds.length > 0) {
+          await Promise.all(
+            connectedFamilyIds.map(connectedTo => 
+              ConnectedFamilyService.create({
+                clientId: client.id,
+                connectedTo
+              })
+            )
+          );
+        }
+      } catch (error) {
+        console.error('Error managing connected families:', error);
+      }
     }
   };
 
@@ -525,25 +598,55 @@ export default function ClientForm({
             />
           </Grid>
 
-          <Grid item xs={12}>
-            <FormControl fullWidth>
-              <InputLabel>Member Status</InputLabel>
-              <Select
-                name="memberStatus"
-                value={formData.memberStatus}
-                onChange={(e) => handleTextChange(e as any)}
-                label="Member Status"
-              >
-                <MenuItem value={MemberStatus.Active}>Active</MenuItem>
-                <MenuItem value={MemberStatus.Inactive}>Inactive</MenuItem>
-                <MenuItem value={MemberStatus.Pending}>Pending</MenuItem>
-                <MenuItem value={MemberStatus.Suspended}>Suspended</MenuItem>
-                <MenuItem value={MemberStatus.Banned}>Banned</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
+          {client ? (
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Member Status</InputLabel>
+                <Select
+                  name="memberStatus"
+                  value={formData.memberStatus}
+                  onChange={(e) => handleTextChange(e as any)}
+                  label="Member Status"
+                >
+                  <MenuItem value={MemberStatus.Active}>Active</MenuItem>
+                  <MenuItem value={MemberStatus.Inactive}>Inactive</MenuItem>
+                  <MenuItem value={MemberStatus.Pending}>Pending</MenuItem>
+                  <MenuItem value={MemberStatus.Suspended}>Suspended</MenuItem>
+                  <MenuItem value={MemberStatus.Banned}>Banned</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          ) : (
+            <Grid item xs={12}>
+              <Typography color="textSecondary">
+                New clients will be set to "Pending" status automatically
+              </Typography>
+            </Grid>
+          )}
         </Grid>
         
+        {/* Only show connected families section when editing an existing client */}
+        {client?.id && (
+          <Box sx={{ mt: 3 }}>
+            <Typography variant="h6">Connected Families</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Add connections to other families if needed. Not all families need to be connected.
+            </Typography>
+            
+            {/* We'll add the UI for managing connections in a future update */}
+            <TextField
+              fullWidth
+              label="Connected Family IDs (temporary field)"
+              value={connectedFamilyIds.join(', ')}
+              disabled
+              sx={{ mb: 2 }}
+            />
+            <Typography variant="body2" color="text.secondary">
+              Note: Connected families feature is under development. Currently showing IDs only.
+            </Typography>
+          </Box>
+        )}
+
         <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
           <Button onClick={onCancel}>
             Cancel

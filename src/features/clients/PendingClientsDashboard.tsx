@@ -31,14 +31,16 @@ import { format } from 'date-fns';
 
 interface PendingClientsDashboardProps {
   clients: Client[];
-  onStatusChange: (client: Client, newStatus: MemberStatus) => void;
-  onEditClient: (client: Client) => void;
+  onApprove: (client: Client) => Promise<void>;
+  onDeny: (client: Client) => Promise<void>;
+  onView: (client: Client) => void;
 }
 
 export default function PendingClientsDashboard({
   clients,
-  onStatusChange,
-  onEditClient
+  onApprove,
+  onDeny,
+  onView
 }: PendingClientsDashboardProps) {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -54,7 +56,7 @@ export default function PendingClientsDashboard({
       updatedAt: new Date()
     };
     
-    onStatusChange(updatedClient, MemberStatus.Active);
+    onApprove(updatedClient);
     setSnackbarMessage('Client approved successfully');
     setSnackbarSeverity('success');
     setSnackbarOpen(true);
@@ -67,7 +69,7 @@ export default function PendingClientsDashboard({
       updatedAt: new Date()
     };
     
-    onStatusChange(updatedClient, MemberStatus.Inactive);
+    onDeny(updatedClient);
     setSnackbarMessage('Client denied');
     setSnackbarSeverity('success');
     setSnackbarOpen(true);
@@ -80,7 +82,7 @@ export default function PendingClientsDashboard({
       updatedAt: new Date()
     };
     
-    onStatusChange(updatedClient, MemberStatus.Suspended);
+    onApprove(updatedClient);
     setSnackbarMessage('Client suspended');
     setSnackbarSeverity('warning');
     setSnackbarOpen(true);
@@ -93,7 +95,7 @@ export default function PendingClientsDashboard({
       updatedAt: new Date()
     };
     
-    onStatusChange(updatedClient, MemberStatus.Banned);
+    onApprove(updatedClient);
     setSnackbarMessage('Client banned');
     setSnackbarSeverity('error');
     setSnackbarOpen(true);
@@ -194,7 +196,7 @@ export default function PendingClientsDashboard({
           </Button>
           <IconButton 
             size="small"
-            onClick={() => onEditClient(client)}
+            onClick={() => onView(client)}
             sx={{ ml: 'auto' }}
           >
             <EditIcon />

@@ -114,8 +114,8 @@ export default function OrderList({
     return (
       client?.firstName.toLowerCase().includes(searchLower) ||
       client?.lastName.toLowerCase().includes(searchLower) ||
-      order.items.toLowerCase().includes(searchLower) ||
-      order.status.toLowerCase().includes(searchLower)
+      order.status.toLowerCase().includes(searchLower) ||
+      order.numberOfBoxes.toString().includes(searchLower)
     );
   });
 
@@ -148,7 +148,7 @@ export default function OrderList({
           <TableHead>
             <TableRow>
               <TableCell>Client</TableCell>
-              <TableCell>Items</TableCell>
+              <TableCell>Boxes</TableCell>
               <TableCell>Pickup Date</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Actions</TableCell>
@@ -173,7 +173,7 @@ export default function OrderList({
                           whiteSpace: 'nowrap'
                         }}
                       >
-                        {order.items}
+                        {order.numberOfBoxes} boxes
                       </Typography>
                     </TableCell>
                     <TableCell>

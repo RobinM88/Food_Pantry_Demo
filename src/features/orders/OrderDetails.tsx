@@ -90,13 +90,14 @@ export default function OrderDetails({
         return 'info';
       case 'denied':
         return 'error';
-      case 'confirmed':
+      case 'scheduled':
         return 'primary';
       case 'ready':
         return 'secondary';
       case 'picked_up':
         return 'success';
       case 'cancelled':
+      case 'no_show':
         return 'error';
       default:
         return 'default';
@@ -161,7 +162,7 @@ export default function OrderDetails({
                   <PersonIcon />
                 </ListItemIcon>
                 <ListItemText 
-                  primary={client.phone} 
+                  primary={client.phone1} 
                   secondary="Phone" 
                 />
               </ListItem>
@@ -187,8 +188,8 @@ export default function OrderDetails({
                   <CartIcon />
                 </ListItemIcon>
                 <ListItemText 
-                  primary={order.items} 
-                  secondary="Items" 
+                  primary={`${order.numberOfBoxes} boxes`} 
+                  secondary="Order Size" 
                 />
               </ListItem>
               <ListItem>
@@ -196,7 +197,7 @@ export default function OrderDetails({
                   <CalendarIcon />
                 </ListItemIcon>
                 <ListItemText 
-                  primary={format(new Date(order.pickupDate), 'MMMM d, yyyy')} 
+                  primary={order.pickupDate ? format(new Date(order.pickupDate), 'MMMM d, yyyy') : 'Not scheduled'} 
                   secondary="Pickup Date" 
                 />
               </ListItem>
@@ -346,12 +347,17 @@ export default function OrderDetails({
         <DialogTitle>Confirm Status Change</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to {getStatusChangeMessage(pendingStatusChange || '')} this order?
+            Are you sure you want to {getStatusChangeMessage(pendingStatusChange || 'pending')} this order?
           </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleStatusChangeCancel}>Cancel</Button>
-          <Button onClick={handleStatusChangeConfirm} color="primary" variant="contained">
+          <Button 
+            onClick={handleStatusChangeConfirm} 
+            color="primary" 
+            variant="contained"
+            disabled={!pendingStatusChange}
+          >
             Confirm
           </Button>
         </DialogActions>

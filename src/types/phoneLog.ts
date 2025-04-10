@@ -1,3 +1,5 @@
+import { Client } from './client';
+
 export type CallType = 'incoming' | 'outgoing';
 export type CallOutcome = 'completed' | 'voicemail' | 'no_answer' | 'wrong_number';
 

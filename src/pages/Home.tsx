@@ -1,10 +1,11 @@
-import { Grid, Card, CardContent, Typography, CardActionArea } from '@mui/material'
+import { Grid, Card, CardContent, Typography, CardActionArea, Box } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import {
   People as PeopleIcon,
   ShoppingCart as OrdersIcon,
   Phone as PhoneIcon,
 } from '@mui/icons-material'
+import DatabaseTest from '../components/DatabaseTest'
 
 const quickAccessItems = [
   {
@@ -57,6 +58,11 @@ export default function Home() {
           </Grid>
         ))}
       </Grid>
+
+      {/* Temporary Database Test Section */}
+      <Box mt={4}>
+        <DatabaseTest />
+      </Box>
     </div>
   )
 } 

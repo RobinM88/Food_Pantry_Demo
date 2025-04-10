@@ -1,5 +1,7 @@
 import { Order, Client, PhoneLog } from '../types';
 
+type ValidationErrors = Record<string, string>;
+
 // Client Validations
 export const validateClient = (client: Partial<Client>): Record<string, string> => {
   const errors: Record<string, string> = {};
@@ -50,45 +52,32 @@ export const validateClient = (client: Partial<Client>): Record<string, string> 
 };
 
 // Order Validations
-export const validateOrder = (order: Partial<Order>): Record<string, string> => {
-  const errors: Record<string, string> = {};
+export const validateOrder = (order: Order): ValidationErrors => {
+  const errors: ValidationErrors = {};
 
-  // Required Fields
-  if (!order.familySearchId?.trim()) {
+  if (!order.familySearchId) {
     errors.familySearchId = 'Client is required';
   }
-  if (!order.numberOfBoxes || order.numberOfBoxes < 1) {
-    errors.numberOfBoxes = 'At least one box is required';
-  }
+
   if (!order.pickupDate) {
     errors.pickupDate = 'Pickup date is required';
   }
 
-  // Pickup Date Validation
-  if (order.pickupDate) {
-    const pickupDate = new Date(order.pickupDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  if (!order.numberOfBoxes || order.numberOfBoxes < 1) {
+    errors.numberOfBoxes = 'Number of boxes must be at least 1';
+  }
 
-    if (pickupDate < today) {
-      errors.pickupDate = 'Pickup date cannot be in the past';
-    }
-
-    // Validate pickup date is within 30 days
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-    if (pickupDate > thirtyDaysFromNow) {
-      errors.pickupDate = 'Pickup date cannot be more than 30 days in the future';
+  if (order.additionalPeople) {
+    const totalPeople = order.additionalPeople.adults + 
+                       order.additionalPeople.smallChildren + 
+                       order.additionalPeople.schoolAged;
+    if (totalPeople < 0) {
+      errors.additionalPeople = 'Total additional people cannot be negative';
     }
   }
 
-  // Status Validation
-  const validStatuses = [
-    'pending', 'approved', 'denied', 'scheduled', 
-    'ready', 'picked_up', 'cancelled', 'no_show'
-  ];
-  if (order.status && !validStatuses.includes(order.status)) {
-    errors.status = 'Invalid status';
+  if (!order.status) {
+    errors.status = 'Status is required';
   }
 
   return errors;

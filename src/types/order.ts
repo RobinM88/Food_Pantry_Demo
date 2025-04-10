@@ -15,18 +15,11 @@ export interface Order {
     smallChildren: number;
     schoolAged: number;
   };
-  visitTotals?: {
-    adults: number;
-    smallChildren: number;
-    schoolAged: number;
-    total: number;
-  };
-  seasonalItems?: string[];
+  seasonalItems: string[];
   visitContact?: string;
-  items: string[];
 }
 
-export type OrderStatus = 'pending' | 'approved' | 'denied' | 'scheduled' | 'ready' | 'picked_up' | 'cancelled' | 'no_show';
+export type OrderStatus = 'pending' | 'approved' | 'denied' | 'scheduled' | 'ready' | 'picked_up' | 'cancelled' | 'no_show' | 'in_queue';
 
-export type NewOrder = Omit<Order, 'id' | 'createdAt' | 'updatedAt' | 'visitTotals'>;
+export type NewOrder = Omit<Order, 'id' | 'createdAt' | 'updatedAt'>;
 export type UpdateOrder = Partial<NewOrder>; 

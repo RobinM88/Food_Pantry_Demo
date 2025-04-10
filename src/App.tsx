@@ -9,23 +9,35 @@ import Clients from './pages/Clients'
 import Orders from './pages/Orders'
 import PhoneLogs from './pages/PhoneLogs'
 import DailyQueue from './pages/DailyQueue'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+})
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <LocalizationProvider dateAdapter={AdapterDateFns}>
-        <CssBaseline />
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/clients/*" element={<Clients />} />
-            <Route path="/orders" element={<Orders />} />
-            <Route path="/daily-queue" element={<DailyQueue />} />
-            <Route path="/phone-logs" element={<PhoneLogs />} />
-          </Routes>
-        </Layout>
-      </LocalizationProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider theme={theme}>
+        <LocalizationProvider dateAdapter={AdapterDateFns}>
+          <CssBaseline />
+          <Layout>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/clients/*" element={<Clients />} />
+              <Route path="/orders" element={<Orders />} />
+              <Route path="/daily-queue" element={<DailyQueue />} />
+              <Route path="/phone-logs" element={<PhoneLogs />} />
+            </Routes>
+          </Layout>
+        </LocalizationProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   )
 }
 

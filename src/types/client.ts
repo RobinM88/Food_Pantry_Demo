@@ -4,11 +4,13 @@ export enum MemberStatus {
   Inactive = 'inactive',
   Pending = 'pending',
   Suspended = 'suspended',
-  Banned = 'banned'
+  Banned = 'banned',
+  Denied = 'denied'
 }
 
 export interface Client {
   // Primary identifiers
+  id: string;
   familyNumber: string;
   
   // Basic information
@@ -31,6 +33,9 @@ export interface Client {
   smallChildren: number;
   familySize: number; // Total family size including temporary members
   
+  // Connected families
+  connectedFamilies?: string[]; // Array of family IDs that this client is connected to
+  
   // Temporary family members (only present if isTemporary is true)
   temporaryMembers?: {
     adults: number;
@@ -42,8 +47,7 @@ export interface Client {
   foodNotes?: string;
   officeNotes?: string;
   
-  // Tracking and relationships
-  connectedFamilies?: string[]; // Array of related familyNumbers
+  // Tracking and status
   memberStatus: MemberStatus;
   totalVisits: number;
   totalThisMonth: number;
@@ -76,6 +80,10 @@ export interface NewClient {
   adults: number;
   schoolAged: number;
   smallChildren: number;
+  familySize?: number; // Total family size including temporary members
+  
+  // Connected families
+  connectedFamilies?: string[]; // Array of family IDs that this client is connected to
   
   // Temporary family members (only present if isTemporary is true)
   temporaryMembers?: {
@@ -88,8 +96,7 @@ export interface NewClient {
   foodNotes?: string;
   officeNotes?: string;
   
-  // Tracking and relationships
-  connectedFamilies?: string[]; // Array of related familyNumbers
+  // Tracking and status
   memberStatus: MemberStatus;
   totalVisits: number;
   totalThisMonth: number;
@@ -109,6 +116,7 @@ export const defaultNewClient: NewClient = {
   adults: 1,
   schoolAged: 0,
   smallChildren: 0,
+  familySize: 1, // Default to 1 (just the adult)
   isUnhoused: false,
   isTemporary: false,
   temporaryMembers: {
@@ -120,8 +128,7 @@ export const defaultNewClient: NewClient = {
   totalVisits: 0,
   totalThisMonth: 0,
   foodNotes: '',
-  officeNotes: '',
-  connectedFamilies: []
+  officeNotes: ''
 };
 
 export type UpdateClient = Partial<NewClient>; 

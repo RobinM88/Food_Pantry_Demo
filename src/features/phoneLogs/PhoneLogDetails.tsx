@@ -122,14 +122,14 @@ export default function PhoneLogDetails({ phoneLog, client }: PhoneLogDetailsPro
                 <ListItemText
                   primary="Call Type"
                   secondary={
-                    <Box component="span">
+                    <Typography component="div" variant="body2">
                       <Chip
                         icon={getCallTypeIcon(phoneLog.callType, true)}
                         label={phoneLog.callType === 'incoming' ? 'Incoming' : 'Outgoing'}
                         size="small"
                         color={getCallTypeColor(phoneLog.callType) as any}
                       />
-                    </Box>
+                    </Typography>
                   }
                 />
               </ListItem>
@@ -140,14 +140,14 @@ export default function PhoneLogDetails({ phoneLog, client }: PhoneLogDetailsPro
                 <ListItemText
                   primary="Call Outcome"
                   secondary={
-                    <Box component="span">
+                    <Typography component="div" variant="body2">
                       <Chip
                         icon={getCallOutcomeIcon(phoneLog.callOutcome, true)}
                         label={phoneLog.callOutcome.replace('_', ' ')}
                         size="small"
                         color={getCallOutcomeColor(phoneLog.callOutcome) as any}
                       />
-                    </Box>
+                    </Typography>
                   }
                 />
               </ListItem>
@@ -190,13 +190,13 @@ export default function PhoneLogDetails({ phoneLog, client }: PhoneLogDetailsPro
                   <ListItemText
                     primary="Status"
                     secondary={
-                      <Box component="span">
+                      <Typography component="div" variant="body2">
                         <Chip
                           label={client.memberStatus}
                           size="small"
                           color={client.memberStatus === MemberStatus.Active ? 'success' : 'default'}
                         />
-                      </Box>
+                      </Typography>
                     }
                   />
                 </ListItem>

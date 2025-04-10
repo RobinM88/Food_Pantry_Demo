@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Box, Button, Container, Snackbar, Alert } from '@mui/material';
+import { Box, Button, Container, Snackbar, Alert, CircularProgress } from '@mui/material';
 import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import ClientList from '../features/clients/ClientList';
@@ -8,7 +8,7 @@ import ClientDetails from '../features/clients/ClientDetails';
 import PendingClientsDashboard from '../features/clients/PendingClientsDashboard';
 import { Client, NewClient, UpdateClient, MemberStatus } from '../types';
 import { generateNextFamilyNumber } from '../utils/familyNumberUtils';
-import { addNewClient, updateClient, getClients, deleteClient } from '../utils/testDataUtils';
+import { ClientService } from '../services/client.service';
 
 type ViewMode = 'list' | 'add' | 'edit' | 'view' | 'pending';
 
@@ -22,6 +22,7 @@ export default function Clients() {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState<Notification>({
     open: false,
     message: '',
@@ -32,8 +33,23 @@ export default function Clients() {
   const location = useLocation();
 
   useEffect(() => {
-    // Load clients from localStorage on component mount
-    setClients(getClients());
+    const loadClients = async () => {
+      try {
+        setLoading(true);
+        const clientsData = await ClientService.getAll();
+        setClients(clientsData);
+      } catch (error) {
+        console.error('Error loading clients:', error);
+        setNotification({
+          open: true,
+          message: 'Error loading clients',
+          severity: 'error'
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadClients();
   }, []);
 
   useEffect(() => {
@@ -52,7 +68,6 @@ export default function Clients() {
   };
 
   const handleEditClient = (client: Client) => {
-    console.log('Editing client:', client);
     setSelectedClient(client);
     setViewMode('edit');
     navigate('/clients/edit');
@@ -64,39 +79,57 @@ export default function Clients() {
     navigate('/clients/view');
   };
 
-  const handleStatusChange = (client: Client, newStatus: MemberStatus) => {
-    const updatedClient: Client = {
-      ...client,
-      memberStatus: newStatus,
-      updatedAt: new Date()
-    };
-    
-    updateClient(updatedClient);
-    const updatedClients = getClients();
-    setClients(updatedClients);
-    
-    setNotification({
-      open: true,
-      message: `Client ${newStatus === MemberStatus.Active ? 'approved' : 'denied'} successfully`,
-      severity: 'success'
-    });
+  const handleStatusChange = async (client: Client, newStatus: MemberStatus) => {
+    try {
+      const updatedClient: Client = {
+        ...client,
+        memberStatus: newStatus,
+        updatedAt: new Date()
+      };
+      
+      await ClientService.update(client.id, updatedClient);
+      const updatedClients = await ClientService.getAll();
+      setClients(updatedClients);
+      
+      setNotification({
+        open: true,
+        message: `Client ${newStatus === MemberStatus.Active ? 'approved' : 'denied'} successfully`,
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Error updating client status:', error);
+      setNotification({
+        open: true,
+        message: 'Error updating client status',
+        severity: 'error'
+      });
+    }
   };
 
-  const handleDeleteClient = (client: Client) => {
-    deleteClient(client.familyNumber);
-    const updatedClients = getClients();
-    setClients(updatedClients);
-    
-    if (viewMode === 'view' && selectedClient?.familyNumber === client.familyNumber) {
-      setSelectedClient(null);
-      setViewMode('list');
-    }
+  const handleDeleteClient = async (client: Client) => {
+    try {
+      await ClientService.delete(client.id);
+      const updatedClients = await ClientService.getAll();
+      setClients(updatedClients);
+      
+      if (viewMode === 'view' && selectedClient?.id === client.id) {
+        setSelectedClient(null);
+        setViewMode('list');
+      }
 
-    setNotification({
-      open: true,
-      message: 'Client deleted successfully',
-      severity: 'success'
-    });
+      setNotification({
+        open: true,
+        message: 'Client deleted successfully',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Error deleting client:', error);
+      setNotification({
+        open: true,
+        message: 'Error deleting client',
+        severity: 'error'
+      });
+    }
   };
 
   const calculateFamilySize = (data: NewClient | UpdateClient) => {
@@ -110,18 +143,13 @@ export default function Clients() {
     return baseSize;
   };
 
-  const handleSaveClient = (clientData: NewClient | UpdateClient) => {
+  const handleSaveClient = async (clientData: NewClient | UpdateClient) => {
     try {
       if ('familyNumber' in clientData && clientData.familyNumber) {
         // This is an update
         const existingClient = clients.find(c => c.familyNumber === clientData.familyNumber);
         if (!existingClient) {
-          setNotification({
-            open: true,
-            message: 'Client not found',
-            severity: 'error',
-          });
-          return;
+          throw new Error('Client not found');
         }
 
         const updatedClient: Client = {
@@ -136,8 +164,9 @@ export default function Clients() {
           totalThisMonth: existingClient.totalThisMonth
         };
 
-        updateClient(updatedClient);
-        setClients(getClients());
+        await ClientService.update(existingClient.id, updatedClient);
+        const updatedClients = await ClientService.getAll();
+        setClients(updatedClients);
         
         setNotification({
           open: true,
@@ -172,16 +201,12 @@ export default function Clients() {
         if (!clientData.firstName || !clientData.lastName || 
             !clientData.phone1 || !clientData.zipCode ||
             (!clientData.isUnhoused && !clientData.address)) {
-          setNotification({
-            open: true,
-            message: 'Please fill in all required fields',
-            severity: 'error',
-          });
-          return;
+          throw new Error('Please fill in all required fields');
         }
 
         const newFamilyNumber = generateNextFamilyNumber(clients);
         const newClient: Client = {
+          id: `c${Date.now()}`,
           familyNumber: newFamilyNumber,
           firstName: clientData.firstName.toLowerCase(),
           lastName: clientData.lastName.toLowerCase(),
@@ -202,114 +227,129 @@ export default function Clients() {
             smallChildren: 0
           },
           familySize: calculateFamilySize(clientData),
-          memberStatus: clientData.memberStatus || MemberStatus.Pending,
-          totalVisits: 0,
-          totalThisMonth: 0,
           foodNotes: clientData.foodNotes || '',
           officeNotes: clientData.officeNotes || '',
-          connectedFamilies: clientData.connectedFamilies || [],
+          totalVisits: 0,
+          totalThisMonth: 0,
+          memberStatus: MemberStatus.Pending,
           createdAt: new Date(),
           updatedAt: new Date(),
-          lastVisit: undefined
+          lastVisit: new Date()
         };
 
-        addNewClient(newClient);
-        setClients(getClients());
+        // Remove any fields that don't exist in the database before sending
+        const { connectedFamilies, ...clientToSave } = newClient;
+
+        await ClientService.create(clientToSave);
+        const updatedClients = await ClientService.getAll();
+        setClients(updatedClients);
         
         setNotification({
           open: true,
           message: 'Client added successfully',
           severity: 'success',
         });
-        
-        // Preserve navigation state
+
+        // Handle navigation based on where we came from
         const state = location.state as { 
           fromPhoneLog?: boolean; 
           phoneNumber?: string;
-          nameSearch?: string;
           phoneLogState?: any;
         } | null;
-        
+
         if (state?.fromPhoneLog) {
-          // Return to phone logs with preserved state
           navigate('/phone-logs', {
             state: {
               fromClientAdd: true,
               phoneNumber: clientData.phone1,
-              nameSearch: state.nameSearch,
               phoneLogState: state.phoneLogState
             },
             replace: true
           });
         } else {
-          // Normal navigation back to client list
           setViewMode('list');
           navigate('/clients');
         }
-        
-        return newFamilyNumber;
       }
     } catch (error) {
       console.error('Error saving client:', error);
       setNotification({
         open: true,
-        message: 'Error saving client. Please try again.',
-        severity: 'error',
+        message: error instanceof Error ? error.message : 'Error saving client',
+        severity: 'error'
       });
     }
   };
 
   const handleCancel = () => {
-    setViewMode('list');
-    setSelectedClient(null);
-    navigate('/clients');
+    const state = location.state as { fromPhoneLog?: boolean; phoneNumber?: string } | null;
+    if (state?.fromPhoneLog) {
+      navigate('/phone-logs', { state });
+    } else {
+      setViewMode('list');
+      navigate('/clients');
+    }
   };
 
+  const handleCloseNotification = () => {
+    setNotification({ ...notification, open: false });
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   return (
-    <Container maxWidth="lg">
-      {viewMode !== 'list' && viewMode !== 'pending' && (
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      {viewMode !== 'list' && (
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={handleCancel}
-          sx={{ mb: 2 }}
+          sx={{ mb: 3 }}
         >
-          Back to List
+          Back to Clients
         </Button>
       )}
+
       <Routes>
         <Route path="/" element={
-          <>
-            <Box sx={{ mb: 2, display: 'flex', gap: 2 }}>
+          <Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
               <Button
                 variant="contained"
+                color="primary"
                 onClick={handleAddClient}
+                size="large"
               >
-                Add New Client
+                Add Client
               </Button>
               <Button
                 variant="outlined"
+                color="primary"
                 onClick={() => navigate('/clients/pending')}
+                size="large"
               >
-                View Pending Approvals
+                View Pending Clients
               </Button>
             </Box>
             <ClientList
               clients={clients}
-              onEditClient={handleEditClient}
-              onViewClient={handleViewClient}
-              onDeleteClient={handleDeleteClient}
+              onAdd={handleAddClient}
+              onEdit={handleEditClient}
+              onView={handleViewClient}
+              onDelete={handleDeleteClient}
+              onStatusChange={handleStatusChange}
             />
-          </>
+          </Box>
         } />
         <Route path="/add" element={
           <ClientForm
             onSubmit={handleSaveClient}
             onCancel={handleCancel}
-            initialData={location.state?.nameSearch ? {
-              firstName: location.state.nameSearch.split(' ')[0] || '',
-              lastName: location.state.nameSearch.split(' ').slice(1).join(' ') || '',
-              phone1: location.state.phoneNumber || ''
-            } : undefined}
           />
         } />
         <Route path="/edit" element={
@@ -319,7 +359,9 @@ export default function Clients() {
               onSubmit={handleSaveClient}
               onCancel={handleCancel}
             />
-          ) : <Navigate to="/clients" replace />
+          ) : (
+            <Navigate to="/clients" replace />
+          )
         } />
         <Route path="/view" element={
           selectedClient ? (
@@ -329,24 +371,29 @@ export default function Clients() {
               onDelete={handleDeleteClient}
               onStatusChange={handleStatusChange}
             />
-          ) : <Navigate to="/clients" replace />
+          ) : (
+            <Navigate to="/clients" replace />
+          )
         } />
         <Route path="/pending" element={
           <PendingClientsDashboard
-            clients={clients}
-            onStatusChange={handleStatusChange}
-            onEditClient={handleEditClient}
+            clients={clients.filter(c => c.memberStatus === MemberStatus.Pending)}
+            onApprove={(client) => handleStatusChange(client, MemberStatus.Active)}
+            onDeny={(client) => handleStatusChange(client, MemberStatus.Denied)}
+            onView={handleViewClient}
           />
         } />
       </Routes>
+
       <Snackbar
         open={notification.open}
         autoHideDuration={6000}
-        onClose={() => setNotification(prev => ({ ...prev, open: false }))}
+        onClose={handleCloseNotification}
       >
         <Alert
-          onClose={() => setNotification(prev => ({ ...prev, open: false }))}
+          onClose={handleCloseNotification}
           severity={notification.severity}
+          sx={{ width: '100%' }}
         >
           {notification.message}
         </Alert>

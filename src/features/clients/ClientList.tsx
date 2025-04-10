@@ -36,16 +36,20 @@ import ClientDetails from './ClientDetails';
 
 interface ClientListProps {
   clients: Client[];
-  onViewClient: (client: Client) => void;
-  onEditClient: (client: Client) => void;
-  onDeleteClient: (client: Client) => void;
+  onView: (client: Client) => void;
+  onEdit: (client: Client) => void;
+  onDelete: (client: Client) => void;
+  onAdd: () => void;
+  onStatusChange: (client: Client, newStatus: MemberStatus) => Promise<void>;
 }
 
 export default function ClientList({
   clients,
-  onViewClient,
-  onEditClient,
-  onDeleteClient
+  onView,
+  onEdit,
+  onDelete,
+  onAdd,
+  onStatusChange
 }: ClientListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<MemberStatus | 'all'>('all');
@@ -86,7 +90,7 @@ export default function ClientList({
   const handleViewClient = (client: Client) => {
     setSelectedClient(client);
     setDetailsDialogOpen(true);
-    onViewClient(client);
+    onView(client);
   };
 
   const handleCloseDetailsDialog = () => {
@@ -97,11 +101,11 @@ export default function ClientList({
     // Close the details dialog if it's open
     setDetailsDialogOpen(false);
     // Call the parent's edit handler
-    onEditClient(client);
+    onEdit(client);
   };
 
   const handleDeleteClient = (client: Client) => {
-    onDeleteClient(client);
+    onDelete(client);
   };
 
   return (
@@ -285,9 +289,9 @@ export default function ClientList({
               client={selectedClient}
               onEdit={(client) => {
                 handleCloseDetailsDialog();
-                onEditClient(client);
+                onEdit(client);
               }}
-              onDelete={onDeleteClient}
+              onDelete={onDelete}
             />
           )}
         </DialogContent>
