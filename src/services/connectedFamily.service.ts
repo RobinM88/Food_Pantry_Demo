@@ -13,13 +13,24 @@ export const ConnectedFamilyService = {
   },
 
   async create(data: Omit<ConnectedFamily, 'id'>) {
+    const formattedData = {
+      clientId: data.clientId,
+      connectedTo: data.connectedTo,
+      relationship_type: data.relationshipType
+    };
+
+    console.log('Creating connection with data:', formattedData);
+
     const { data: newConnection, error } = await api.supabase
       .from('ConnectedFamily')
-      .insert([data])
+      .insert([formattedData])
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
     return newConnection;
   },
 

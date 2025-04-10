@@ -88,8 +88,8 @@ export default function OrderDetails({
         return 'warning';
       case 'approved':
         return 'info';
-      case 'denied':
-        return 'error';
+      case 'completed':
+        return 'success';
       case 'scheduled':
         return 'primary';
       case 'ready':
@@ -99,6 +99,8 @@ export default function OrderDetails({
       case 'cancelled':
       case 'no_show':
         return 'error';
+      case 'in_queue':
+        return 'info';
       default:
         return 'default';
     }
@@ -108,10 +110,20 @@ export default function OrderDetails({
     switch (status) {
       case 'approved':
         return 'approve';
-      case 'denied':
-        return 'deny';
       case 'cancelled':
         return 'cancel';
+      case 'completed':
+        return 'complete';
+      case 'picked_up':
+        return 'mark as picked up';
+      case 'no_show':
+        return 'mark as no show';
+      case 'ready':
+        return 'mark as ready';
+      case 'scheduled':
+        return 'schedule';
+      case 'in_queue':
+        return 'add to queue';
       default:
         return 'change status to';
     }
@@ -253,7 +265,7 @@ export default function OrderDetails({
                 <Button 
                   startIcon={<DenyIcon />} 
                   color="error"
-                  onClick={() => handleStatusChangeClick('denied')}
+                  onClick={() => handleStatusChangeClick('cancelled')}
                 >
                   Deny
                 </Button>
@@ -352,12 +364,7 @@ export default function OrderDetails({
         </DialogContent>
         <DialogActions>
           <Button onClick={handleStatusChangeCancel}>Cancel</Button>
-          <Button 
-            onClick={handleStatusChangeConfirm} 
-            color="primary" 
-            variant="contained"
-            disabled={!pendingStatusChange}
-          >
+          <Button onClick={handleStatusChangeConfirm} color="primary">
             Confirm
           </Button>
         </DialogActions>

@@ -67,6 +67,14 @@ export default function PendingApprovalsDashboard({
 
   const handleApprove = (order: Order) => {
     setSelectedOrder(order);
+    // If order has a pickup date, use it for both date and time
+    if (order.pickupDate) {
+      const pickupDate = new Date(order.pickupDate);
+      setScheduledDate(pickupDate);
+      setScheduledTime(pickupDate);
+    }
+    // Set delivery type from order
+    setDeliveryType(order.deliveryType);
     setSchedulingDialogOpen(true);
   };
 
@@ -266,35 +274,46 @@ export default function PendingApprovalsDashboard({
       >
         <DialogTitle>Schedule Pickup/Delivery</DialogTitle>
         <DialogContent>
-          <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <FormControl fullWidth>
-              <InputLabel id="delivery-type-label">Delivery Type</InputLabel>
+          <Box sx={{ mt: 2 }}>
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Delivery Type</InputLabel>
               <Select
-                labelId="delivery-type-label"
                 value={deliveryType}
-                label="Delivery Type"
                 onChange={(e) => setDeliveryType(e.target.value as 'pickup' | 'delivery')}
+                label="Delivery Type"
               >
                 <MenuItem value="pickup">Pickup</MenuItem>
                 <MenuItem value="delivery">Delivery</MenuItem>
               </Select>
             </FormControl>
-            
+
             <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <DatePicker
-                label="Pickup/Delivery Date"
-                value={scheduledDate}
-                onChange={(newValue) => setScheduledDate(newValue)}
-                disablePast
-                sx={{ width: '100%' }}
-              />
-              
-              <TimePicker
-                label="Pickup/Delivery Time"
-                value={scheduledTime}
-                onChange={(newValue) => setScheduledTime(newValue)}
-                sx={{ width: '100%' }}
-              />
+              <Box sx={{ mb: 2 }}>
+                <DatePicker
+                  label="Pickup/Delivery Date"
+                  value={scheduledDate}
+                  onChange={(date) => setScheduledDate(date)}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      margin: 'normal'
+                    }
+                  }}
+                />
+              </Box>
+              <Box>
+                <TimePicker
+                  label="Pickup/Delivery Time"
+                  value={scheduledTime}
+                  onChange={(time) => setScheduledTime(time)}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      margin: 'normal'
+                    }
+                  }}
+                />
+              </Box>
             </LocalizationProvider>
           </Box>
         </DialogContent>
@@ -302,8 +321,8 @@ export default function PendingApprovalsDashboard({
           <Button onClick={handleScheduleCancel}>Cancel</Button>
           <Button 
             onClick={handleScheduleConfirm} 
-            variant="contained" 
-            color="primary"
+            color="primary" 
+            variant="contained"
             disabled={!scheduledDate || !scheduledTime}
           >
             Schedule

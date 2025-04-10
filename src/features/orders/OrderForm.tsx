@@ -40,11 +40,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
       adults: 0,
       smallChildren: 0,
       schoolAged: 0
-    },
-    seasonalItems: initialData?.seasonalItems || [],
-    items: [],
-    createdAt: initialData?.createdAt || new Date(),
-    updatedAt: initialData?.updatedAt || new Date()
+    }
   });
 
   const handleSubmit = (e: React.FormEvent) => {

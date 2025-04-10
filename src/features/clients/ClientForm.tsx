@@ -17,12 +17,14 @@ import {
 import { Client, NewClient, UpdateClient, MemberStatus } from '../../types';
 import { formatPhoneNumber, isValidUSPhoneNumber } from '../../utils/phoneNumberUtils';
 import { ConnectedFamilyService } from '../../services/connectedFamily.service';
+import { ConnectedFamiliesManager } from './ConnectedFamiliesManager';
 
 interface ClientFormProps {
   client?: Client;
   onSubmit: (client: NewClient | UpdateClient) => void;
   onCancel: () => void;
   initialData?: Partial<NewClient>;
+  allClients: Client[];
 }
 
 const initialFormState: NewClient = {
@@ -56,7 +58,8 @@ export default function ClientForm({
   client, 
   onSubmit, 
   onCancel,
-  initialData
+  initialData,
+  allClients
 }: ClientFormProps) {
   const [formData, setFormData] = useState<NewClient>(
     client
@@ -299,7 +302,8 @@ export default function ClientForm({
             connectedFamilyIds.map(connectedTo => 
               ConnectedFamilyService.create({
                 clientId: client.id,
-                connectedTo
+                connectedTo,
+                relationshipType: 'Other' // Default to 'Other' for backward compatibility
               })
             )
           );
@@ -625,25 +629,16 @@ export default function ClientForm({
           )}
         </Grid>
         
-        {/* Only show connected families section when editing an existing client */}
+        {/* Replace the old connected families section with the new component */}
         {client?.id && (
           <Box sx={{ mt: 3 }}>
-            <Typography variant="h6">Connected Families</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Add connections to other families if needed. Not all families need to be connected.
-            </Typography>
-            
-            {/* We'll add the UI for managing connections in a future update */}
-            <TextField
-              fullWidth
-              label="Connected Family IDs (temporary field)"
-              value={connectedFamilyIds.join(', ')}
-              disabled
-              sx={{ mb: 2 }}
+            <ConnectedFamiliesManager
+              client={client}
+              allClients={allClients}
+              onConnectionsChange={(connections) => {
+                setConnectedFamilyIds(connections.map(c => c.connectedTo));
+              }}
             />
-            <Typography variant="body2" color="text.secondary">
-              Note: Connected families feature is under development. Currently showing IDs only.
-            </Typography>
           </Box>
         )}
 

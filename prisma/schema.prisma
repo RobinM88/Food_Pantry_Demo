@@ -51,24 +51,20 @@ model Client {
 }
 
 model Order {
-  id              String    @id @default(uuid())
-  client          Client    @relation(fields: [familySearchId], references: [familyNumber])
+  id              String   @id @default(uuid())
   familySearchId  String
   status          String
   pickupDate      DateTime?
   notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
   deliveryType    String
-  isNewClient     Boolean   @default(false)
-  approvalStatus  String
-  numberOfBoxes   Int
-  
-  // Additional people for this visit
+  isNewClient     Boolean  @default(false)
+  approvalStatus  String   @default("pending")
+  numberOfBoxes   Int      @default(1)
   additionalPeople Json
-  seasonalItems    String[]
-  visitContact     String?
-  
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  visitContact    String?
+  client          Client   @relation(fields: [familySearchId], references: [familyNumber])
 }
 
 model PhoneLog {

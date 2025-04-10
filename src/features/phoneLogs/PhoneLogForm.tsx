@@ -66,8 +66,7 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
       adults: 0,
       smallChildren: 0,
       schoolAged: 0
-    },
-    seasonalItems: []
+    }
   });
 
   const {
@@ -273,8 +272,7 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
           adults: state.selectedClient?.adults || 0,
           smallChildren: state.selectedClient?.smallChildren || 0,
           schoolAged: state.selectedClient?.schoolAged || 0
-        },
-        seasonalItems: []
+        }
       });
     }
   };
@@ -330,7 +328,7 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
                   >
                     <ListItemText
                       primary={`${client.firstName} ${client.lastName}`}
-                      secondary={`Family #: ${client.familyNumber} | Phone: ${client.phone1}`}
+                      secondary={`Phone: ${client.phone1}`}
                     />
                   </ListItem>
                 ))}

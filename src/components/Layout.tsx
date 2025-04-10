@@ -20,6 +20,7 @@ import {
   ShoppingCart as OrdersIcon,
   Phone as PhoneIcon,
   ViewList as QueueIcon,
+  Groups as GroupsIcon,
 } from '@mui/icons-material'
 
 const drawerWidth = 240
@@ -34,6 +35,7 @@ const menuItems = [
   { text: 'Orders', icon: <OrdersIcon />, path: '/orders' },
   { text: 'Daily Queue', icon: <QueueIcon />, path: '/daily-queue' },
   { text: 'Phone Logs', icon: <PhoneIcon />, path: '/phone-logs' },
+  { text: 'Family Connections', icon: <GroupsIcon />, path: '/family-connections' },
 ]
 
 export default function Layout({ children }: LayoutProps) {

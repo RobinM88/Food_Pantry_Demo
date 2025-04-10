@@ -15,7 +15,6 @@ import {
   Chip,
   IconButton,
   FormControl,
-  InputLabel,
   Select,
   MenuItem,
   InputAdornment,
@@ -28,7 +27,7 @@ import {
   Search as SearchIcon,
   Visibility as ViewIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { Client, MemberStatus } from '../../types';
@@ -39,17 +38,13 @@ interface ClientListProps {
   onView: (client: Client) => void;
   onEdit: (client: Client) => void;
   onDelete: (client: Client) => void;
-  onAdd: () => void;
-  onStatusChange: (client: Client, newStatus: MemberStatus) => Promise<void>;
 }
 
 export default function ClientList({
   clients,
   onView,
   onEdit,
-  onDelete,
-  onAdd,
-  onStatusChange
+  onDelete
 }: ClientListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<MemberStatus | 'all'>('all');
@@ -114,7 +109,7 @@ export default function ClientList({
         <Typography variant="h5" component="h2" gutterBottom>
           Clients
         </Typography>
-        <Typography variant="body1" color="text.secondary" paragraph>
+        <Typography variant="body1" color="text.secondary" gutterBottom>
           View and manage client information
         </Typography>
 
@@ -217,7 +212,13 @@ export default function ClientList({
                     <TableCell>
                       <Chip
                         label={client.memberStatus}
-                        color={client.memberStatus === MemberStatus.Active ? 'success' : 'default'}
+                        color={
+                          client.memberStatus === MemberStatus.Active ? 'success' :
+                          client.memberStatus === MemberStatus.Pending ? 'warning' :
+                          client.memberStatus === MemberStatus.Suspended || 
+                          client.memberStatus === MemberStatus.Banned ? 'error' :
+                          'default'
+                        }
                         size="small"
                       />
                     </TableCell>

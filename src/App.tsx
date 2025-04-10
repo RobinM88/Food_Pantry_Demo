@@ -9,7 +9,13 @@ import Clients from './pages/Clients'
 import Orders from './pages/Orders'
 import PhoneLogs from './pages/PhoneLogs'
 import DailyQueue from './pages/DailyQueue'
+import FamilyConnections from './pages/FamilyConnections'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import QueueIcon from '@mui/icons-material/Queue';
+import PeopleIcon from '@mui/icons-material/People';
+import PhoneIcon from '@mui/icons-material/Phone';
+import GroupsIcon from '@mui/icons-material/Groups';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,6 +39,7 @@ function App() {
               <Route path="/orders" element={<Orders />} />
               <Route path="/daily-queue" element={<DailyQueue />} />
               <Route path="/phone-logs" element={<PhoneLogs />} />
+              <Route path="/family-connections" element={<FamilyConnections />} />
             </Routes>
           </Layout>
         </LocalizationProvider>

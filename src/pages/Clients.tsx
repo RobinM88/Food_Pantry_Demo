@@ -338,11 +338,9 @@ export default function Clients() {
             </Box>
             <ClientList
               clients={clients}
-              onAdd={handleAddClient}
               onEdit={handleEditClient}
               onView={handleViewClient}
               onDelete={handleDeleteClient}
-              onStatusChange={handleStatusChange}
             />
           </Box>
         } />
@@ -350,6 +348,7 @@ export default function Clients() {
           <ClientForm
             onSubmit={handleSaveClient}
             onCancel={handleCancel}
+            allClients={clients}
           />
         } />
         <Route path="/edit" element={
@@ -358,6 +357,7 @@ export default function Clients() {
               client={selectedClient}
               onSubmit={handleSaveClient}
               onCancel={handleCancel}
+              allClients={clients}
             />
           ) : (
             <Navigate to="/clients" replace />

@@ -260,6 +260,7 @@ const PhoneLogs: React.FC = () => {
             client={undefined}
             onSubmit={handleSaveClient}
             onCancel={() => setViewMode('list')}
+            allClients={clients}
           />
         );
       default:

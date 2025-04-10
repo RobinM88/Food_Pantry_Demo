@@ -8,18 +8,18 @@ export interface Order {
   updatedAt: Date;
   deliveryType: 'pickup' | 'delivery';
   isNewClient: boolean;
-  approvalStatus: 'pending' | 'approved' | 'denied';
+  approvalStatus: ApprovalStatus;
   numberOfBoxes: number;
   additionalPeople: {
     adults: number;
     smallChildren: number;
     schoolAged: number;
   };
-  seasonalItems: string[];
   visitContact?: string;
 }
 
-export type OrderStatus = 'pending' | 'approved' | 'denied' | 'scheduled' | 'ready' | 'picked_up' | 'cancelled' | 'no_show' | 'in_queue';
+export type OrderStatus = 'pending' | 'approved' | 'completed' | 'cancelled' | 'scheduled' | 'ready' | 'picked_up' | 'no_show' | 'in_queue';
+export type ApprovalStatus = 'pending' | 'approved' | 'denied';
 
 export type NewOrder = Omit<Order, 'id' | 'createdAt' | 'updatedAt'>;
 export type UpdateOrder = Partial<NewOrder>; 
