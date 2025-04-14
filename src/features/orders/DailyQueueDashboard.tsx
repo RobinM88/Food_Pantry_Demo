@@ -40,7 +40,6 @@ interface DailyQueueDashboardProps {
   onStatusChange: (order: Order, newStatus: OrderStatus) => void;
   onEditOrder: (order: Order) => void;
   onDeleteOrder: (order: Order) => void;
-  onAddOrder: () => void;
 }
 
 export default function DailyQueueDashboard({
@@ -48,8 +47,7 @@ export default function DailyQueueDashboard({
   clients,
   onStatusChange,
   onEditOrder,
-  onDeleteOrder,
-  onAddOrder
+  onDeleteOrder
 }: DailyQueueDashboardProps) {
   const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all'>('all');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -102,17 +100,10 @@ export default function DailyQueueDashboard({
       case 'pending':
         return 'warning';
       case 'approved':
-        return 'info';
-      case 'scheduled':
-        return 'primary';
-      case 'ready':
         return 'success';
-      case 'picked_up':
+      case 'completed':
         return 'success';
       case 'cancelled':
-      case 'no_show':
-        return 'error';
-      case 'denied':
         return 'error';
       default:
         return 'default';
@@ -122,17 +113,11 @@ export default function DailyQueueDashboard({
   const getNextStatusOptions = (currentStatus: OrderStatus): OrderStatus[] => {
     switch (currentStatus) {
       case 'pending':
-        return ['approved', 'denied', 'cancelled'];
+        return ['approved', 'cancelled'];
       case 'approved':
-        return ['scheduled', 'cancelled'];
-      case 'scheduled':
-        return ['ready', 'cancelled', 'no_show'];
-      case 'ready':
-        return ['picked_up', 'no_show', 'cancelled'];
-      case 'picked_up':
-      case 'denied':
+        return ['completed', 'cancelled'];
+      case 'completed':
       case 'cancelled':
-      case 'no_show':
         return [];
       default:
         return [];
@@ -140,7 +125,7 @@ export default function DailyQueueDashboard({
   };
 
   const renderOrderCard = (order: Order) => {
-    const client = clients.find(c => c.familyNumber === order.familySearchId);
+    const client = clients.find(c => c.id === order.family_search_id);
     const nextStatusOptions = getNextStatusOptions(order.status);
     
     return (
@@ -159,7 +144,7 @@ export default function DailyQueueDashboard({
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
             <Box>
               <Typography variant="subtitle1" component="div" sx={{ fontWeight: 500 }}>
-                {client ? `${client.firstName} ${client.lastName}` : 'Unknown Client'}
+                {client ? `${client.first_name} ${client.last_name}` : 'Unknown Client'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 {client?.phone1 || 'No phone'}
@@ -175,7 +160,7 @@ export default function DailyQueueDashboard({
           <Box sx={{ mt: 1 }}>
             <Typography variant="body2" component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
               <CalendarIcon fontSize="small" />
-              Pickup Date: {order.pickupDate ? format(new Date(order.pickupDate), 'MMMM d, yyyy') : 'Not specified'}
+              Pickup Date: {order.pickup_date ? format(new Date(order.pickup_date), 'MMMM d, yyyy') : 'Not specified'}
             </Typography>
             {order.notes && (
               <Typography variant="body2" component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -243,23 +228,17 @@ export default function DailyQueueDashboard({
                 renderValue={(value) => value === 'all' ? 'All Statuses' : value}
               >
                 <MenuItem value="all">All Statuses</MenuItem>
+                <MenuItem value="pending">Pending</MenuItem>
+                <MenuItem value="approved">Approved</MenuItem>
                 <MenuItem value="scheduled">Scheduled</MenuItem>
                 <MenuItem value="ready">Ready</MenuItem>
                 <MenuItem value="picked_up">Picked Up</MenuItem>
+                <MenuItem value="completed">Completed</MenuItem>
                 <MenuItem value="cancelled">Cancelled</MenuItem>
                 <MenuItem value="no_show">No Show</MenuItem>
+                <MenuItem value="in_queue">In Queue</MenuItem>
               </Select>
             </FormControl>
-            {onAddOrder && (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={onAddOrder}
-                startIcon={<CheckCircleIcon />}
-              >
-                Add New Order
-              </Button>
-            )}
           </Box>
         </Box>
 

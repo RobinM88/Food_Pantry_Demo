@@ -1,17 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Box, Button, Tabs, Tab, Typography, Paper, Snackbar, Alert, CircularProgress } from '@mui/material';
+import { Box, Button, Tabs, Tab, Snackbar, Alert, CircularProgress } from '@mui/material';
 import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import DailyQueueDashboard from '../features/orders/DailyQueueDashboard';
 import PendingApprovalsDashboard from '../features/orders/PendingApprovalsDashboard';
-import { OrderForm } from '../features/orders/OrderForm';
 import OrderDetails from '../features/orders/OrderDetails';
-import { Order, NewOrder, UpdateOrder, Client, OrderStatus } from '../types';
-import { getOrders, getClients, addOrder, updateOrder, deleteOrder } from '../utils/testDataUtils';
-import { useNavigate } from 'react-router-dom';
+import { Order, Client } from '../types';
 import { OrderService } from '../services/order.service';
 import { ClientService } from '../services/client.service';
 
-type ViewMode = 'dashboard' | 'add' | 'edit' | 'view';
+type ViewMode = 'dashboard' | 'edit' | 'view';
 
 interface Notification {
   open: boolean;
@@ -31,48 +28,37 @@ export default function DailyQueue() {
     message: '',
     severity: 'success'
   });
-  
-  const navigate = useNavigate();
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [ordersData, clientsData] = await Promise.all([
+        OrderService.getAll(),
+        ClientService.getAll()
+      ]);
+      console.log('Loaded orders:', ordersData);
+      console.log('Loaded clients:', clientsData);
+      setOrders(ordersData);
+      setClients(clientsData);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      setNotification({
+        open: true,
+        message: 'Error loading data',
+        severity: 'error'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const [ordersData, clientsData] = await Promise.all([
-          OrderService.getAll(),
-          ClientService.getAll()
-        ]);
-        console.log('Loaded orders:', ordersData);
-        console.log('Loaded clients:', clientsData);
-        setOrders(ordersData);
-        setClients(clientsData);
-      } catch (error) {
-        console.error('Error loading data:', error);
-        setNotification({
-          open: true,
-          message: 'Error loading data',
-          severity: 'error'
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
     loadData();
   }, []);
-
-  const handleAddOrder = () => {
-    setSelectedOrder(null);
-    setViewMode('add');
-  };
 
   const handleEditOrder = (order: Order) => {
     setSelectedOrder(order);
     setViewMode('edit');
-  };
-
-  const handleViewOrder = (order: Order) => {
-    setSelectedOrder(order);
-    setViewMode('view');
   };
 
   const handleDeleteOrder = async (order: Order) => {
@@ -99,14 +85,14 @@ export default function DailyQueue() {
     try {
       const updatedOrder = await OrderService.update(order.id, {
         status: newStatus,
-        updatedAt: new Date()
+        updated_at: new Date()
       });
 
       setOrders(orders.map(o => o.id === updatedOrder.id ? updatedOrder : o));
       
       setNotification({
         open: true,
-        message: `Order status updated to ${newStatus.replace('_', ' ')}`,
+        message: `Order status updated to ${newStatus}`,
         severity: 'success'
       });
     } catch (error) {
@@ -119,40 +105,12 @@ export default function DailyQueue() {
     }
   };
 
-  const handleSubmitOrder = (orderData: NewOrder | UpdateOrder) => {
-    if (viewMode === 'add') {
-      // Add new order
-      const newOrder: Order = {
-        ...orderData as NewOrder,
-        id: `o${Date.now()}`,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      addOrder(newOrder);
-      setOrders(prevOrders => [...prevOrders, newOrder]);
-    } else if (viewMode === 'edit' && selectedOrder) {
-      // Update existing order
-      const updatedOrder: Order = {
-        ...selectedOrder,
-        ...orderData,
-        updatedAt: new Date()
-      };
-      updateOrder(updatedOrder);
-      setOrders(prevOrders => 
-        prevOrders.map(o => o.id === updatedOrder.id ? updatedOrder : o)
-      );
-    }
-    
-    setViewMode('dashboard');
-    setSelectedOrder(null);
-  };
-
   const handleCancel = () => {
     setViewMode('dashboard');
     setSelectedOrder(null);
   };
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setSelectedTab(newValue);
   };
 
@@ -162,29 +120,21 @@ export default function DailyQueue() {
 
   const renderContent = () => {
     switch (viewMode) {
-      case 'add':
-        return (
-          <OrderForm 
-            clients={clients}
-            onSubmit={handleSubmitOrder} 
-            onCancel={handleCancel} 
-          />
-        );
       case 'edit':
         return selectedOrder ? (
-          <OrderForm 
+          <OrderDetails 
             order={selectedOrder}
-            clients={clients}
-            onSubmit={handleSubmitOrder} 
-            onCancel={handleCancel}
-            isEdit={true}
+            client={clients.find(c => c.id === selectedOrder.family_search_id)!}
+            onEdit={handleEditOrder} 
+            onDelete={handleDeleteOrder}
+            onStatusChange={handleStatusChange}
           />
         ) : null;
       case 'view':
         return selectedOrder ? (
           <OrderDetails 
             order={selectedOrder}
-            client={clients.find(c => c.id === selectedOrder.clientId)!}
+            client={clients.find(c => c.id === selectedOrder.family_search_id)!}
             onEdit={handleEditOrder} 
             onDelete={handleDeleteOrder}
             onStatusChange={handleStatusChange}
@@ -198,10 +148,14 @@ export default function DailyQueue() {
         
         if (selectedTab === 1) {
           // Show pending approvals
-          console.log('Showing pending orders:', orders.filter(order => order.status === 'pending'));
+          console.log('Showing pending orders:', orders.filter(order => 
+            order.status === 'pending' && order.approval_status === 'pending'
+          ));
           return (
             <PendingApprovalsDashboard
-              orders={orders.filter(order => order.status === 'pending')}
+              orders={orders.filter(order => 
+                order.status === 'pending' && order.approval_status === 'pending'
+              )}
               clients={clients}
               onStatusChange={handleStatusChange}
               onEditOrder={handleEditOrder}
@@ -210,11 +164,9 @@ export default function DailyQueue() {
           );
         }
         
-        // For the main queue dashboard, show all non-pending orders
+        // For the main queue dashboard, show all approved orders
         filteredOrders = filteredOrders.filter(order => 
-          order.status !== 'pending' && 
-          order.status !== 'denied' && 
-          order.status !== 'cancelled'
+          order.status === 'approved' || order.status === 'completed'
         );
         console.log('Orders after filtering for queue:', filteredOrders);
         
@@ -223,10 +175,8 @@ export default function DailyQueue() {
           <DailyQueueDashboard
             orders={filteredOrders}
             clients={clients}
-            onAdd={handleAddOrder}
-            onEdit={handleEditOrder}
-            onView={handleViewOrder}
-            onDelete={handleDeleteOrder}
+            onEditOrder={handleEditOrder}
+            onDeleteOrder={handleDeleteOrder}
             onStatusChange={handleStatusChange}
           />
         );
@@ -249,22 +199,19 @@ export default function DailyQueue() {
           onClick={handleCancel}
           sx={{ mb: 2 }}
         >
-          Back to Daily Queue
+          Back to Dashboard
         </Button>
       )}
+      
       {viewMode === 'dashboard' && (
-        <Paper sx={{ mb: 3 }}>
-          <Tabs
-            value={selectedTab}
-            onChange={handleTabChange}
-            indicatorColor="primary"
-            textColor="primary"
-          >
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+          <Tabs value={selectedTab} onChange={handleTabChange}>
             <Tab label="Daily Queue" />
             <Tab label="Pending Approvals" />
           </Tabs>
-        </Paper>
+        </Box>
       )}
+
       {renderContent()}
 
       <Snackbar
@@ -272,8 +219,8 @@ export default function DailyQueue() {
         autoHideDuration={6000}
         onClose={handleCloseNotification}
       >
-        <Alert
-          onClose={handleCloseNotification}
+        <Alert 
+          onClose={handleCloseNotification} 
           severity={notification.severity}
           sx={{ width: '100%' }}
         >

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   Box,
-  Button,
   Paper,
   Table,
   TableBody,
@@ -23,7 +22,6 @@ import {
   Divider
 } from '@mui/material';
 import {
-  Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Search as SearchIcon,
@@ -39,7 +37,6 @@ import { format } from 'date-fns';
 interface OrderListProps {
   orders: Order[];
   clients: Client[];
-  onAddOrder: () => void;
   onEditOrder: (order: Order) => void;
   onViewOrder: (order: Order) => void;
   onDeleteOrder: (order: Order) => void;
@@ -49,7 +46,6 @@ interface OrderListProps {
 export default function OrderList({
   orders,
   clients,
-  onAddOrder,
   onEditOrder,
   onViewOrder,
   onDeleteOrder,
@@ -61,7 +57,7 @@ export default function OrderList({
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-  const handleChangePage = (event: unknown, newPage: number) => {
+  const handleChangePage = (_: unknown, newPage: number) => {
     setPage(newPage);
   };
 
@@ -109,13 +105,13 @@ export default function OrderList({
   };
 
   const filteredOrders = orders.filter(order => {
-    const client = clients.find(c => c.familyNumber === order.familySearchId);
+    const client = clients.find(c => c.id === order.family_search_id);
     const searchLower = searchQuery.toLowerCase();
     return (
-      client?.firstName.toLowerCase().includes(searchLower) ||
-      client?.lastName.toLowerCase().includes(searchLower) ||
+      client?.first_name.toLowerCase().includes(searchLower) ||
+      client?.last_name.toLowerCase().includes(searchLower) ||
       order.status.toLowerCase().includes(searchLower) ||
-      order.numberOfBoxes.toString().includes(searchLower)
+      order.number_of_boxes.toString().includes(searchLower)
     );
   });
 
@@ -158,11 +154,11 @@ export default function OrderList({
             {filteredOrders
               .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
               .map((order) => {
-                const client = clients.find(c => c.familyNumber === order.familySearchId);
+                const client = clients.find(c => c.id === order.family_search_id);
                 return (
                   <TableRow key={order.id}>
                     <TableCell>
-                      {client ? `${client.firstName} ${client.lastName}` : 'Unknown Client'}
+                      {client ? `${client.first_name} ${client.last_name}` : 'Unknown Client'}
                     </TableCell>
                     <TableCell>
                       <Typography
@@ -173,16 +169,16 @@ export default function OrderList({
                           whiteSpace: 'nowrap'
                         }}
                       >
-                        {order.numberOfBoxes} boxes
+                        {order.number_of_boxes} boxes
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      {format(new Date(order.pickupDate), 'MMM d, yyyy')}
+                      {order.pickup_date ? format(new Date(order.pickup_date), 'MMM d, yyyy') : 'Not set'}
                     </TableCell>
                     <TableCell>
                       <Chip
                         label={order.status}
-                        color={getStatusColor(order.status) as any}
+                        color={getStatusColor(order.status)}
                         size="small"
                       />
                     </TableCell>

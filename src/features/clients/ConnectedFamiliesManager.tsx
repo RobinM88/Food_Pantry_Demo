@@ -45,6 +45,7 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
   // Load existing connections
   useEffect(() => {
     if (client?.id) {
+      console.log('Loading connections for client:', client);
       loadConnections();
     }
   }, [client]);
@@ -52,6 +53,8 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
   const loadConnections = async () => {
     try {
       const data = await ConnectedFamilyService.getByClientId(client.id);
+      console.log('Loaded connections:', data);
+      console.log('Available clients:', allClients);
       setConnections(data);
       onConnectionsChange?.(data);
     } catch (error) {
@@ -59,24 +62,44 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
     }
   };
 
-  // Handle search
+  // Memoize search results computation
+  const getFilteredResults = React.useCallback((searchTerm: string, allClients: Client[], clientId: string, connections: ConnectedFamily[]) => {
+    if (searchTerm.length < 2) return [];
+    
+    const searchTermLower = searchTerm.toLowerCase().trim();
+    const connectedIds = new Set(connections.map(conn => conn.connected_to));
+
+    return allClients.filter(c => {
+      if (c.id === clientId || connectedIds.has(c.id)) return false;
+
+      // Debug log to check client data
+      console.log('Filtering client:', c);
+
+      const firstName = (c.first_name || '').trim();
+      const lastName = (c.last_name || '').trim();
+      const fullName = `${firstName} ${lastName}`.toLowerCase().trim();
+      const familyNumber = (c.family_number || '').trim();
+      const phone1 = (c.phone1 || '').trim();
+      const phone2 = (c.phone2 || '').trim();
+
+      return fullName.includes(searchTermLower) ||
+             familyNumber.includes(searchTerm) ||
+             phone1.includes(searchTerm) ||
+             phone2.includes(searchTerm);
+    });
+  }, []);
+
+  // Handle search with debounce
   useEffect(() => {
-    if (searchTerm.length >= 2) {
-      const results = allClients.filter(c => 
-        c.id !== client.id && // Don't show current client
-        !connections.some(conn => conn.connectedTo === c.id) && // Don't show already connected clients
-        (
-          `${c.firstName} ${c.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          c.familyNumber.includes(searchTerm) ||
-          c.phone1.includes(searchTerm) ||
-          (c.phone2 && c.phone2.includes(searchTerm))
-        )
-      );
-      setSearchResults(results);
-    } else {
-      setSearchResults([]);
-    }
-  }, [searchTerm, allClients, client.id, connections]);
+    const debounceTimeout = setTimeout(() => {
+      if (isSearchOpen) {
+        const results = getFilteredResults(searchTerm, allClients, client.id, connections);
+        setSearchResults(results);
+      }
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(debounceTimeout);
+  }, [searchTerm, allClients, client.id, connections, isSearchOpen, getFilteredResults]);
 
   const handleAddConnection = async (connectedClient: Client) => {
     setSelectedClient(connectedClient);
@@ -87,16 +110,16 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
     
     try {
       const newConnection = await ConnectedFamilyService.create({
-        clientId: client.id,
-        connectedTo: selectedClient.id,
-        relationshipType
+        client_id: client.id,
+        connected_to: selectedClient.id,
+        relationship_type: relationshipType
       });
 
       // Also create the reverse connection
       await ConnectedFamilyService.create({
-        clientId: selectedClient.id,
-        connectedTo: client.id,
-        relationshipType
+        client_id: selectedClient.id,
+        connected_to: client.id,
+        relationship_type: relationshipType
       });
 
       // Refresh connections
@@ -117,7 +140,7 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
       
       // Find and remove the reverse connection
       const reverseConnections = await ConnectedFamilyService.getByClientId(connectedClientId);
-      const reverseConnection = reverseConnections.find(c => c.connectedTo === client.id);
+      const reverseConnection = reverseConnections.find(c => c.connected_to === client.id);
       if (reverseConnection) {
         await ConnectedFamilyService.delete(reverseConnection.id);
       }
@@ -129,30 +152,53 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
     }
   };
 
-  return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6">Connected Families</Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => setIsSearchOpen(true)}
-        >
-          Add Connection
-        </Button>
-      </Box>
+  // Memoize the connections rendering
+  const ConnectionsList = React.memo(({ connections, allClients }: { connections: ConnectedFamily[], allClients: Client[] }) => {
+    if (!connections || connections.length === 0) {
+      return (
+        <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
+          No family connections found. Use the search above to create new connections.
+        </Typography>
+      );
+    }
 
-      {/* List of current connections */}
+    return (
       <List>
         {connections.map((connection) => {
-          const connectedClient = allClients.find(c => c.id === connection.connectedTo);
-          if (!connectedClient) return null;
+          const connectedClient = allClients.find(c => c.id === connection.connected_to);
+          
+          if (!connectedClient) {
+            console.error('Connected client not found:', connection.connected_to);
+            console.log('Available clients:', allClients);
+            return null;
+          }
+
+          // Debug log to check client data
+          console.log('Rendering connected client:', connectedClient);
+
+          const firstName = (connectedClient.first_name || '').trim();
+          const lastName = (connectedClient.last_name || '').trim();
+          
+          let fullName = 'Unknown Name';
+          if (firstName || lastName) {
+            fullName = [firstName, lastName].filter(Boolean).join(' ');
+          }
 
           return (
             <ListItem key={connection.id} component={Paper} variant="outlined" sx={{ mb: 1 }}>
               <ListItemText
-                primary={`${connectedClient.firstName} ${connectedClient.lastName}`}
-                secondary={`Family #: ${connectedClient.familyNumber} | Phone: ${connectedClient.phone1}`}
+                primary={
+                  <Typography variant="subtitle1">
+                    {fullName}
+                  </Typography>
+                }
+                secondary={
+                  <Typography variant="body2" color="text.secondary">
+                    {`Family #: ${connectedClient.family_number || 'N/A'}`}
+                    {connectedClient.phone1 ? ` | Phone: ${connectedClient.phone1}` : ''}
+                    {connection.relationship_type ? ` | Relationship: ${connection.relationship_type}` : ''}
+                  </Typography>
+                }
               />
               <ListItemSecondaryAction>
                 <IconButton
@@ -167,73 +213,132 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
           );
         })}
       </List>
+    );
+  });
 
-      {/* Search Dialog */}
-      <Dialog open={isSearchOpen} onClose={() => setIsSearchOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Add Family Connection</DialogTitle>
+  // Memoize search results rendering
+  const SearchResultsList = React.memo(({ 
+    results, 
+    onSelect, 
+    selectedId 
+  }: { 
+    results: Client[], 
+    onSelect: (client: Client) => void,
+    selectedId?: string 
+  }) => (
+    <List sx={{ mt: 2 }}>
+      {results.map((result) => {
+        // Debug log to check result data
+        console.log('Rendering search result:', result);
+
+        const firstName = (result.first_name || '').trim();
+        const lastName = (result.last_name || '').trim();
+        
+        let fullName = 'Unknown Name';
+        if (firstName || lastName) {
+          fullName = [firstName, lastName].filter(Boolean).join(' ');
+        }
+        
+        return (
+          <ListItem
+            key={result.id}
+            button
+            onClick={() => onSelect(result)}
+            selected={selectedId === result.id}
+          >
+            <ListItemText
+              primary={fullName}
+              secondary={
+                <Typography variant="body2" color="text.secondary">
+                  {`Family #: ${result.family_number || 'N/A'}`}
+                  {result.phone1 ? ` | Phone: ${result.phone1}` : ''}
+                </Typography>
+              }
+            />
+          </ListItem>
+        );
+      })}
+      {results.length === 0 && searchTerm.length >= 2 && (
+        <ListItem>
+          <ListItemText primary="No matching families found" />
+        </ListItem>
+      )}
+    </List>
+  ));
+
+  return (
+    <Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h6">Connected Families</Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => {
+            setIsSearchOpen(true);
+            setSearchTerm('');
+            setSearchResults([]);
+          }}
+        >
+          Add Connection
+        </Button>
+      </Box>
+
+      <ConnectionsList connections={connections} allClients={allClients} />
+
+      <Dialog open={isSearchOpen} onClose={() => setIsSearchOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Search for Family to Connect</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
             margin="dense"
             label="Search by name, family number, or phone"
+            type="text"
             fullWidth
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            sx={{ mb: 2 }}
+            variant="outlined"
           />
-          
-          {selectedClient ? (
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="subtitle1" gutterBottom>
-                Selected Family: {selectedClient.firstName} {selectedClient.lastName}
-              </Typography>
-              <FormControl fullWidth sx={{ mt: 2 }}>
-                <InputLabel>Relationship Type</InputLabel>
-                <Select
-                  value={relationshipType}
-                  onChange={(e) => setRelationshipType(e.target.value as RelationshipType)}
-                  label="Relationship Type"
-                >
-                  <MenuItem value="Siblings">Siblings</MenuItem>
-                  <MenuItem value="Parent/Child">Parent/Child</MenuItem>
-                  <MenuItem value="Extended Family">Extended Family</MenuItem>
-                  <MenuItem value="Other">Other</MenuItem>
-                </Select>
-              </FormControl>
-            </Box>
-          ) : (
-            <List>
-              {searchResults.map((result) => (
-                <ListItem
-                  key={result.id}
-                  button
-                  onClick={() => handleAddConnection(result)}
-                  component={Paper}
-                  variant="outlined"
-                  sx={{ mb: 1 }}
-                >
-                  <ListItemText
-                    primary={`${result.firstName} ${result.lastName}`}
-                    secondary={`Family #: ${result.familyNumber} | Phone: ${result.phone1}`}
-                  />
-                </ListItem>
-              ))}
-            </List>
-          )}
+          <SearchResultsList 
+            results={searchResults} 
+            onSelect={handleAddConnection} 
+            selectedId={selectedClient?.id} 
+          />
         </DialogContent>
+        {selectedClient && (
+          <Box sx={{ px: 3, pb: 2 }}>
+            <FormControl fullWidth margin="dense">
+              <InputLabel>Relationship Type</InputLabel>
+              <Select
+                value={relationshipType}
+                onChange={(e) => setRelationshipType(e.target.value as RelationshipType)}
+                label="Relationship Type"
+              >
+                <MenuItem value="Parent">Parent</MenuItem>
+                <MenuItem value="Child">Child</MenuItem>
+                <MenuItem value="Sibling">Sibling</MenuItem>
+                <MenuItem value="Spouse">Spouse</MenuItem>
+                <MenuItem value="Other">Other</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+        )}
         <DialogActions>
           <Button onClick={() => {
             setIsSearchOpen(false);
+            setSearchTerm('');
             setSelectedClient(null);
             setRelationshipType('Other');
           }}>
             Cancel
           </Button>
-          {selectedClient && (
-            <Button onClick={handleConfirmConnection} color="primary">
-              Add Connection
-            </Button>
-          )}
+          <Button
+            onClick={handleConfirmConnection}
+            disabled={!selectedClient}
+            variant="contained"
+            color="primary"
+          >
+            Add Connection
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

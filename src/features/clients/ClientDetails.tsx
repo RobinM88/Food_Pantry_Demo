@@ -31,9 +31,11 @@ import {
 } from '@mui/icons-material';
 import { Client, MemberStatus } from '../../types';
 import { format } from 'date-fns';
+import { ConnectedFamiliesManager } from './ConnectedFamiliesManager';
 
 interface ClientDetailsProps {
   client: Client;
+  allClients: Client[];
   onEdit: (client: Client) => void;
   onDelete: (client: Client) => void;
   onStatusChange?: (client: Client, newStatus: MemberStatus) => void;
@@ -41,6 +43,7 @@ interface ClientDetailsProps {
 
 export default function ClientDetails({ 
   client, 
+  allClients,
   onEdit, 
   onDelete,
   onStatusChange 
@@ -76,7 +79,7 @@ export default function ClientDetails({
     handleStatusClose();
   };
 
-  const getStatusColor = (status: Client['memberStatus']) => {
+  const getStatusColor = (status: Client['member_status']) => {
     switch (status) {
       case MemberStatus.Active:
         return 'success';
@@ -129,7 +132,7 @@ export default function ClientDetails({
                   <PeopleIcon />
                 </ListItemIcon>
                 <ListItemText 
-                  primary={`${client.firstName} ${client.lastName}`} 
+                  primary={`${client.first_name} ${client.last_name}`} 
                   secondary="Full Name" 
                 />
               </ListItem>
@@ -138,7 +141,7 @@ export default function ClientDetails({
                   <PeopleIcon />
                 </ListItemIcon>
                 <ListItemText 
-                  primary={client.familySize} 
+                  primary={client.family_size} 
                   secondary="Household Size" 
                 />
               </ListItem>
@@ -152,8 +155,8 @@ export default function ClientDetails({
                   primary={
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Chip 
-                        label={client.memberStatus} 
-                        color={getStatusColor(client.memberStatus) as any}
+                        label={client.member_status} 
+                        color={getStatusColor(client.member_status) as any}
                         size="small"
                       />
                       {onStatusChange && (
@@ -185,13 +188,13 @@ export default function ClientDetails({
                   />
                 </ListItem>
               )}
-              {(client.address || client.zipCode) && (
+              {(client.address || client.zip_code) && (
                 <ListItem>
                   <ListItemIcon>
                     <LocationIcon />
                   </ListItemIcon>
                   <ListItemText 
-                    primary={`${client.address || ''} ${client.aptNumber ? `Apt ${client.aptNumber}` : ''}, ${client.zipCode || ''}`}
+                    primary={`${client.address || ''} ${client.apt_number ? `Apt ${client.apt_number}` : ''}, ${client.zip_code || ''}`}
                     secondary="Address" 
                   />
                 </ListItem>
@@ -210,22 +213,30 @@ export default function ClientDetails({
                   <CalendarIcon />
                 </ListItemIcon>
                 <ListItemText 
-                  primary={client.lastVisit ? format(client.lastVisit, 'MMMM d, yyyy') : 'Never'} 
+                  primary={client.last_visit ? format(new Date(client.last_visit), 'MMMM d, yyyy') : 'Never'} 
                   secondary="Last Visit" 
                 />
               </ListItem>
-              {(client.foodNotes || client.officeNotes) && (
+              {(client.food_notes || client.office_notes) && (
                 <ListItem>
                   <ListItemIcon>
                     <NotesIcon />
                   </ListItemIcon>
                   <ListItemText 
-                    primary={client.foodNotes || client.officeNotes} 
+                    primary={client.food_notes || client.office_notes} 
                     secondary="Notes" 
                   />
                 </ListItem>
               )}
             </List>
+          </Grid>
+
+          <Grid item xs={12}>
+            <Divider sx={{ my: 2 }} />
+            <ConnectedFamiliesManager
+              client={client}
+              allClients={allClients}
+            />
           </Grid>
         </Grid>
       </Paper>
@@ -238,7 +249,7 @@ export default function ClientDetails({
       >
         <MenuItem 
           onClick={() => handleStatusChange(MemberStatus.Active)}
-          disabled={client.memberStatus === MemberStatus.Active}
+          disabled={client.member_status === MemberStatus.Active}
         >
           <Chip 
             label="Active" 
@@ -250,7 +261,7 @@ export default function ClientDetails({
         </MenuItem>
         <MenuItem 
           onClick={() => handleStatusChange(MemberStatus.Pending)}
-          disabled={client.memberStatus === MemberStatus.Pending}
+          disabled={client.member_status === MemberStatus.Pending}
         >
           <Chip 
             label="Pending" 
@@ -262,7 +273,7 @@ export default function ClientDetails({
         </MenuItem>
         <MenuItem 
           onClick={() => handleStatusChange(MemberStatus.Inactive)}
-          disabled={client.memberStatus === MemberStatus.Inactive}
+          disabled={client.member_status === MemberStatus.Inactive}
         >
           <Chip 
             label="Inactive" 
@@ -274,7 +285,7 @@ export default function ClientDetails({
         </MenuItem>
         <MenuItem 
           onClick={() => handleStatusChange(MemberStatus.Suspended)}
-          disabled={client.memberStatus === MemberStatus.Suspended}
+          disabled={client.member_status === MemberStatus.Suspended}
         >
           <Chip 
             label="Suspended" 
@@ -286,7 +297,7 @@ export default function ClientDetails({
         </MenuItem>
         <MenuItem 
           onClick={() => handleStatusChange(MemberStatus.Banned)}
-          disabled={client.memberStatus === MemberStatus.Banned}
+          disabled={client.member_status === MemberStatus.Banned}
         >
           <Chip 
             label="Banned" 
@@ -306,7 +317,7 @@ export default function ClientDetails({
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete {client.firstName} {client.lastName}? This action cannot be undone.
+            Are you sure you want to delete {client.first_name} {client.last_name}? This action cannot be undone.
           </Typography>
         </DialogContent>
         <DialogActions>

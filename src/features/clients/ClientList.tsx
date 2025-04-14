@@ -55,15 +55,15 @@ export default function ClientList({
 
   // Filter clients based on search query and filters
   const filteredClients = clients.filter(client => {
-    const clientName = `${client.firstName} ${client.lastName}`.toLowerCase();
+    const clientName = `${client.first_name} ${client.last_name}`.toLowerCase();
     const searchLower = searchQuery.toLowerCase();
     
     const matchesSearch = 
       clientName.includes(searchLower) || 
-      client.familyNumber.includes(searchLower) ||
+      client.family_number.includes(searchLower) ||
       client.phone1?.toLowerCase().includes(searchLower) || '';
     
-    const matchesStatus = filterStatus === 'all' || client.memberStatus === filterStatus;
+    const matchesStatus = filterStatus === 'all' || client.member_status === filterStatus;
     
     return matchesSearch && matchesStatus;
   });
@@ -204,26 +204,26 @@ export default function ClientList({
               {filteredClients
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((client) => (
-                  <TableRow key={client.familyNumber}>
-                    <TableCell>{client.familyNumber}</TableCell>
-                    <TableCell>{`${client.firstName} ${client.lastName}`}</TableCell>
+                  <TableRow key={client.id}>
+                    <TableCell>{client.family_number}</TableCell>
+                    <TableCell>{`${client.first_name} ${client.last_name}`}</TableCell>
                     <TableCell>{client.phone1}</TableCell>
-                    <TableCell>{client.familySize}</TableCell>
+                    <TableCell>{client.family_size}</TableCell>
                     <TableCell>
                       <Chip
-                        label={client.memberStatus}
+                        label={client.member_status}
                         color={
-                          client.memberStatus === MemberStatus.Active ? 'success' :
-                          client.memberStatus === MemberStatus.Pending ? 'warning' :
-                          client.memberStatus === MemberStatus.Suspended || 
-                          client.memberStatus === MemberStatus.Banned ? 'error' :
+                          client.member_status === MemberStatus.Active ? 'success' :
+                          client.member_status === MemberStatus.Pending ? 'warning' :
+                          client.member_status === MemberStatus.Suspended || 
+                          client.member_status === MemberStatus.Banned ? 'error' :
                           'default'
                         }
                         size="small"
                       />
                     </TableCell>
                     <TableCell>
-                      {client.lastVisit ? format(new Date(client.lastVisit), 'MMM d, yyyy') : 'Never'}
+                      {client.last_visit ? format(new Date(client.last_visit), 'MMM d, yyyy') : 'Never'}
                     </TableCell>
                     <TableCell>
                       <IconButton

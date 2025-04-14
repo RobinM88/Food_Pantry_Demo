@@ -1,7 +1,7 @@
 import { Client } from './client';
 
 export type CallType = 'incoming' | 'outgoing';
-export type CallOutcome = 'completed' | 'voicemail' | 'no_answer' | 'wrong_number';
+export type CallOutcome = 'successful' | 'voicemail' | 'no_answer' | 'wrong_number' | 'disconnected';
 
 export interface PhoneLog {
   id: string;

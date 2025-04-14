@@ -1,25 +1,34 @@
+export type OrderStatus = 
+  | 'pending'
+  | 'approved'
+  | 'denied'
+  | 'confirmed'
+  | 'ready'
+  | 'picked_up'
+  | 'completed'
+  | 'cancelled';
+
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+
 export interface Order {
   id: string;
-  familySearchId: string;
+  family_search_id: string;
   status: OrderStatus;
-  pickupDate?: Date;
+  pickup_date?: Date;
   notes?: string;
-  createdAt: Date;
-  updatedAt: Date;
-  deliveryType: 'pickup' | 'delivery';
-  isNewClient: boolean;
-  approvalStatus: ApprovalStatus;
-  numberOfBoxes: number;
-  additionalPeople: {
+  created_at: Date;
+  updated_at: Date;
+  delivery_type: 'pickup' | 'delivery';
+  is_new_client: boolean;
+  approval_status: ApprovalStatus;
+  number_of_boxes: number;
+  additional_people: {
     adults: number;
-    smallChildren: number;
-    schoolAged: number;
+    small_children: number;
+    school_aged: number;
   };
-  visitContact?: string;
+  visit_contact?: string;
 }
 
-export type OrderStatus = 'pending' | 'approved' | 'completed' | 'cancelled' | 'scheduled' | 'ready' | 'picked_up' | 'no_show' | 'in_queue';
-export type ApprovalStatus = 'pending' | 'approved' | 'denied';
-
-export type NewOrder = Omit<Order, 'id' | 'createdAt' | 'updatedAt'>;
+export type NewOrder = Omit<Order, 'id' | 'created_at' | 'updated_at'>;
 export type UpdateOrder = Partial<NewOrder>; 

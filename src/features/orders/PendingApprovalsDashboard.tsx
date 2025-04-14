@@ -16,7 +16,6 @@ import {
   DialogActions,
   Alert,
   Snackbar,
-  TextField,
   FormControl,
   InputLabel,
   Select,
@@ -63,18 +62,31 @@ export default function PendingApprovalsDashboard({
   const [deliveryType, setDeliveryType] = useState<'pickup' | 'delivery'>('pickup');
 
   // Filter orders to only show pending ones
-  const pendingOrders = orders.filter(order => order.status === 'pending');
+  console.log('All orders received by PendingApprovalsDashboard:', orders);
+  console.log('Orders array type:', Array.isArray(orders) ? 'Array' : typeof orders);
+  const pendingOrders = orders.filter(order => {
+    console.log('Checking order:', {
+      id: order.id,
+      status: order.status,
+      approval_status: order.approval_status,
+      family_search_id: order.family_search_id
+    });
+    const isPending = order.status === 'pending' && order.approval_status === 'pending';
+    console.log('Is order pending?', isPending);
+    return isPending;
+  });
+  console.log('Filtered pending orders:', pendingOrders);
 
   const handleApprove = (order: Order) => {
     setSelectedOrder(order);
     // If order has a pickup date, use it for both date and time
-    if (order.pickupDate) {
-      const pickupDate = new Date(order.pickupDate);
+    if (order.pickup_date) {
+      const pickupDate = new Date(order.pickup_date);
       setScheduledDate(pickupDate);
       setScheduledTime(pickupDate);
     }
     // Set delivery type from order
-    setDeliveryType(order.deliveryType);
+    setDeliveryType(order.delivery_type);
     setSchedulingDialogOpen(true);
   };
 
@@ -85,18 +97,19 @@ export default function PendingApprovalsDashboard({
       combinedDateTime.setHours(scheduledTime.getHours());
       combinedDateTime.setMinutes(scheduledTime.getMinutes());
       
-      // Update the order with the scheduled date and change status to 'scheduled'
+      // Update the order with the scheduled date and change status to 'approved'
       const updatedOrder: Order = {
         ...selectedOrder,
-        pickupDate: combinedDateTime,
-        deliveryType: deliveryType,
-        status: 'scheduled',
-        updatedAt: new Date()
+        pickup_date: combinedDateTime,
+        delivery_type: deliveryType,
+        status: 'approved',
+        approval_status: 'approved',
+        updated_at: new Date()
       };
       
-      onStatusChange(updatedOrder, 'scheduled');
+      onStatusChange(updatedOrder, 'approved');
       setSchedulingDialogOpen(false);
-      setSnackbarMessage('Order scheduled successfully');
+      setSnackbarMessage('Order approved and scheduled successfully');
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
     }
@@ -109,7 +122,13 @@ export default function PendingApprovalsDashboard({
   };
 
   const handleDeny = (order: Order) => {
-    onStatusChange(order, 'denied');
+    const updatedOrder: Order = {
+      ...order,
+      status: 'cancelled',
+      approval_status: 'rejected',
+      updated_at: new Date()
+    };
+    onStatusChange(updatedOrder, 'cancelled');
     setSnackbarMessage('Order denied');
     setSnackbarSeverity('success');
     setSnackbarOpen(true);
@@ -139,7 +158,7 @@ export default function PendingApprovalsDashboard({
   };
 
   const renderOrderCard = (order: Order) => {
-    const client = clients.find(c => c.familyNumber === order.familySearchId);
+    const client = clients.find(c => c.id === order.family_search_id);
     
     return (
       <Card key={order.id} sx={{ 
@@ -157,7 +176,7 @@ export default function PendingApprovalsDashboard({
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
             <Box>
               <Typography variant="subtitle1" component="div" sx={{ fontWeight: 500 }}>
-                {client ? `${client.firstName} ${client.lastName}` : 'Unknown Client'}
+                {client ? `${client.first_name} ${client.last_name}` : 'Unknown Client'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 {client?.phone1 || 'No phone'}
@@ -173,10 +192,10 @@ export default function PendingApprovalsDashboard({
           <Box sx={{ mt: 1 }}>
             <Typography variant="body2" component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
               <CalendarIcon fontSize="small" />
-              Pickup Date: {order.pickupDate ? format(new Date(order.pickupDate), 'MMMM d, yyyy') : 'Not specified'}
+              Pickup Date: {order.pickup_date ? format(new Date(order.pickup_date), 'MMMM d, yyyy') : 'Not specified'}
             </Typography>
             <Typography variant="body2" component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-              Delivery Type: {order.deliveryType === 'pickup' ? 'Pickup' : 'Delivery'}
+              Delivery Type: {order.delivery_type === 'pickup' ? 'Pickup' : 'Delivery'}
             </Typography>
             {order.notes && (
               <Typography variant="body2" component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -310,8 +329,19 @@ export default function PendingApprovalsDashboard({
                     textField: {
                       fullWidth: true,
                       margin: 'normal'
+                    },
+                    popper: {
+                      sx: {
+                        '& .MuiPickersLayout-root': {
+                          '& .MuiTimePicker-root': {
+                            minHeight: '350px'
+                          }
+                        }
+                      }
                     }
                   }}
+                  ampm
+                  views={['hours', 'minutes']}
                 />
               </Box>
             </LocalizationProvider>

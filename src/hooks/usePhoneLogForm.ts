@@ -1,11 +1,12 @@
 import { useState, useCallback } from 'react';
 import { isValidUSPhoneNumber, formatPhoneNumber } from '../utils/phoneNumberUtils';
 import { Client } from '../types';
+import { CallType, CallOutcome } from '../types/phoneLog';
 
 interface FormState {
   phoneNumber: string;
-  callType: 'incoming' | 'outgoing';
-  callOutcome: 'completed' | 'voicemail' | 'no_answer' | 'wrong_number';
+  callType: CallType;
+  callOutcome: CallOutcome;
   notes: string;
   selectedClient: Client | null;
 }
@@ -13,7 +14,7 @@ interface FormState {
 const initialState: FormState = {
   phoneNumber: '',
   callType: 'incoming',
-  callOutcome: 'completed',
+  callOutcome: 'successful',
   notes: '',
   selectedClient: null
 };
@@ -49,14 +50,14 @@ export const usePhoneLogForm = ({ onComplete, onCreateNewClient }: UsePhoneLogFo
     }
   }, []);
 
-  const handleCallTypeChange = useCallback((value: 'incoming' | 'outgoing') => {
+  const handleCallTypeChange = useCallback((value: CallType) => {
     setState(prev => ({
       ...prev,
       callType: value
     }));
   }, []);
 
-  const handleCallOutcomeChange = useCallback((value: 'completed' | 'voicemail' | 'no_answer' | 'wrong_number') => {
+  const handleCallOutcomeChange = useCallback((value: CallOutcome) => {
     setState(prev => ({
       ...prev,
       callOutcome: value

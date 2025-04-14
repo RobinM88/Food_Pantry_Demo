@@ -11,11 +11,13 @@ export const ClientService = {
     return clients.find(c => c.id === id);
   },
 
-  async create(data: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>) {
+  async create(data: Omit<Client, 'id' | 'created_at' | 'updated_at'>) {
+    // Ensure all fields are in snake_case before sending to API
     return api.clients.create(data);
   },
 
   async update(id: string, data: Partial<Client>) {
+    // Ensure all fields are in snake_case before sending to API
     return api.clients.update(id, data);
   },
 

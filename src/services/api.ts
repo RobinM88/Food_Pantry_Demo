@@ -22,36 +22,71 @@ export const api = {
       const { data, error } = await supabase
         .from('Client')
         .select('*')
-        .order('createdAt', { ascending: false });
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
       return data;
     },
 
-    async create(client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>) {
-      const { connectedFamilies, ...clientData } = client;
+    async create(client: Omit<Client, 'id' | 'created_at' | 'updated_at'>) {
+      // Convert camelCase to snake_case for database
+      const now = new Date().toISOString();
+      const clientData = {
+        id: uuidv4(), // Add generated UUID
+        family_number: client.family_number,
+        first_name: client.first_name,
+        last_name: client.last_name,
+        email: client.email,
+        address: client.address,
+        apt_number: client.apt_number,
+        zip_code: client.zip_code,
+        phone1: client.phone1,
+        phone2: client.phone2,
+        is_unhoused: client.is_unhoused,
+        is_temporary: client.is_temporary,
+        adults: client.adults,
+        school_aged: client.school_aged,
+        small_children: client.small_children,
+        temporary_members: client.temporary_members,
+        family_size: client.family_size,
+        food_notes: client.food_notes,
+        office_notes: client.office_notes,
+        total_visits: client.total_visits,
+        total_this_month: client.total_this_month,
+        member_status: client.member_status,
+        last_visit: client.last_visit,
+        created_at: now,
+        updated_at: now
+      };
       
       const { data, error } = await supabase
         .from('Client')
         .insert([clientData])
-        .select('id, familyNumber, firstName, lastName, email, address, aptNumber, zipCode, phone1, phone2, isUnhoused, isTemporary, adults, schoolAged, smallChildren, temporaryMembers, familySize, foodNotes, officeNotes, totalVisits, totalThisMonth, memberStatus, createdAt, updatedAt, lastVisit')
+        .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
       return data;
     },
 
     async update(id: string, updates: Partial<Client>) {
-      const { connectedFamilies, ...updateData } = updates;
+      // Convert camelCase to snake_case for database
+      const { connected_families, ...clientData } = updates;
       
       const { data, error } = await supabase
         .from('Client')
-        .update(updateData)
+        .update(clientData)
         .eq('id', id)
-        .select('id, familyNumber, firstName, lastName, email, address, aptNumber, zipCode, phone1, phone2, isUnhoused, isTemporary, adults, schoolAged, smallChildren, temporaryMembers, familySize, foodNotes, officeNotes, totalVisits, totalThisMonth, memberStatus, createdAt, updatedAt, lastVisit')
+        .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
       return data;
     },
 
@@ -81,7 +116,7 @@ export const api = {
       const { data, error } = await supabase
         .from('Order')
         .select('*')
-        .order('createdAt', { ascending: false });
+        .order('created_at', { ascending: false });
       
       if (error) {
         console.error('Error fetching orders:', error);
@@ -106,56 +141,36 @@ export const api = {
       return data;
     },
 
-    async create(order: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>) {
-      // Format data for Supabase - match schema exactly
-      const now = new Date().toISOString();
-      const orderData = {
-        id: uuidv4(), // Generate ID for the order
-        familySearchId: order.familySearchId,
-        status: order.status,
-        pickupDate: order.pickupDate?.toISOString() || null,
-        notes: order.notes || null,
-        deliveryType: order.deliveryType,
-        isNewClient: order.isNewClient || false,
-        approvalStatus: order.approvalStatus,
-        numberOfBoxes: order.numberOfBoxes || 1,
-        additionalPeople: order.additionalPeople ? {
-          adults: order.additionalPeople.adults || 0,
-          smallChildren: order.additionalPeople.smallChildren || 0,
-          schoolAged: order.additionalPeople.schoolAged || 0
-        } : {
-          adults: 0,
-          smallChildren: 0,
-          schoolAged: 0
-        },
-        seasonalItems: order.seasonalItems || [],
-        visitContact: order.visitContact || null,
-        createdAt: now,
-        updatedAt: now
-      };
-
-      console.log('Creating order with formatted data:', orderData); // Debug log
-
+    async create(order: Omit<Order, 'id' | 'created_at' | 'updated_at'>) {
       try {
+        // Format data for Supabase - match schema exactly
+        const now = new Date().toISOString();
+        const orderData = {
+          id: uuidv4(),
+          family_search_id: order.family_search_id,
+          status: 'pending',  // Always set initial status to pending
+          pickup_date: order.pickup_date ? new Date(order.pickup_date).toISOString() : null,
+          notes: order.notes || null,
+          delivery_type: order.delivery_type || 'pickup',
+          is_new_client: order.is_new_client || false,
+          approval_status: 'pending',  // Always set initial approval status to pending
+          number_of_boxes: order.number_of_boxes || 1,
+          additional_people: {
+            adults: order.additional_people?.adults || 0,
+            small_children: order.additional_people?.small_children || 0,
+            school_aged: order.additional_people?.school_aged || 0
+          },
+          visit_contact: order.visit_contact || null,
+          created_at: now,
+          updated_at: now
+        };
+
+        console.log('Creating order with data:', orderData);
+
         const { data, error } = await supabase
           .from('Order')
           .insert([orderData])
-          .select(`
-            id,
-            familySearchId,
-            status,
-            pickupDate,
-            notes,
-            deliveryType,
-            isNewClient,
-            approvalStatus,
-            numberOfBoxes,
-            additionalPeople,
-            seasonalItems,
-            visitContact,
-            createdAt,
-            updatedAt
-          `)
+          .select()
           .single();
         
         if (error) {
@@ -167,6 +182,8 @@ export const api = {
           });
           throw error;
         }
+
+        console.log('Created order:', data);
         return data;
       } catch (error) {
         console.error('Detailed error:', error);
@@ -178,10 +195,10 @@ export const api = {
       // Format the update data
       const updateData = {
         ...updates,
-        updatedAt: new Date().toISOString(),
-        // If there's a pickupDate, ensure it's in ISO format
-        ...(updates.pickupDate && {
-          pickupDate: new Date(updates.pickupDate).toISOString()
+        updated_at: new Date().toISOString(),
+        // If there's a pickup_date, ensure it's in ISO format
+        ...(updates.pickup_date && {
+          pickup_date: new Date(updates.pickup_date).toISOString()
         })
       };
 
@@ -214,8 +231,8 @@ export const api = {
       const { data, error } = await supabase
         .from('Order')
         .select('*')
-        .eq('familySearchId', clientId)
-        .order('createdAt', { ascending: false });
+        .eq('family_search_id', clientId)
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
       return data;
@@ -230,7 +247,7 @@ export const api = {
           *,
           client:Client(*)
         `)
-        .order('createdAt', { ascending: false });
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
       return data;
@@ -255,13 +272,13 @@ export const api = {
       const now = new Date().toISOString();
       const phoneLogData = {
         id: uuidv4(), // Generate ID for the phone log
-        familySearchId: phoneLog.familySearchId,
-        phoneNumber: phoneLog.phoneNumber,
-        callType: phoneLog.callType,
-        callOutcome: phoneLog.callOutcome,
-        notes: phoneLog.notes || null,
-        createdAt: now,
-        updatedAt: now
+        family_search_id: phoneLog.familySearchId,
+        phone_number: phoneLog.phoneNumber,
+        call_type: phoneLog.callType,
+        call_outcome: phoneLog.callOutcome,
+        notes: phoneLog.notes || undefined,
+        created_at: now,
+        updated_at: now
       };
 
       console.log('Creating phone log with formatted data:', phoneLogData); // Debug log
@@ -272,13 +289,13 @@ export const api = {
           .insert([phoneLogData])
           .select(`
             id,
-            familySearchId,
-            phoneNumber,
-            callType,
-            callOutcome,
+            family_search_id,
+            phone_number,
+            call_type,
+            call_outcome,
             notes,
-            createdAt,
-            updatedAt
+            created_at,
+            updated_at
           `)
           .single();
         
@@ -299,9 +316,17 @@ export const api = {
     },
 
     async update(id: string, updates: Partial<PhoneLog>) {
+      // Convert camelCase to snake_case
+      const dbUpdates: any = {};
+      if (updates.familySearchId) dbUpdates.family_search_id = updates.familySearchId;
+      if (updates.phoneNumber) dbUpdates.phone_number = updates.phoneNumber;
+      if (updates.callType) dbUpdates.call_type = updates.callType;
+      if (updates.callOutcome) dbUpdates.call_outcome = updates.callOutcome;
+      if (updates.notes !== undefined) dbUpdates.notes = updates.notes || undefined;
+
       const { data, error } = await supabase
         .from('PhoneLog')
-        .update(updates)
+        .update(dbUpdates)
         .eq('id', id)
         .select()
         .single();
@@ -323,8 +348,8 @@ export const api = {
       const { data, error } = await supabase
         .from('PhoneLog')
         .select('*')
-        .eq('familySearchId', clientId)
-        .order('createdAt', { ascending: false });
+        .eq('family_search_id', clientId)
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
       return data;
@@ -334,8 +359,8 @@ export const api = {
       const { data, error } = await supabase
         .from('PhoneLog')
         .select('*')
-        .eq('phoneNumber', phoneNumber)
-        .order('createdAt', { ascending: false });
+        .eq('phone_number', phoneNumber)
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
       return data;
@@ -348,11 +373,11 @@ export const api = {
         .from('ConnectedFamily')
         .select(`
           id,
-          clientId,
-          connectedTo,
+          client_id,
+          connected_to,
           client:Client(*)
         `)
-        .order('createdAt', { ascending: false });
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
       return data;
@@ -361,8 +386,8 @@ export const api = {
     async create(connectedFamily: Omit<ConnectedFamily, 'id'>) {
       // Format data for Supabase - match schema exactly
       const connectedFamilyData = {
-        clientId: connectedFamily.clientId,
-        connectedTo: connectedFamily.connectedTo
+        client_id: connectedFamily.client_id,
+        connected_to: connectedFamily.connected_to
       };
 
       console.log('Creating connected family with formatted data:', connectedFamilyData); // Debug log
@@ -373,8 +398,8 @@ export const api = {
           .insert([connectedFamilyData])
           .select(`
             id,
-            clientId,
-            connectedTo
+            client_id,
+            connected_to
           `)
           .single();
         
@@ -399,11 +424,11 @@ export const api = {
         .from('ConnectedFamily')
         .select(`
           id,
-          clientId,
-          connectedTo,
-          connectedClient:Client!connectedTo(*)
+          client_id,
+          connected_to,
+          connected_client:Client!connected_to(*)
         `)
-        .eq('clientId', clientId);
+        .eq('client_id', clientId);
       
       if (error) throw error;
       return data;
@@ -422,7 +447,7 @@ export const api = {
       const { error } = await supabase
         .from('ConnectedFamily')
         .delete()
-        .match({ clientId, connectedTo });
+        .match({ client_id: clientId, connected_to: connectedTo });
       
       if (error) throw error;
     }

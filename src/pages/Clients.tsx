@@ -83,8 +83,8 @@ export default function Clients() {
     try {
       const updatedClient: Client = {
         ...client,
-        memberStatus: newStatus,
-        updatedAt: new Date()
+        member_status: newStatus,
+        updated_at: new Date()
       };
       
       await ClientService.update(client.id, updatedClient);
@@ -133,21 +133,21 @@ export default function Clients() {
   };
 
   const calculateFamilySize = (data: NewClient | UpdateClient) => {
-    const baseSize = (data.adults || 0) + (data.schoolAged || 0) + (data.smallChildren || 0);
-    if (data.isTemporary && data.temporaryMembers) {
+    const baseSize = (data.adults || 0) + (data.school_aged || 0) + (data.small_children || 0);
+    if (data.is_temporary && data.temporary_members) {
       return baseSize + 
-        (data.temporaryMembers.adults || 0) + 
-        (data.temporaryMembers.schoolAged || 0) + 
-        (data.temporaryMembers.smallChildren || 0);
+        (data.temporary_members.adults || 0) + 
+        (data.temporary_members.school_aged || 0) + 
+        (data.temporary_members.small_children || 0);
     }
     return baseSize;
   };
 
   const handleSaveClient = async (clientData: NewClient | UpdateClient) => {
     try {
-      if ('familyNumber' in clientData && clientData.familyNumber) {
+      if ('family_number' in clientData && clientData.family_number) {
         // This is an update
-        const existingClient = clients.find(c => c.familyNumber === clientData.familyNumber);
+        const existingClient = clients.find(c => c.family_number === clientData.family_number);
         if (!existingClient) {
           throw new Error('Client not found');
         }
@@ -155,13 +155,13 @@ export default function Clients() {
         const updatedClient: Client = {
           ...existingClient,
           ...clientData,
-          familySize: calculateFamilySize(clientData),
-          updatedAt: new Date(),
+          family_size: calculateFamilySize(clientData),
+          updated_at: new Date(),
           // Preserve these fields from the existing client
-          createdAt: existingClient.createdAt,
-          lastVisit: existingClient.lastVisit,
-          totalVisits: existingClient.totalVisits,
-          totalThisMonth: existingClient.totalThisMonth
+          created_at: existingClient.created_at,
+          last_visit: existingClient.last_visit,
+          total_visits: existingClient.total_visits,
+          total_this_month: existingClient.total_this_month
         };
 
         await ClientService.update(existingClient.id, updatedClient);
@@ -198,43 +198,43 @@ export default function Clients() {
         }
       } else {
         // This is a new client
-        if (!clientData.firstName || !clientData.lastName || 
-            !clientData.phone1 || !clientData.zipCode ||
-            (!clientData.isUnhoused && !clientData.address)) {
+        if (!clientData.first_name || !clientData.last_name || 
+            !clientData.phone1 || !clientData.zip_code ||
+            (!clientData.is_unhoused && !clientData.address)) {
           throw new Error('Please fill in all required fields');
         }
 
         const newFamilyNumber = generateNextFamilyNumber(clients);
         const newClient: Client = {
           id: `c${Date.now()}`,
-          familyNumber: newFamilyNumber,
-          firstName: clientData.firstName.toLowerCase(),
-          lastName: clientData.lastName.toLowerCase(),
+          family_number: newFamilyNumber,
+          first_name: clientData.first_name.toLowerCase(),
+          last_name: clientData.last_name.toLowerCase(),
           email: clientData.email || '',
-          address: clientData.isUnhoused ? '' : (clientData.address || ''),
-          aptNumber: clientData.aptNumber || '',
-          zipCode: clientData.zipCode,
+          address: clientData.is_unhoused ? '' : (clientData.address || ''),
+          apt_number: clientData.apt_number || '',
+          zip_code: clientData.zip_code,
           phone1: clientData.phone1,
           phone2: clientData.phone2 || '',
-          isUnhoused: clientData.isUnhoused || false,
-          isTemporary: clientData.isTemporary || false,
+          is_unhoused: clientData.is_unhoused || false,
+          is_temporary: clientData.is_temporary || false,
           adults: clientData.adults || 0,
-          schoolAged: clientData.schoolAged || 0,
-          smallChildren: clientData.smallChildren || 0,
-          temporaryMembers: clientData.temporaryMembers || {
+          school_aged: clientData.school_aged || 0,
+          small_children: clientData.small_children || 0,
+          temporary_members: clientData.temporary_members || {
             adults: 0,
-            schoolAged: 0,
-            smallChildren: 0
+            school_aged: 0,
+            small_children: 0
           },
-          familySize: calculateFamilySize(clientData),
-          foodNotes: clientData.foodNotes || '',
-          officeNotes: clientData.officeNotes || '',
-          totalVisits: 0,
-          totalThisMonth: 0,
-          memberStatus: MemberStatus.Pending,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          lastVisit: new Date()
+          family_size: calculateFamilySize(clientData),
+          food_notes: clientData.food_notes || '',
+          office_notes: clientData.office_notes || '',
+          total_visits: 0,
+          total_this_month: 0,
+          member_status: MemberStatus.Pending,
+          created_at: new Date(),
+          updated_at: new Date(),
+          last_visit: new Date()
         };
 
         // Remove any fields that don't exist in the database before sending
@@ -295,109 +295,106 @@ export default function Clients() {
     setNotification({ ...notification, open: false });
   };
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      {viewMode !== 'list' && (
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={handleCancel}
-          sx={{ mb: 3 }}
-        >
-          Back to Clients
-        </Button>
+    <Container maxWidth="lg">
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <Box>
+          {viewMode !== 'list' && viewMode !== 'pending' && (
+            <Button 
+              startIcon={<ArrowBackIcon />} 
+              onClick={handleCancel}
+              sx={{ mb: 2 }}
+            >
+              Back to List
+            </Button>
+          )}
+
+          <Routes>
+            <Route 
+              path="/" 
+              element={
+                <ClientList 
+                  clients={clients} 
+                  onViewClient={handleViewClient}
+                  onEditClient={handleEditClient}
+                  onDeleteClient={handleDeleteClient}
+                />
+              } 
+            />
+            <Route 
+              path="/add" 
+              element={
+                <ClientForm 
+                  onSubmit={handleSaveClient} 
+                  onCancel={handleCancel}
+                  allClients={clients}
+                />
+              } 
+            />
+            <Route 
+              path="/edit" 
+              element={
+                selectedClient ? (
+                  <ClientForm 
+                    client={selectedClient}
+                    onSubmit={handleSaveClient} 
+                    onCancel={handleCancel}
+                    allClients={clients}
+                  />
+                ) : (
+                  <Navigate to="/clients" replace />
+                )
+              } 
+            />
+            <Route 
+              path="/view" 
+              element={
+                selectedClient ? (
+                  <ClientDetails 
+                    client={selectedClient}
+                    allClients={clients}
+                    onEdit={handleEditClient}
+                    onDelete={handleDeleteClient}
+                    onStatusChange={handleStatusChange}
+                  />
+                ) : (
+                  <Navigate to="/clients" replace />
+                )
+              } 
+            />
+            <Route 
+              path="/pending" 
+              element={
+                <PendingClientsDashboard 
+                  clients={clients.filter(c => c.member_status === MemberStatus.Pending)}
+                  onViewClient={handleViewClient}
+                  onEditClient={handleEditClient}
+                  onDeleteClient={handleDeleteClient}
+                  onStatusChange={handleStatusChange}
+                />
+              } 
+            />
+          </Routes>
+
+          <Snackbar
+            open={notification.open}
+            autoHideDuration={6000}
+            onClose={handleCloseNotification}
+          >
+            <Alert 
+              onClose={handleCloseNotification} 
+              severity={notification.severity}
+              sx={{ width: '100%' }}
+            >
+              {notification.message}
+            </Alert>
+          </Snackbar>
+        </Box>
       )}
-
-      <Routes>
-        <Route path="/" element={
-          <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleAddClient}
-                size="large"
-              >
-                Add Client
-              </Button>
-              <Button
-                variant="outlined"
-                color="primary"
-                onClick={() => navigate('/clients/pending')}
-                size="large"
-              >
-                View Pending Clients
-              </Button>
-            </Box>
-            <ClientList
-              clients={clients}
-              onEdit={handleEditClient}
-              onView={handleViewClient}
-              onDelete={handleDeleteClient}
-            />
-          </Box>
-        } />
-        <Route path="/add" element={
-          <ClientForm
-            onSubmit={handleSaveClient}
-            onCancel={handleCancel}
-            allClients={clients}
-          />
-        } />
-        <Route path="/edit" element={
-          selectedClient ? (
-            <ClientForm
-              client={selectedClient}
-              onSubmit={handleSaveClient}
-              onCancel={handleCancel}
-              allClients={clients}
-            />
-          ) : (
-            <Navigate to="/clients" replace />
-          )
-        } />
-        <Route path="/view" element={
-          selectedClient ? (
-            <ClientDetails
-              client={selectedClient}
-              onEdit={handleEditClient}
-              onDelete={handleDeleteClient}
-              onStatusChange={handleStatusChange}
-            />
-          ) : (
-            <Navigate to="/clients" replace />
-          )
-        } />
-        <Route path="/pending" element={
-          <PendingClientsDashboard
-            clients={clients.filter(c => c.memberStatus === MemberStatus.Pending)}
-            onApprove={(client) => handleStatusChange(client, MemberStatus.Active)}
-            onDeny={(client) => handleStatusChange(client, MemberStatus.Denied)}
-            onView={handleViewClient}
-          />
-        } />
-      </Routes>
-
-      <Snackbar
-        open={notification.open}
-        autoHideDuration={6000}
-        onClose={handleCloseNotification}
-      >
-        <Alert
-          onClose={handleCloseNotification}
-          severity={notification.severity}
-          sx={{ width: '100%' }}
-        >
-          {notification.message}
-        </Alert>
-      </Snackbar>
     </Container>
   );
 } 

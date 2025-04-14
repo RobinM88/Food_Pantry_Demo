@@ -11,124 +11,108 @@ export enum MemberStatus {
 export interface Client {
   // Primary identifiers
   id: string;
-  familyNumber: string;
+  family_number: string;
   
   // Basic information
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
   email?: string;
-  address: string;
-  aptNumber?: string;
-  zipCode: string;
+  address?: string;
+  apt_number?: string;
+  zip_code?: string;
   phone1: string;
   phone2?: string;
   
   // Status flags
-  isUnhoused: boolean;
-  isTemporary: boolean;
+  is_unhoused: boolean;
+  is_temporary: boolean;
   
   // Household composition
   adults: number;
-  schoolAged: number;
-  smallChildren: number;
-  familySize: number; // Total family size including temporary members
+  school_aged: number;
+  small_children: number;
+  family_size?: number;
   
   // Connected families
-  connectedFamilies?: string[]; // Array of family IDs that this client is connected to
+  connected_families?: string[];
   
-  // Temporary family members (only present if isTemporary is true)
-  temporaryMembers?: {
+  // Temporary family members
+  temporary_members?: {
     adults: number;
-    schoolAged: number;
-    smallChildren: number;
+    school_aged: number;
+    small_children: number;
   };
   
   // Notes and additional information
-  foodNotes?: string;
-  officeNotes?: string;
+  food_notes?: string;
+  office_notes?: string;
   
   // Tracking and status
-  memberStatus: MemberStatus;
-  totalVisits: number;
-  totalThisMonth: number;
+  member_status: MemberStatus;
+  total_visits: number;
+  total_this_month: number;
   
   // System fields
-  createdAt: Date;
-  updatedAt: Date;
-  lastVisit?: Date;
+  created_at: string;
+  updated_at: string;
+  last_visit?: string | null;
 }
 
 export interface NewClient {
-  // Primary identifiers
-  familyNumber: string;
-  
-  // Basic information
-  firstName: string;
-  lastName: string;
+  family_number: string;
+  first_name: string;
+  last_name: string;
   email?: string;
-  address: string;
-  aptNumber?: string;
-  zipCode: string;
+  address?: string;
+  apt_number?: string;
+  zip_code?: string;
   phone1: string;
   phone2?: string;
-  
-  // Status flags
-  isUnhoused: boolean;
-  isTemporary: boolean;
-  
-  // Household composition
+  is_unhoused: boolean;
+  is_temporary: boolean;
   adults: number;
-  schoolAged: number;
-  smallChildren: number;
-  familySize?: number; // Total family size including temporary members
-  
-  // Connected families
-  connectedFamilies?: string[]; // Array of family IDs that this client is connected to
-  
-  // Temporary family members (only present if isTemporary is true)
-  temporaryMembers?: {
+  school_aged: number;
+  small_children: number;
+  family_size?: number;
+  temporary_members?: {
     adults: number;
-    schoolAged: number;
-    smallChildren: number;
+    school_aged: number;
+    small_children: number;
   };
-  
-  // Notes and additional information
-  foodNotes?: string;
-  officeNotes?: string;
-  
-  // Tracking and status
-  memberStatus: MemberStatus;
-  totalVisits: number;
-  totalThisMonth: number;
+  food_notes?: string;
+  office_notes?: string;
+  member_status: MemberStatus;
+  total_visits: number;
+  total_this_month: number;
 }
 
 // Default values for new clients
 export const defaultNewClient: NewClient = {
-  familyNumber: '',
-  firstName: '',
-  lastName: '',
+  family_number: '',
+  first_name: '',
+  last_name: '',
   address: '',
-  aptNumber: '',
-  zipCode: '',
+  apt_number: '',
+  zip_code: '',
   phone1: '',
   phone2: '',
   email: '',
   adults: 1,
-  schoolAged: 0,
-  smallChildren: 0,
-  familySize: 1, // Default to 1 (just the adult)
-  isUnhoused: false,
-  isTemporary: false,
-  temporaryMembers: {
+  school_aged: 0,
+  small_children: 0,
+  family_size: 1,
+  is_unhoused: false,
+  is_temporary: false,
+  temporary_members: {
     adults: 0,
-    schoolAged: 0,
-    smallChildren: 0
+    school_aged: 0,
+    small_children: 0
   },
-  memberStatus: MemberStatus.Pending,
-  totalVisits: 0,
-  totalThisMonth: 0,
-  foodNotes: '',
-  officeNotes: ''
+  member_status: MemberStatus.Pending,
+  total_visits: 0,
+  total_this_month: 0,
+  food_notes: '',
+  office_notes: ''
 };
 
 export type UpdateClient = Partial<NewClient>; 

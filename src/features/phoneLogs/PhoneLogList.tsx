@@ -38,6 +38,7 @@ import {
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { PhoneLog, Client } from '../../types';
+import { CallType, CallOutcome } from '../../types/phoneLog';
 import PhoneLogDetails from './PhoneLogDetails';
 import { formatPhoneNumber } from '../../utils/phoneNumberUtils';
 
@@ -46,9 +47,6 @@ interface PhoneLogListProps {
   clients: Client[];
   onViewLog: (phoneLog: PhoneLog) => void;
 }
-
-type CallType = 'incoming' | 'outgoing';
-type CallOutcome = 'completed' | 'voicemail' | 'no_answer' | 'wrong_number';
 
 export default function PhoneLogList({
   phoneLogs,
@@ -70,8 +68,8 @@ export default function PhoneLogList({
 
   // Filter phone logs based on search query and filters
   const filteredPhoneLogs = phoneLogs.filter(log => {
-    const client = clients.find(c => c.familyNumber === log.familySearchId);
-    const clientName = client ? `${client.firstName} ${client.lastName}`.toLowerCase() : '';
+    const client = clients.find(c => c.id === log.familySearchId);
+    const clientName = client ? `${client.first_name} ${client.last_name}`.toLowerCase() : '';
     const searchLower = searchQuery.toLowerCase();
     
     const matchesSearch = 
@@ -120,8 +118,8 @@ export default function PhoneLogList({
   };
 
   const getClientName = (familySearchId: string) => {
-    const client = clients.find(c => c.familyNumber === familySearchId);
-    return client ? `${client.firstName} ${client.lastName}` : 'Unknown Client';
+    const client = clients.find(c => c.id === familySearchId);
+    return client ? `${client.first_name} ${client.last_name}` : 'Unknown Client';
   };
 
   const getCallTypeIcon = (callType: CallType) => {
@@ -137,7 +135,7 @@ export default function PhoneLogList({
 
   const getCallOutcomeIcon = (callOutcome: CallOutcome) => {
     switch (callOutcome) {
-      case 'completed':
+      case 'successful':
         return <CheckCircleIcon fontSize="small" color="success" />;
       case 'voicemail':
         return <VoicemailIcon fontSize="small" color="info" />;
@@ -145,6 +143,8 @@ export default function PhoneLogList({
         return <PhoneDisabledIcon fontSize="small" color="warning" />;
       case 'wrong_number':
         return <ErrorIcon fontSize="small" color="error" />;
+      case 'disconnected':
+        return <PhoneDisabledIcon fontSize="small" color="error" />;
       default:
         return <PhoneIcon fontSize="small" />;
     }
@@ -163,13 +163,15 @@ export default function PhoneLogList({
 
   const getCallOutcomeColor = (callOutcome: CallOutcome) => {
     switch (callOutcome) {
-      case 'completed':
+      case 'successful':
         return 'success';
       case 'voicemail':
         return 'info';
       case 'no_answer':
         return 'warning';
       case 'wrong_number':
+        return 'error';
+      case 'disconnected':
         return 'error';
       default:
         return 'default';
@@ -291,10 +293,11 @@ export default function PhoneLogList({
               }}
             >
               <MenuItem value="all">All Outcomes</MenuItem>
-              <MenuItem value="completed">Completed</MenuItem>
+              <MenuItem value="successful">Successful</MenuItem>
               <MenuItem value="voicemail">Voicemail</MenuItem>
               <MenuItem value="no_answer">No Answer</MenuItem>
               <MenuItem value="wrong_number">Wrong Number</MenuItem>
+              <MenuItem value="disconnected">Disconnected</MenuItem>
             </Select>
           </Grid>
         </Grid>
@@ -389,7 +392,7 @@ export default function PhoneLogList({
           {selectedPhoneLog && (
             <PhoneLogDetails
               phoneLog={selectedPhoneLog}
-              client={clients.find(c => c.familyNumber === selectedPhoneLog.familySearchId) || null}
+              client={clients.find(c => c.id === selectedPhoneLog.familySearchId) || null}
             />
           )}
         </DialogContent>

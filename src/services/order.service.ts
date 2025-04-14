@@ -10,7 +10,7 @@ export class OrderService {
     return api.orders.getById(id);
   }
 
-  static async create(order: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>): Promise<Order> {
+  static async create(order: Omit<Order, 'id' | 'created_at' | 'updated_at'>): Promise<Order> {
     return api.orders.create(order);
   }
 

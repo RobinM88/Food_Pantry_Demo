@@ -10,10 +10,6 @@ import {
   Button,
   Chip,
   IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Alert,
   Snackbar
 } from '@mui/material';
@@ -21,13 +17,11 @@ import {
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
   Person as PersonIcon,
-  Notes as NotesIcon,
   Edit as EditIcon,
   Block as BlockIcon,
-  PauseCircle as PauseCircleIcon
+  PauseCircle as PauseCircleIcon,
 } from '@mui/icons-material';
 import { Client, MemberStatus } from '../../types';
-import { format } from 'date-fns';
 
 interface PendingClientsDashboardProps {
   clients: Client[];
@@ -47,13 +41,13 @@ export default function PendingClientsDashboard({
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error' | 'warning'>('success');
 
   // Filter clients to only show pending ones
-  const pendingClients = clients.filter(client => client.memberStatus === MemberStatus.Pending);
+  const pendingClients = clients.filter(client => client.member_status === MemberStatus.Pending);
 
   const handleApprove = (client: Client) => {
     const updatedClient: Client = {
       ...client,
-      memberStatus: MemberStatus.Active,
-      updatedAt: new Date()
+      member_status: MemberStatus.Active,
+      updated_at: new Date().toISOString()
     };
     
     onApprove(updatedClient);
@@ -65,8 +59,8 @@ export default function PendingClientsDashboard({
   const handleDeny = (client: Client) => {
     const updatedClient: Client = {
       ...client,
-      memberStatus: MemberStatus.Inactive,
-      updatedAt: new Date()
+      member_status: MemberStatus.Denied,
+      updated_at: new Date().toISOString()
     };
     
     onDeny(updatedClient);
@@ -78,8 +72,8 @@ export default function PendingClientsDashboard({
   const handleSuspend = (client: Client) => {
     const updatedClient: Client = {
       ...client,
-      memberStatus: MemberStatus.Suspended,
-      updatedAt: new Date()
+      member_status: MemberStatus.Suspended,
+      updated_at: new Date().toISOString()
     };
     
     onApprove(updatedClient);
@@ -91,8 +85,8 @@ export default function PendingClientsDashboard({
   const handleBan = (client: Client) => {
     const updatedClient: Client = {
       ...client,
-      memberStatus: MemberStatus.Banned,
-      updatedAt: new Date()
+      member_status: MemberStatus.Banned,
+      updated_at: new Date().toISOString()
     };
     
     onApprove(updatedClient);
@@ -107,7 +101,7 @@ export default function PendingClientsDashboard({
 
   const renderClientCard = (client: Client) => {
     return (
-      <Card key={client.familyNumber} sx={{ 
+      <Card key={client.id} sx={{ 
         mb: 2, 
         width: '100%',
         display: 'flex',
@@ -122,10 +116,10 @@ export default function PendingClientsDashboard({
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
             <Box>
               <Typography variant="subtitle1" component="div" sx={{ fontWeight: 500 }}>
-                {`${client.firstName} ${client.lastName}`}
+                {`${client.first_name} ${client.last_name}`}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Family #: {client.familyNumber}
+                Family #: {client.family_number}
               </Typography>
             </Box>
             <Chip 
@@ -138,7 +132,7 @@ export default function PendingClientsDashboard({
           <Box sx={{ mt: 1 }}>
             <Typography variant="body2" component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
               <PersonIcon fontSize="small" />
-              Family Size: {client.familySize}
+              Family Size: {client.family_size}
             </Typography>
             <Typography variant="body2" component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
               Phone: {client.phone1}
@@ -146,10 +140,10 @@ export default function PendingClientsDashboard({
             {client.address && (
               <Typography variant="body2" component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 Address: {client.address}
-                {client.aptNumber && ` Apt ${client.aptNumber}`}
+                {client.apt_number && ` Apt ${client.apt_number}`}
               </Typography>
             )}
-            {client.isUnhoused && (
+            {client.is_unhoused && (
               <Typography variant="body2" component="div">
                 <Chip label="Unhoused" size="small" />
               </Typography>
@@ -219,7 +213,7 @@ export default function PendingClientsDashboard({
       ) : (
         <Grid container spacing={2}>
           {pendingClients.map(client => (
-            <Grid item xs={12} md={6} lg={4} key={client.familyNumber}>
+            <Grid item xs={12} md={6} lg={4} key={client.id}>
               {renderClientCard(client)}
             </Grid>
           ))}

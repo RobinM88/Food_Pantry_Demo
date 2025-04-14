@@ -22,15 +22,13 @@ import {
   AccessTime as AccessTimeIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
-import { PhoneLog, Client, MemberStatus } from '../../types';
+import { PhoneLog, Client } from '../../types';
+import { CallType, CallOutcome } from '../../types/phoneLog';
 
 interface PhoneLogDetailsProps {
   phoneLog: PhoneLog;
   client: Client | null;
 }
-
-type CallType = 'incoming' | 'outgoing';
-type CallOutcome = 'completed' | 'voicemail' | 'no_answer' | 'wrong_number';
 
 export default function PhoneLogDetails({ phoneLog, client }: PhoneLogDetailsProps) {
   const getCallTypeIcon = (callType: CallType, isChip = false) => {
@@ -48,7 +46,7 @@ export default function PhoneLogDetails({ phoneLog, client }: PhoneLogDetailsPro
   const getCallOutcomeIcon = (callOutcome: CallOutcome, isChip = false) => {
     const testId = isChip ? 'CallOutcomeChipIcon' : 'CallOutcomeIcon';
     switch (callOutcome) {
-      case 'completed':
+      case 'successful':
         return <CheckCircleIcon fontSize="small" color="success" data-testid={testId} />;
       case 'voicemail':
         return <VoicemailIcon fontSize="small" color="info" data-testid={testId} />;
@@ -56,6 +54,8 @@ export default function PhoneLogDetails({ phoneLog, client }: PhoneLogDetailsPro
         return <PhoneDisabledIcon fontSize="small" color="warning" data-testid={testId} />;
       case 'wrong_number':
         return <ErrorIcon fontSize="small" color="error" data-testid={testId} />;
+      case 'disconnected':
+        return <PhoneDisabledIcon fontSize="small" color="error" data-testid={testId} />;
       default:
         return <PhoneIcon fontSize="small" data-testid={testId} />;
     }
@@ -74,13 +74,15 @@ export default function PhoneLogDetails({ phoneLog, client }: PhoneLogDetailsPro
 
   const getCallOutcomeColor = (callOutcome: CallOutcome) => {
     switch (callOutcome) {
-      case 'completed':
+      case 'successful':
         return 'success';
       case 'voicemail':
         return 'info';
       case 'no_answer':
         return 'warning';
       case 'wrong_number':
+        return 'error';
+      case 'disconnected':
         return 'error';
       default:
         return 'default';
@@ -170,8 +172,8 @@ export default function PhoneLogDetails({ phoneLog, client }: PhoneLogDetailsPro
                     <PersonIcon />
                   </ListItemIcon>
                   <ListItemText
-                    primary="Name"
-                    secondary={`${client.firstName} ${client.lastName}`}
+                    primary="Client Name"
+                    secondary={`${client.first_name} ${client.last_name}`}
                   />
                 </ListItem>
                 <ListItem>
@@ -188,15 +190,13 @@ export default function PhoneLogDetails({ phoneLog, client }: PhoneLogDetailsPro
                     <PersonIcon />
                   </ListItemIcon>
                   <ListItemText
-                    primary="Status"
+                    primary="Member Status"
                     secondary={
-                      <Typography component="div" variant="body2">
-                        <Chip
-                          label={client.memberStatus}
-                          size="small"
-                          color={client.memberStatus === MemberStatus.Active ? 'success' : 'default'}
-                        />
-                      </Typography>
+                      <Chip
+                        label={client.member_status}
+                        color={client.member_status === 'active' ? 'success' : 'warning'}
+                        size="small"
+                      />
                     }
                   />
                 </ListItem>

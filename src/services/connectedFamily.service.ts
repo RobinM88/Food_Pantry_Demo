@@ -6,7 +6,7 @@ export const ConnectedFamilyService = {
     const { data, error } = await api.supabase
       .from('ConnectedFamily')
       .select('*')
-      .eq('clientId', clientId);
+      .eq('client_id', clientId);
     
     if (error) throw error;
     return data;
@@ -14,8 +14,8 @@ export const ConnectedFamilyService = {
 
   async create(data: Omit<ConnectedFamily, 'id'>) {
     const formattedData = {
-      clientId: data.clientId,
-      connectedTo: data.connectedTo,
+      client_id: data.clientId,
+      connected_to: data.connectedTo,
       relationship_type: data.relationshipType
     };
 
@@ -47,7 +47,7 @@ export const ConnectedFamilyService = {
     const { error } = await api.supabase
       .from('ConnectedFamily')
       .delete()
-      .eq('clientId', clientId);
+      .eq('client_id', clientId);
     
     if (error) throw error;
   }

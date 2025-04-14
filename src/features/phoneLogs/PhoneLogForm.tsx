@@ -54,18 +54,18 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
   const [nameSearch, setNameSearch] = useState('');
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [orderData, setOrderData] = useState<NewOrder>({
-    familySearchId: '',
+    family_search_id: '',
     status: 'pending',
-    pickupDate: new Date(),
+    pickup_date: new Date(),
     notes: '',
-    deliveryType: 'pickup',
-    isNewClient: false,
-    approvalStatus: 'pending',
-    numberOfBoxes: 1,
-    additionalPeople: {
+    delivery_type: 'pickup',
+    is_new_client: false,
+    approval_status: 'pending',
+    number_of_boxes: 1,
+    additional_people: {
       adults: 0,
-      smallChildren: 0,
-      schoolAged: 0
+      small_children: 0,
+      school_aged: 0
     }
   });
 
@@ -103,18 +103,16 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
     const searchNumber = state.phoneNumber.replace(/\D/g, '');
     
     // Get client's phone numbers without any formatting
-    const phone1 = client.phone1?.replace(/\D/g, '') || '';
-    const phone2 = client.phone2?.replace(/\D/g, '') || '';
+    const phone1 = (client.phone1 || '').replace(/\D/g, '');
+    const phone2 = (client.phone2 || '').replace(/\D/g, '');
     
-    // If we have a partial search, find which phone number matches
-    if (searchNumber) {
-      if (phone1.includes(searchNumber)) {
-        handlePhoneNumberChange(client.phone1 || '');
-      } else if (phone2.includes(searchNumber)) {
-        handlePhoneNumberChange(client.phone2 || '');
-      }
+    // Check if the search number matches or is contained in either phone number
+    if (phone1.includes(searchNumber)) {
+      handlePhoneNumberChange(client.phone1 || '');
+    } else if (phone2.includes(searchNumber)) {
+      handlePhoneNumberChange(client.phone2 || '');
     } else {
-      // If no search number, default to phone1
+      // If no match found, default to phone1
       handlePhoneNumberChange(client.phone1 || '');
     }
     
@@ -138,21 +136,23 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
 
   // Update search results when either phone or name changes
   useEffect(() => {
-    const searchByPhone = state.phoneNumber.length >= 3;
+    const searchByPhone = state.phoneNumber.replace(/\D/g, '').length >= 3;
     const searchByName = nameSearch.length >= 2;
 
     if (searchByPhone || searchByName) {
       const filteredClients = clients.filter(client => {
         // Phone number search
         const normalizedSearchNumber = state.phoneNumber.replace(/\D/g, '');
-        const phone1Normalized = client.phone1?.replace(/\D/g, '') || '';
-        const phone2Normalized = client.phone2?.replace(/\D/g, '') || '';
+        const phone1Normalized = (client.phone1 || '').replace(/\D/g, '');
+        const phone2Normalized = (client.phone2 || '').replace(/\D/g, '');
+        
+        // More precise phone matching
         const matchesPhone = searchByPhone ? 
-          (phone1Normalized.includes(normalizedSearchNumber) || 
-           phone2Normalized.includes(normalizedSearchNumber)) : false;
+          (phone1Normalized.startsWith(normalizedSearchNumber) || 
+           phone2Normalized.startsWith(normalizedSearchNumber)) : false;
 
         // Name search
-        const fullName = `${client.firstName} ${client.lastName}`.toLowerCase();
+        const fullName = `${client.first_name} ${client.last_name}`.toLowerCase();
         const matchesName = searchByName ? 
           fullName.includes(nameSearch.toLowerCase()) : false;
 
@@ -186,7 +186,7 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
             console.log('Preparing order data...'); // Debug log
             const orderWithDates: NewOrder = {
               ...orderData,
-              familySearchId: state.selectedClient.familyNumber,
+              family_search_id: state.selectedClient.id,
               notes: `${orderData.notes || ''}\n\nPhone Log Notes: ${state.notes || ''}`.trim(),
             };
 
@@ -217,7 +217,7 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
         try {
           const newPhoneLog: PhoneLog = {
             id: Date.now().toString(),
-            familySearchId: state.selectedClient.familyNumber,
+            familySearchId: state.selectedClient.id,
             phoneNumber: state.phoneNumber,
             callType: state.callType,
             callOutcome: state.callOutcome,
@@ -260,18 +260,18 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
     if (!isCreatingOrder) {
       // Initialize order data when enabling order creation
       setOrderData({
-        familySearchId: state.selectedClient?.familyNumber || '',
+        family_search_id: state.selectedClient?.id || '',
         status: 'pending',
         notes: state.notes || '',
-        pickupDate: new Date(),
-        deliveryType: 'pickup',
-        isNewClient: false,
-        approvalStatus: 'pending',
-        numberOfBoxes: 1,
-        additionalPeople: {
+        pickup_date: new Date(),
+        delivery_type: 'pickup',
+        is_new_client: false,
+        approval_status: 'pending',
+        number_of_boxes: 1,
+        additional_people: {
           adults: state.selectedClient?.adults || 0,
-          smallChildren: state.selectedClient?.smallChildren || 0,
-          schoolAged: state.selectedClient?.schoolAged || 0
+          small_children: state.selectedClient?.small_children || 0,
+          school_aged: state.selectedClient?.school_aged || 0
         }
       });
     }
@@ -327,7 +327,7 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
                     selected={state.selectedClient?.id === client.id}
                   >
                     <ListItemText
-                      primary={`${client.firstName} ${client.lastName}`}
+                      primary={`${client.first_name} ${client.last_name}`}
                       secondary={`Phone: ${client.phone1}`}
                     />
                   </ListItem>
@@ -357,14 +357,15 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
                 <InputLabel>Call Outcome</InputLabel>
                 <Select
                   value={state.callOutcome}
-                  onChange={(e) => handleCallOutcomeChange(e.target.value as 'completed' | 'voicemail' | 'no_answer' | 'wrong_number')}
+                  onChange={(e) => handleCallOutcomeChange(e.target.value as 'successful' | 'voicemail' | 'no_answer' | 'wrong_number' | 'disconnected')}
                   label="Call Outcome"
                   disabled={isSaving}
                 >
-                  <MenuItem value="completed">Completed</MenuItem>
+                  <MenuItem value="successful">Successful</MenuItem>
                   <MenuItem value="voicemail">Voicemail</MenuItem>
                   <MenuItem value="no_answer">No Answer</MenuItem>
                   <MenuItem value="wrong_number">Wrong Number</MenuItem>
+                  <MenuItem value="disconnected">Disconnected</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -406,8 +407,8 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
                   <FormControl fullWidth>
                     <InputLabel>Delivery Type</InputLabel>
                     <Select
-                      value={orderData.deliveryType}
-                      onChange={(e) => setOrderData(prev => ({ ...prev, deliveryType: e.target.value as 'pickup' | 'delivery' }))}
+                      value={orderData.delivery_type}
+                      onChange={(e) => setOrderData(prev => ({ ...prev, delivery_type: e.target.value as 'pickup' | 'delivery' }))}
                       label="Delivery Type"
                     >
                       <MenuItem value="pickup">Pickup</MenuItem>
@@ -419,10 +420,10 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
                   <LocalizationProvider dateAdapter={AdapterDateFns}>
                     <DatePicker
                       label="Pickup Date"
-                      value={orderData.pickupDate}
+                      value={orderData.pickup_date}
                       onChange={(newValue) => {
                         if (newValue) {
-                          setOrderData(prev => ({ ...prev, pickupDate: newValue }));
+                          setOrderData(prev => ({ ...prev, pickup_date: newValue }));
                         }
                       }}
                       slotProps={{
@@ -436,8 +437,8 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
                     fullWidth
                     type="number"
                     label="Number of Boxes"
-                    value={orderData.numberOfBoxes}
-                    onChange={(e) => setOrderData(prev => ({ ...prev, numberOfBoxes: parseInt(e.target.value) || 1 }))}
+                    value={orderData.number_of_boxes}
+                    onChange={(e) => setOrderData(prev => ({ ...prev, number_of_boxes: parseInt(e.target.value) || 1 }))}
                     InputProps={{ inputProps: { min: 1 } }}
                   />
                 </Grid>
@@ -451,11 +452,11 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
                         fullWidth
                         type="number"
                         label="Adults"
-                        value={orderData.additionalPeople.adults}
+                        value={orderData.additional_people.adults}
                         onChange={(e) => setOrderData(prev => ({
                           ...prev,
-                          additionalPeople: {
-                            ...prev.additionalPeople,
+                          additional_people: {
+                            ...prev.additional_people,
                             adults: parseInt(e.target.value) || 0
                           }
                         }))}
@@ -467,12 +468,12 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
                         fullWidth
                         type="number"
                         label="Small Children"
-                        value={orderData.additionalPeople.smallChildren}
+                        value={orderData.additional_people.small_children}
                         onChange={(e) => setOrderData(prev => ({
                           ...prev,
-                          additionalPeople: {
-                            ...prev.additionalPeople,
-                            smallChildren: parseInt(e.target.value) || 0
+                          additional_people: {
+                            ...prev.additional_people,
+                            small_children: parseInt(e.target.value) || 0
                           }
                         }))}
                         InputProps={{ inputProps: { min: 0 } }}
@@ -483,12 +484,12 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
                         fullWidth
                         type="number"
                         label="School Aged"
-                        value={orderData.additionalPeople.schoolAged}
+                        value={orderData.additional_people.school_aged}
                         onChange={(e) => setOrderData(prev => ({
                           ...prev,
-                          additionalPeople: {
-                            ...prev.additionalPeople,
-                            schoolAged: parseInt(e.target.value) || 0
+                          additional_people: {
+                            ...prev.additional_people,
+                            school_aged: parseInt(e.target.value) || 0
                           }
                         }))}
                         InputProps={{ inputProps: { min: 0 } }}

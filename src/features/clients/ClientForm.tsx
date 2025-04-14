@@ -14,83 +14,52 @@ import {
   Checkbox,
   FormControlLabel
 } from '@mui/material';
-import { Client, NewClient, UpdateClient, MemberStatus } from '../../types';
-import { formatPhoneNumber, isValidUSPhoneNumber } from '../../utils/phoneNumberUtils';
+import { Client, MemberStatus, DEFAULT_VALUES } from '../../types';
+import { formatPhoneNumber } from '../../utils/phoneNumberUtils';
 import { ConnectedFamilyService } from '../../services/connectedFamily.service';
 import { ConnectedFamiliesManager } from './ConnectedFamiliesManager';
+import { validateClient } from '../../utils/validationUtils';
 
 interface ClientFormProps {
   client?: Client;
-  onSubmit: (client: NewClient | UpdateClient) => void;
+  onSubmit: (client: Omit<Client, 'id' | 'created_at' | 'updated_at'> | Partial<Client>) => void;
   onCancel: () => void;
-  initialData?: Partial<NewClient>;
+  initialData?: Partial<Client>;
   allClients: Client[];
 }
-
-const initialFormState: NewClient = {
-  familyNumber: '',
-  firstName: '',
-  lastName: '',
-  email: '',
-  address: '',
-  aptNumber: '',
-  zipCode: '',
-  phone1: '',
-  phone2: '',
-  isUnhoused: false,
-  isTemporary: false,
-  adults: 1,
-  schoolAged: 0,
-  smallChildren: 0,
-  temporaryMembers: {
-    adults: 0,
-    schoolAged: 0,
-    smallChildren: 0
-  },
-  foodNotes: '',
-  officeNotes: '',
-  memberStatus: MemberStatus.Pending,
-  totalVisits: 0,
-  totalThisMonth: 0
-};
 
 export default function ClientForm({ 
   client, 
   onSubmit, 
   onCancel,
-  initialData,
+  initialData = {},
   allClients
 }: ClientFormProps) {
-  const [formData, setFormData] = useState<NewClient>(
-    client
-      ? {
-          familyNumber: client.familyNumber,
-          firstName: client.firstName,
-          lastName: client.lastName,
-          email: client.email || '',
-          address: client.address,
-          aptNumber: client.aptNumber || '',
-          zipCode: client.zipCode,
-          phone1: client.phone1,
-          phone2: client.phone2 || '',
-          isUnhoused: client.isUnhoused,
-          isTemporary: client.isTemporary,
-          adults: client.adults,
-          schoolAged: client.schoolAged,
-          smallChildren: client.smallChildren,
-          temporaryMembers: client.temporaryMembers || {
-            adults: 0,
-            schoolAged: 0,
-            smallChildren: 0
-          },
-          foodNotes: client.foodNotes || '',
-          officeNotes: client.officeNotes || '',
-          memberStatus: client.memberStatus,
-          totalVisits: client.totalVisits,
-          totalThisMonth: client.totalThisMonth
-        }
-      : { ...initialFormState, ...initialData, memberStatus: MemberStatus.Pending }
-  );
+  const [formData, setFormData] = useState<Omit<Client, 'id' | 'created_at' | 'updated_at'>>(() => {
+    if (client) {
+      // When editing an existing client
+      const { id, created_at, updated_at, ...clientData } = client;
+      return clientData;
+    }
+    
+    // For new clients, merge initialData with default values
+    const baseData = {
+      ...DEFAULT_VALUES,
+      ...initialData,
+      // Ensure required fields have non-empty defaults
+      family_number: initialData?.family_number || '',
+      family_size: initialData?.family_size || 1,
+      total_visits: initialData?.total_visits || 0,
+      total_this_month: initialData?.total_this_month || 0,
+      last_visit: initialData?.last_visit || new Date().toISOString(),
+    };
+
+    // Explicitly set member_status to the enum value
+    return {
+      ...baseData,
+      member_status: MemberStatus.Pending
+    };
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // State for connected families
@@ -98,19 +67,19 @@ export default function ClientForm({
 
   useEffect(() => {
     if (client) {
-      const { createdAt, updatedAt, lastVisit, familySize, ...clientData } = client;
-      const newFormData: NewClient = {
+      const { created_at, updated_at, last_visit, family_size, ...clientData } = client;
+      const newFormData: Omit<Client, 'id' | 'created_at' | 'updated_at'> = {
         ...clientData,
         email: client.email || '',
-        aptNumber: client.aptNumber || '',
+        apt_number: client.apt_number || '',
         phone2: client.phone2 || '',
-        temporaryMembers: client.isTemporary ? {
-          adults: client.temporaryMembers?.adults ?? 0,
-          schoolAged: client.temporaryMembers?.schoolAged ?? 0,
-          smallChildren: client.temporaryMembers?.smallChildren ?? 0
+        temporary_members: client.is_temporary ? {
+          adults: client.temporary_members?.adults ?? 0,
+          school_aged: client.temporary_members?.school_aged ?? 0,
+          small_children: client.temporary_members?.small_children ?? 0
         } : undefined,
-        foodNotes: client.foodNotes || '',
-        officeNotes: client.officeNotes || ''
+        food_notes: client.food_notes || '',
+        office_notes: client.office_notes || ''
       };
       setFormData(newFormData);
     }
@@ -121,7 +90,7 @@ export default function ClientForm({
     if (client?.id) {
       ConnectedFamilyService.getByClientId(client.id)
         .then(connections => {
-          setConnectedFamilyIds(connections.map(c => c.connectedTo));
+          setConnectedFamilyIds(connections.map(c => c.connected_to));
         })
         .catch(error => {
           console.error('Error loading connected families:', error);
@@ -154,28 +123,28 @@ export default function ClientForm({
     }));
   };
 
-  const handleTemporaryMemberChange = (field: 'adults' | 'schoolAged' | 'smallChildren') => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTemporaryMemberChange = (field: 'adults' | 'school_aged' | 'small_children') => (e: React.ChangeEvent<HTMLInputElement>) => {
     const numValue = parseInt(e.target.value) || 0;
     setFormData(prev => ({
       ...prev,
-      temporaryMembers: {
-        adults: prev.temporaryMembers?.adults ?? 0,
-        schoolAged: prev.temporaryMembers?.schoolAged ?? 0,
-        smallChildren: prev.temporaryMembers?.smallChildren ?? 0,
+      temporary_members: {
+        adults: prev.temporary_members?.adults ?? 0,
+        school_aged: prev.temporary_members?.school_aged ?? 0,
+        small_children: prev.temporary_members?.small_children ?? 0,
         [field]: numValue
       }
     }));
   };
 
-  const handleCheckboxChange = (field: 'isUnhoused' | 'isTemporary') => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCheckboxChange = (field: 'is_unhoused' | 'is_temporary') => (e: React.ChangeEvent<HTMLInputElement>) => {
     const checked = e.target.checked;
     setFormData(prev => ({
       ...prev,
       [field]: checked,
-      temporaryMembers: checked && field === 'isTemporary' ? {
+      temporary_members: checked && field === 'is_temporary' ? {
         adults: 0,
-        schoolAged: 0,
-        smallChildren: 0
+        school_aged: 0,
+        small_children: 0
       } : undefined
     }));
   };
@@ -196,121 +165,45 @@ export default function ClientForm({
     }
   };
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First name is required';
-    }
-    
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Last name is required';
-    }
-    
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-    
-    if (!formData.phone1 || !isValidUSPhoneNumber(formData.phone1)) {
-      newErrors.phone1 = 'Please enter a valid US phone number';
-    }
-    
-    if (formData.phone2 && !isValidUSPhoneNumber(formData.phone2)) {
-      newErrors.phone2 = 'Please enter a valid US phone number';
-    }
-
-    if (!formData.zipCode.trim()) {
-      newErrors.zipCode = 'ZIP code is required';
-    }
-
-    if (!formData.isUnhoused && !formData.address.trim()) {
-      newErrors.address = 'Address is required for housed clients';
-    }
-    
-    if (formData.adults < 1) {
-      newErrors.adults = 'Must have at least 1 adult';
-    }
-    
-    if (formData.schoolAged < 0) {
-      newErrors.schoolAged = 'Cannot be negative';
-    }
-    
-    if (formData.smallChildren < 0) {
-      newErrors.smallChildren = 'Cannot be negative';
-    }
-
-    if (formData.isTemporary && formData.temporaryMembers) {
-      if (formData.temporaryMembers.adults < 0) {
-        newErrors.temporaryAdults = 'Cannot be negative';
-      }
-      if (formData.temporaryMembers.schoolAged < 0) {
-        newErrors.temporarySchoolAged = 'Cannot be negative';
-      }
-      if (formData.temporaryMembers.smallChildren < 0) {
-        newErrors.temporarySmallChildren = 'Cannot be negative';
-      }
-    }
-    
-    console.log('Form validation errors:', newErrors);
-    console.log('Form data:', formData);
-    
-    setErrors(newErrors);
-    return newErrors;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const validationErrors = validateForm();
+    console.log('Form Data being submitted:', JSON.stringify(formData, null, 2));
+    
+    // Validate form data
+    const validationErrors = validateClient(formData);
+    console.log('Validation Errors:', JSON.stringify(validationErrors, null, 2));
+    
     if (Object.keys(validationErrors).length > 0) {
+      console.log('Form has validation errors:', Object.keys(validationErrors));
+      setErrors(validationErrors);
       return;
     }
 
-    // Create a clean copy of formData without any fields that don't exist in the database
-    const { connectedFamilies, ...clientData } = formData;
-    
-    // Calculate familySize if not already set
-    if (clientData.familySize === undefined) {
-      clientData.familySize = clientData.adults + clientData.schoolAged + clientData.smallChildren;
-      if (clientData.isTemporary && clientData.temporaryMembers) {
-        clientData.familySize += 
-          clientData.temporaryMembers.adults + 
-          clientData.temporaryMembers.schoolAged + 
-          clientData.temporaryMembers.smallChildren;
-      }
-    }
+    try {
+      console.log('Attempting to submit client data');
+      // Submit the client data
+      await onSubmit(formData);
 
-    // Force new clients to be set to pending status
-    if (!client) {
-      // Override any potential status changes to ensure new clients are pending
-      clientData.memberStatus = MemberStatus.Pending;
-      console.log('Setting new client status to pending:', clientData);
-    }
-
-    // Submit the client data first
-    onSubmit(clientData);
-    
-    // If we're editing an existing client and have their ID, handle connected families
-    if (client?.id) {
-      try {
-        // Delete existing connections
-        await ConnectedFamilyService.deleteByClientId(client.id);
-        
-        // Create new connections if any exist
-        if (connectedFamilyIds.length > 0) {
+      // Handle connected families if editing an existing client
+      if (client?.id && connectedFamilyIds.length > 0) {
+        try {
+          await ConnectedFamilyService.deleteByClientId(client.id);
           await Promise.all(
             connectedFamilyIds.map(connectedTo => 
               ConnectedFamilyService.create({
-                clientId: client.id,
-                connectedTo,
-                relationshipType: 'Other' // Default to 'Other' for backward compatibility
+                client_id: client.id,
+                connected_to: connectedTo,
+                relationship_type: 'Other'
               })
             )
           );
+        } catch (error) {
+          console.error('Error managing connected families:', error);
         }
-      } catch (error) {
-        console.error('Error managing connected families:', error);
       }
+    } catch (error) {
+      console.error('Error saving client:', error);
     }
   };
 
@@ -331,9 +224,9 @@ export default function ClientForm({
             <TextField
               required
               fullWidth
-              name="familyNumber"
+              name="family_number"
               label="Family Number"
-              value={formData.familyNumber}
+              value={formData.family_number}
               onChange={handleTextChange}
               disabled={true}
               InputProps={{
@@ -346,12 +239,12 @@ export default function ClientForm({
             <TextField
               required
               fullWidth
-              name="firstName"
+              name="first_name"
               label="First Name"
-              value={formData.firstName}
+              value={formData.first_name}
               onChange={handleTextChange}
-              error={!!errors.firstName}
-              helperText={errors.firstName}
+              error={!!errors.first_name}
+              helperText={errors.first_name}
             />
           </Grid>
           
@@ -359,12 +252,12 @@ export default function ClientForm({
             <TextField
               required
               fullWidth
-              name="lastName"
+              name="last_name"
               label="Last Name"
-              value={formData.lastName}
+              value={formData.last_name}
               onChange={handleTextChange}
-              error={!!errors.lastName}
-              helperText={errors.lastName}
+              error={!!errors.last_name}
+              helperText={errors.last_name}
             />
           </Grid>
 
@@ -385,8 +278,8 @@ export default function ClientForm({
             <FormControlLabel
               control={
                 <Checkbox
-                  checked={formData.isUnhoused}
-                  onChange={handleCheckboxChange('isUnhoused')}
+                  checked={formData.is_unhoused}
+                  onChange={handleCheckboxChange('is_unhoused')}
                 />
               }
               label="Unhoused"
@@ -405,27 +298,27 @@ export default function ClientForm({
               label="Street Address"
               value={formData.address}
               onChange={handleTextChange}
-              disabled={formData.isUnhoused}
+              disabled={formData.is_unhoused}
             />
           </Grid>
           
           <Grid item xs={12} sm={4}>
             <TextField
               fullWidth
-              name="aptNumber"
+              name="apt_number"
               label="Apartment Number"
-              value={formData.aptNumber}
+              value={formData.apt_number}
               onChange={handleTextChange}
-              disabled={formData.isUnhoused}
+              disabled={formData.is_unhoused}
             />
           </Grid>
 
           <Grid item xs={12} sm={4}>
             <TextField
               fullWidth
-              name="zipCode"
+              name="zip_code"
               label="ZIP Code"
-              value={formData.zipCode}
+              value={formData.zip_code}
               onChange={handleTextChange}
               required
             />
@@ -464,8 +357,8 @@ export default function ClientForm({
             <FormControlLabel
               control={
                 <Checkbox
-                  checked={formData.isTemporary}
-                  onChange={handleCheckboxChange('isTemporary')}
+                  checked={formData.is_temporary}
+                  onChange={handleCheckboxChange('is_temporary')}
                 />
               }
               label="Temporary Family Members"
@@ -496,12 +389,12 @@ export default function ClientForm({
               required
               fullWidth
               type="number"
-              name="schoolAged"
+              name="school_aged"
               label="School Aged Children"
-              value={formData.schoolAged}
+              value={formData.school_aged}
               onChange={handleNumberChange}
-              error={!!errors.schoolAged}
-              helperText={errors.schoolAged}
+              error={!!errors.school_aged}
+              helperText={errors.school_aged}
               inputProps={{ min: 0 }}
             />
           </Grid>
@@ -511,17 +404,17 @@ export default function ClientForm({
               required
               fullWidth
               type="number"
-              name="smallChildren"
+              name="small_children"
               label="Small Children"
-              value={formData.smallChildren}
+              value={formData.small_children}
               onChange={handleNumberChange}
-              error={!!errors.smallChildren}
-              helperText={errors.smallChildren}
+              error={!!errors.small_children}
+              helperText={errors.small_children}
               inputProps={{ min: 0 }}
             />
           </Grid>
 
-          {formData.isTemporary && formData.temporaryMembers && (
+          {formData.is_temporary && formData.temporary_members && (
             <>
               <Grid item xs={12}>
                 <Typography variant="subtitle1" gutterBottom>
@@ -535,7 +428,7 @@ export default function ClientForm({
                   type="number"
                   name="temporaryAdults"
                   label="Number of Adults"
-                  value={formData.temporaryMembers.adults}
+                  value={formData.temporary_members.adults}
                   onChange={handleTemporaryMemberChange('adults')}
                   error={!!errors.temporaryAdults}
                   helperText={errors.temporaryAdults}
@@ -549,8 +442,8 @@ export default function ClientForm({
                   type="number"
                   name="temporarySchoolAged"
                   label="School Aged Children"
-                  value={formData.temporaryMembers.schoolAged}
-                  onChange={handleTemporaryMemberChange('schoolAged')}
+                  value={formData.temporary_members.school_aged}
+                  onChange={handleTemporaryMemberChange('school_aged')}
                   error={!!errors.temporarySchoolAged}
                   helperText={errors.temporarySchoolAged}
                   inputProps={{ min: 0 }}
@@ -563,8 +456,8 @@ export default function ClientForm({
                   type="number"
                   name="temporarySmallChildren"
                   label="Small Children"
-                  value={formData.temporaryMembers.smallChildren}
-                  onChange={handleTemporaryMemberChange('smallChildren')}
+                  value={formData.temporary_members.small_children}
+                  onChange={handleTemporaryMemberChange('small_children')}
                   error={!!errors.temporarySmallChildren}
                   helperText={errors.temporarySmallChildren}
                   inputProps={{ min: 0 }}
@@ -583,9 +476,9 @@ export default function ClientForm({
               fullWidth
               multiline
               rows={4}
-              name="foodNotes"
+              name="food_notes"
               label="Food Notes"
-              value={formData.foodNotes}
+              value={formData.food_notes}
               onChange={handleTextChange}
             />
           </Grid>
@@ -595,9 +488,9 @@ export default function ClientForm({
               fullWidth
               multiline
               rows={4}
-              name="officeNotes"
+              name="office_notes"
               label="Office Notes"
-              value={formData.officeNotes}
+              value={formData.office_notes}
               onChange={handleTextChange}
             />
           </Grid>
@@ -607,8 +500,8 @@ export default function ClientForm({
               <FormControl fullWidth>
                 <InputLabel>Member Status</InputLabel>
                 <Select
-                  name="memberStatus"
-                  value={formData.memberStatus}
+                  name="member_status"
+                  value={formData.member_status}
                   onChange={(e) => handleTextChange(e as any)}
                   label="Member Status"
                 >
@@ -632,13 +525,15 @@ export default function ClientForm({
         {/* Replace the old connected families section with the new component */}
         {client?.id && (
           <Box sx={{ mt: 3 }}>
-            <ConnectedFamiliesManager
-              client={client}
-              allClients={allClients}
-              onConnectionsChange={(connections) => {
-                setConnectedFamilyIds(connections.map(c => c.connectedTo));
-              }}
-            />
+            {client && (
+              <ConnectedFamiliesManager
+                client={client}
+                allClients={allClients}
+                onConnectionsChange={(connections) => {
+                  setConnectedFamilyIds(connections.map(c => c.connected_to));
+                }}
+              />
+            )}
           </Box>
         )}
 
