@@ -200,7 +200,7 @@ export default function OrderDetails({
                   <CartIcon />
                 </ListItemIcon>
                 <ListItemText 
-                  primary={`${order.numberOfBoxes} boxes`}
+                  primary={`${order.number_of_boxes} boxes`}
                   secondary="Order Size" 
                 />
               </ListItem>
@@ -209,7 +209,7 @@ export default function OrderDetails({
                   <CalendarIcon />
                 </ListItemIcon>
                 <ListItemText 
-                  primary={order.pickupDate ? format(new Date(order.pickupDate), 'MMM d, yyyy') : 'Not scheduled'}
+                  primary={order.pickup_date ? format(new Date(order.pickup_date), 'MMM d, yyyy') : 'Not scheduled'}
                   secondary="Pickup Date" 
                 />
               </ListItem>

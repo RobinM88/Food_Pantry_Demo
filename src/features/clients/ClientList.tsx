@@ -288,6 +288,7 @@ export default function ClientList({
           {selectedClient && (
             <ClientDetails
               client={selectedClient}
+              allClients={clients}
               onEdit={(client) => {
                 handleCloseDetailsDialog();
                 onEdit(client);

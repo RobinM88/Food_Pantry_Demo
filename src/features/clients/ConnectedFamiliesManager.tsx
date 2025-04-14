@@ -40,7 +40,7 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
   const [searchResults, setSearchResults] = useState<Client[]>([]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [relationshipType, setRelationshipType] = useState<RelationshipType>('Other');
+  const [relationshipType, setRelationshipType] = useState<RelationshipType>('other');
 
   // Load existing connections
   useEffect(() => {
@@ -109,7 +109,8 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
     if (!selectedClient) return;
     
     try {
-      const newConnection = await ConnectedFamilyService.create({
+      // Create the forward connection
+      await ConnectedFamilyService.create({
         client_id: client.id,
         connected_to: selectedClient.id,
         relationship_type: relationshipType
@@ -126,7 +127,7 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
       await loadConnections();
       setSearchTerm('');
       setSelectedClient(null);
-      setRelationshipType('Other');
+      setRelationshipType('other');
       setIsSearchOpen(false);
     } catch (error) {
       console.error('Error adding connection:', error);
@@ -313,11 +314,11 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
                 onChange={(e) => setRelationshipType(e.target.value as RelationshipType)}
                 label="Relationship Type"
               >
-                <MenuItem value="Parent">Parent</MenuItem>
-                <MenuItem value="Child">Child</MenuItem>
-                <MenuItem value="Sibling">Sibling</MenuItem>
-                <MenuItem value="Spouse">Spouse</MenuItem>
-                <MenuItem value="Other">Other</MenuItem>
+                <MenuItem value="parent">Parent</MenuItem>
+                <MenuItem value="child">Child</MenuItem>
+                <MenuItem value="spouse">Spouse</MenuItem>
+                <MenuItem value="sibling">Sibling</MenuItem>
+                <MenuItem value="other">Other</MenuItem>
               </Select>
             </FormControl>
           </Box>
@@ -327,7 +328,7 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
             setIsSearchOpen(false);
             setSearchTerm('');
             setSelectedClient(null);
-            setRelationshipType('Other');
+            setRelationshipType('other');
           }}>
             Cancel
           </Button>

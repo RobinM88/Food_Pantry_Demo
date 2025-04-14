@@ -164,9 +164,16 @@ export default function DailyQueue() {
           );
         }
         
-        // For the main queue dashboard, show all approved orders
+        // For the main queue dashboard, show all relevant orders
         filteredOrders = filteredOrders.filter(order => 
-          order.status === 'approved' || order.status === 'completed'
+          order.status === 'approved' || 
+          order.status === 'confirmed' ||
+          order.status === 'ready' ||
+          order.status === 'out_for_delivery' ||
+          order.status === 'picked_up' ||
+          order.status === 'delivered' ||
+          order.status === 'no_show' ||
+          order.status === 'failed_delivery'
         );
         console.log('Orders after filtering for queue:', filteredOrders);
         

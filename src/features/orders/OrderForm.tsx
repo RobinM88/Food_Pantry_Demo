@@ -31,7 +31,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   const [orderData, setOrderData] = React.useState<NewOrder>({
     family_search_id: initialData?.family_search_id || '',
     status: 'pending',
-    pickup_date: initialData?.pickup_date || null,
+    pickup_date: initialData?.pickup_date,
     notes: initialData?.notes || '',
     delivery_type: initialData?.delivery_type || 'pickup',
     is_new_client: initialData?.is_new_client || false,
@@ -60,6 +60,20 @@ export const OrderForm: React.FC<OrderFormProps> = ({
     }
   };
 
+  const handleDateChange = (date: Date | null) => {
+    setOrderData(prev => ({
+      ...prev,
+      pickup_date: date === null ? undefined : date
+    }));
+  };
+
+  const handleChange = (field: keyof NewOrder, value: any) => {
+    setOrderData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   return (
     <Paper sx={{ p: 3 }}>
       <Typography variant="h6" gutterBottom>
@@ -73,10 +87,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
               <InputLabel>Client</InputLabel>
               <Select
                 value={orderData.family_search_id}
-                onChange={(e) => setOrderData(prev => ({
-                  ...prev,
-                  family_search_id: e.target.value
-                }))}
+                onChange={(e) => handleChange('family_search_id', e.target.value)}
                 label="Client"
               >
                 {clients.map(client => (
@@ -93,10 +104,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
               <InputLabel>Delivery Type</InputLabel>
               <Select
                 value={orderData.delivery_type}
-                onChange={(e) => setOrderData(prev => ({
-                  ...prev,
-                  delivery_type: e.target.value as 'pickup' | 'delivery'
-                }))}
+                onChange={(e) => handleChange('delivery_type', e.target.value as 'pickup' | 'delivery')}
                 label="Delivery Type"
               >
                 <MenuItem value="pickup">Pickup</MenuItem>
@@ -108,11 +116,8 @@ export const OrderForm: React.FC<OrderFormProps> = ({
           <Grid item xs={12} md={6}>
             <DatePicker
               label="Pickup Date"
-              value={orderData.pickup_date}
-              onChange={(date) => setOrderData(prev => ({
-                ...prev,
-                pickup_date: date
-              }))}
+              value={orderData.pickup_date ?? null}
+              onChange={handleDateChange}
             />
           </Grid>
 
@@ -122,10 +127,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
               type="number"
               label="Number of Boxes"
               value={orderData.number_of_boxes}
-              onChange={(e) => setOrderData(prev => ({
-                ...prev,
-                number_of_boxes: parseInt(e.target.value)
-              }))}
+              onChange={(e) => handleChange('number_of_boxes', parseInt(e.target.value))}
             />
           </Grid>
 
@@ -140,13 +142,10 @@ export const OrderForm: React.FC<OrderFormProps> = ({
                   type="number"
                   label="Adults"
                   value={orderData.additional_people.adults}
-                  onChange={(e) => setOrderData(prev => ({
-                    ...prev,
-                    additional_people: {
-                      ...prev.additional_people,
-                      adults: parseInt(e.target.value)
-                    }
-                  }))}
+                  onChange={(e) => handleChange('additional_people', {
+                    ...orderData.additional_people,
+                    adults: parseInt(e.target.value)
+                  })}
                 />
               </Grid>
               <Grid item xs={4}>
@@ -155,13 +154,10 @@ export const OrderForm: React.FC<OrderFormProps> = ({
                   type="number"
                   label="School-aged Children"
                   value={orderData.additional_people.school_aged}
-                  onChange={(e) => setOrderData(prev => ({
-                    ...prev,
-                    additional_people: {
-                      ...prev.additional_people,
-                      school_aged: parseInt(e.target.value)
-                    }
-                  }))}
+                  onChange={(e) => handleChange('additional_people', {
+                    ...orderData.additional_people,
+                    school_aged: parseInt(e.target.value)
+                  })}
                 />
               </Grid>
               <Grid item xs={4}>
@@ -170,13 +166,10 @@ export const OrderForm: React.FC<OrderFormProps> = ({
                   type="number"
                   label="Small Children"
                   value={orderData.additional_people.small_children}
-                  onChange={(e) => setOrderData(prev => ({
-                    ...prev,
-                    additional_people: {
-                      ...prev.additional_people,
-                      small_children: parseInt(e.target.value)
-                    }
-                  }))}
+                  onChange={(e) => handleChange('additional_people', {
+                    ...orderData.additional_people,
+                    small_children: parseInt(e.target.value)
+                  })}
                 />
               </Grid>
             </Grid>
@@ -189,10 +182,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
               rows={4}
               label="Notes"
               value={orderData.notes}
-              onChange={(e) => setOrderData(prev => ({
-                ...prev,
-                notes: e.target.value
-              }))}
+              onChange={(e) => handleChange('notes', e.target.value)}
             />
           </Grid>
 
@@ -201,10 +191,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
               fullWidth
               label="Visit Contact"
               value={orderData.visit_contact}
-              onChange={(e) => setOrderData(prev => ({
-                ...prev,
-                visit_contact: e.target.value
-              }))}
+              onChange={(e) => handleChange('visit_contact', e.target.value)}
             />
           </Grid>
 

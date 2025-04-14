@@ -1,6 +1,6 @@
 import { Client } from './client';
 
-export type RelationshipType = 'Siblings' | 'Parent/Child' | 'Extended Family' | 'Other';
+export type RelationshipType = 'parent' | 'child' | 'spouse' | 'sibling' | 'other';
 
 export interface ConnectedFamily {
   id: string;

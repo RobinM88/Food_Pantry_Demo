@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -24,11 +24,11 @@ import {
   Select,
   MenuItem
 } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { Delete as DeleteIcon } from '@mui/icons-material';
 import { Client } from '../types/client';
 import { ConnectedFamily, RelationshipType } from '../types/connectedFamily';
-import { ClientService } from '../services/client.service';
 import { ConnectedFamilyService } from '../services/connectedFamily.service';
+import { ClientService } from '../services/client.service';
 
 interface FamilyGroup {
   mainClient: Client;
@@ -42,11 +42,10 @@ interface FamilyGroup {
 export default function FamilyConnections() {
   const [clients, setClients] = useState<Client[]>([]);
   const [familyGroups, setFamilyGroups] = useState<FamilyGroup[]>([]);
-  const [allConnections, setAllConnections] = useState<ConnectedFamily[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [selectedRelationType, setSelectedRelationType] = useState<RelationshipType>('Other');
-  const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [relationshipType, setRelationshipType] = useState<RelationshipType>('other');
   const [notification, setNotification] = useState<{
     open: boolean;
     message: string;
@@ -73,7 +72,6 @@ export default function FamilyConnections() {
         const clientConnections = await ConnectedFamilyService.getByClientId(client.id);
         allConnectionsData = [...allConnectionsData, ...clientConnections];
       }
-      setAllConnections(allConnectionsData);
       
       // Build family groups
       const groups: FamilyGroup[] = [];
@@ -82,7 +80,7 @@ export default function FamilyConnections() {
       for (const client of clientsData) {
         if (processedClients.has(client.id)) continue;
 
-        const clientConnections = allConnectionsData.filter(conn => conn.clientId === client.id);
+        const clientConnections = allConnectionsData.filter(conn => conn.client_id === client.id);
         if (clientConnections.length > 0) {
           const group: FamilyGroup = {
             mainClient: client,
@@ -90,12 +88,12 @@ export default function FamilyConnections() {
           };
 
           for (const conn of clientConnections) {
-            const connectedClient = clientsData.find(c => c.id === conn.connectedTo);
+            const connectedClient = clientsData.find((c: Client) => c.id === conn.connected_to);
             if (connectedClient) {
               group.connections.push({
                 client: connectedClient,
                 connectionId: conn.id,
-                relationshipType: conn.relationshipType
+                relationshipType: conn.relationship_type
               });
               processedClients.add(connectedClient.id);
             }
@@ -113,30 +111,40 @@ export default function FamilyConnections() {
     }
   };
 
-  const handleAddConnection = async (targetClient: Client) => {
+  const handleAddConnection = async (client: Client) => {
     if (!selectedClient) return;
 
     try {
-      // Create bi-directional connection
-      await ConnectedFamilyService.create({
-        clientId: selectedClient.id,
-        connectedTo: targetClient.id,
-        relationshipType: selectedRelationType
-      });
+      // Create the connection in both directions
+      const connection1 = {
+        client_id: selectedClient.id,
+        connected_to: client.id,
+        relationship_type: relationshipType
+      };
 
-      await ConnectedFamilyService.create({
-        clientId: targetClient.id,
-        connectedTo: selectedClient.id,
-        relationshipType: selectedRelationType
-      });
+      const connection2 = {
+        client_id: client.id,
+        connected_to: selectedClient.id,
+        relationship_type: relationshipType
+      };
 
-      await loadData(); // Refresh data
-      setIsSearchDialogOpen(false);
-      setSelectedRelationType('Other'); // Reset for next connection
+      // Create both connections
+      await ConnectedFamilyService.create(connection1);
+      await ConnectedFamilyService.create(connection2);
+
+      // Refresh the data
+      await loadData();
+      
+      // Reset the UI state
+      setSelectedClient(null);
+      setIsSearchOpen(false);
+      setSearchTerm('');
+      setRelationshipType('other');
+      
       showNotification('Family connection created successfully', 'success');
     } catch (error) {
       console.error('Error creating connection:', error);
-      showNotification('Error creating family connection', 'error');
+      showNotification('Failed to create family connection', 'error');
     }
   };
 
@@ -147,7 +155,7 @@ export default function FamilyConnections() {
       
       // Find and remove the reverse connection
       const reverseConnections = await ConnectedFamilyService.getByClientId(client2Id);
-      const reverseConnection = reverseConnections.find(c => c.connectedTo === client1Id);
+      const reverseConnection = reverseConnections.find((c: ConnectedFamily) => c.connected_to === client1Id);
       if (reverseConnection) {
         await ConnectedFamilyService.delete(reverseConnection.id);
       }
@@ -176,8 +184,8 @@ export default function FamilyConnections() {
     ? clients.filter(c =>
         !selectedClient || c.id !== selectedClient.id &&
         (
-          `${c.firstName} ${c.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          c.familyNumber.includes(searchTerm) ||
+          `${c.first_name} ${c.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          c.family_number.includes(searchTerm) ||
           c.phone1.includes(searchTerm) ||
           (c.phone2 && c.phone2.includes(searchTerm))
         )
@@ -212,13 +220,13 @@ export default function FamilyConnections() {
                     button
                     onClick={() => {
                       setSelectedClient(client);
-                      setIsSearchDialogOpen(true);
+                      setIsSearchOpen(true);
                       setSearchTerm('');
                     }}
                   >
                     <ListItemText
-                      primary={`${client.firstName} ${client.lastName}`}
-                      secondary={`Family #: ${client.familyNumber} | Phone: ${client.phone1}`}
+                      primary={`${client.first_name} ${client.last_name}`}
+                      secondary={`Family #: ${client.family_number} | Phone: ${client.phone1}`}
                     />
                   </ListItem>
                 ))}
@@ -235,10 +243,10 @@ export default function FamilyConnections() {
               <Paper key={group.mainClient.id} sx={{ p: 3, mb: 3 }}>
                 <Box sx={{ mb: 2 }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                    {group.mainClient.firstName} {group.mainClient.lastName}
+                    {group.mainClient.first_name} {group.mainClient.last_name}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Family #: {group.mainClient.familyNumber} | Phone: {group.mainClient.phone1}
+                    Family #: {group.mainClient.family_number} | Phone: {group.mainClient.phone1}
                   </Typography>
                 </Box>
                 
@@ -251,10 +259,10 @@ export default function FamilyConnections() {
                   {group.connections.map(({ client, connectionId, relationshipType }) => (
                     <ListItem key={connectionId}>
                       <ListItemText
-                        primary={`${client.firstName} ${client.lastName}`}
+                        primary={`${client.first_name} ${client.last_name}`}
                         secondary={
                           <>
-                            Family #: {client.familyNumber} | Phone: {client.phone1}
+                            Family #: {client.family_number} | Phone: {client.phone1}
                             <br />
                             Relationship: {relationshipType || 'Other'}
                           </>
@@ -287,26 +295,27 @@ export default function FamilyConnections() {
 
       {/* Search Dialog for creating connections */}
       <Dialog
-        open={isSearchDialogOpen}
-        onClose={() => setIsSearchDialogOpen(false)}
+        open={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
         maxWidth="md"
         fullWidth
       >
         <DialogTitle>
-          Connect to {selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}` : ''}
+          Connect to {selectedClient ? `${selectedClient.first_name} ${selectedClient.last_name}` : ''}
         </DialogTitle>
         <DialogContent>
           <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel>Relationship Type</InputLabel>
             <Select
-              value={selectedRelationType}
-              onChange={(e) => setSelectedRelationType(e.target.value as RelationshipType)}
+              value={relationshipType}
+              onChange={(e) => setRelationshipType(e.target.value as RelationshipType)}
               label="Relationship Type"
             >
-              <MenuItem value="Siblings">Siblings</MenuItem>
-              <MenuItem value="Parent/Child">Parent/Child</MenuItem>
-              <MenuItem value="Extended Family">Extended Family</MenuItem>
-              <MenuItem value="Other">Other</MenuItem>
+              <MenuItem value="parent">Parent</MenuItem>
+              <MenuItem value="child">Child</MenuItem>
+              <MenuItem value="spouse">Spouse</MenuItem>
+              <MenuItem value="sibling">Sibling</MenuItem>
+              <MenuItem value="other">Other</MenuItem>
             </Select>
           </FormControl>
 
@@ -327,15 +336,15 @@ export default function FamilyConnections() {
                 onClick={() => handleAddConnection(client)}
               >
                 <ListItemText
-                  primary={`${client.firstName} ${client.lastName}`}
-                  secondary={`Family #: ${client.familyNumber} | Phone: ${client.phone1}`}
+                  primary={`${client.first_name} ${client.last_name}`}
+                  secondary={`Family #: ${client.family_number} | Phone: ${client.phone1}`}
                 />
               </ListItem>
             ))}
           </List>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setIsSearchDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => setIsSearchOpen(false)}>Cancel</Button>
         </DialogActions>
       </Dialog>
 

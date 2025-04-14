@@ -15,7 +15,6 @@ import {
   FormControl,
   Select,
   MenuItem,
-  SelectChangeEvent,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -24,7 +23,6 @@ import {
   Snackbar
 } from '@mui/material';
 import {
-  CheckCircle as CheckCircleIcon,
   CalendarToday as CalendarIcon,
   Notes as NotesIcon,
   Edit as EditIcon,
@@ -42,6 +40,8 @@ interface DailyQueueDashboardProps {
   onDeleteOrder: (order: Order) => void;
 }
 
+const STATUS_OPTIONS: OrderStatus[] = ['confirmed', 'ready', 'out_for_delivery', 'picked_up', 'delivered', 'no_show', 'failed_delivery', 'cancelled'];
+
 export default function DailyQueueDashboard({
   orders,
   clients,
@@ -49,21 +49,17 @@ export default function DailyQueueDashboard({
   onEditOrder,
   onDeleteOrder
 }: DailyQueueDashboardProps) {
-  const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all'>('all');
+  const [selectedStatus, setSelectedStatus] = useState<OrderStatus | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
-  // Filter orders based on status filter only
+  // Filter orders based on status
   const filteredOrders = orders.filter(order => {
-    return filterStatus === 'all' || order.status === filterStatus;
+    return !selectedStatus || order.status === selectedStatus;
   });
-
-  const handleFilterChange = (event: SelectChangeEvent) => {
-    setFilterStatus(event.target.value as OrderStatus | 'all');
-  };
 
   const handleStatusChange = (order: Order, newStatus: OrderStatus) => {
     onStatusChange(order, newStatus);
@@ -95,14 +91,62 @@ export default function DailyQueueDashboard({
     setSnackbarOpen(false);
   };
 
-  const getStatusColor = (status: OrderStatus) => {
-    switch (status) {
-      case 'pending':
-        return 'warning';
+  const getNextStatusOptions = (currentStatus: OrderStatus, deliveryType: 'pickup' | 'delivery'): OrderStatus[] => {
+    switch (currentStatus) {
       case 'approved':
+        return ['confirmed'];
+      case 'confirmed':
+        return deliveryType === 'pickup' 
+          ? ['ready', 'cancelled']
+          : ['out_for_delivery', 'cancelled'];
+      case 'ready':
+        return ['picked_up', 'no_show'];
+      case 'out_for_delivery':
+        return ['delivered', 'failed_delivery'];
+      case 'picked_up':
+      case 'no_show':
+      case 'delivered':
+      case 'failed_delivery':
+      case 'cancelled':
+        return [];
+      default:
+        return [];
+    }
+  };
+
+  const getStatusColor = (status: OrderStatus): 'info' | 'success' | 'error' | 'warning' | 'primary' => {
+    switch (status) {
+      case 'confirmed':
+        return 'primary';
+      case 'ready':
+      case 'out_for_delivery':
+        return 'info';
+      case 'picked_up':
+      case 'delivered':
         return 'success';
-      case 'completed':
+      case 'no_show':
+      case 'failed_delivery':
+        return 'warning';
+      case 'cancelled':
+        return 'error';
+      default:
+        return 'primary';
+    }
+  };
+
+  const getChipColor = (status: OrderStatus): 'info' | 'success' | 'error' | 'warning' | 'primary' | 'default' => {
+    switch (status) {
+      case 'confirmed':
+        return 'primary';
+      case 'ready':
+      case 'out_for_delivery':
+        return 'info';
+      case 'picked_up':
+      case 'delivered':
         return 'success';
+      case 'no_show':
+      case 'failed_delivery':
+        return 'warning';
       case 'cancelled':
         return 'error';
       default:
@@ -110,96 +154,78 @@ export default function DailyQueueDashboard({
     }
   };
 
-  const getNextStatusOptions = (currentStatus: OrderStatus): OrderStatus[] => {
-    switch (currentStatus) {
-      case 'pending':
-        return ['approved', 'cancelled'];
-      case 'approved':
-        return ['completed', 'cancelled'];
-      case 'completed':
+  const getStatusLabel = (status: OrderStatus): string => {
+    switch (status) {
+      case 'confirmed':
+        return 'Confirmed';
+      case 'ready':
+        return 'Ready for Pickup';
+      case 'out_for_delivery':
+        return 'Out for Delivery';
+      case 'picked_up':
+        return 'Picked Up';
+      case 'delivered':
+        return 'Delivered';
+      case 'no_show':
+        return 'No Show';
+      case 'failed_delivery':
+        return 'Failed Delivery';
       case 'cancelled':
-        return [];
+        return 'Cancelled';
       default:
-        return [];
+        return status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ');
     }
   };
 
   const renderOrderCard = (order: Order) => {
     const client = clients.find(c => c.id === order.family_search_id);
-    const nextStatusOptions = getNextStatusOptions(order.status);
+    if (!client) return null;
+
+    const nextStatuses = getNextStatusOptions(order.status, order.delivery_type);
     
     return (
-      <Card key={order.id} sx={{ 
-        mb: 2, 
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column'
-      }}>
-        <CardContent sx={{ 
-          flex: '1 0 auto', 
-          pb: '8px !important',
-          pt: 1.5,
-          px: 2
-        }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-            <Box>
-              <Typography variant="subtitle1" component="div" sx={{ fontWeight: 500 }}>
-                {client ? `${client.first_name} ${client.last_name}` : 'Unknown Client'}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {client?.phone1 || 'No phone'}
-              </Typography>
-            </Box>
+      <Card key={order.id} sx={{ mb: 2 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6">
+              {client ? `${client.first_name} ${client.last_name}` : 'Unknown Client'}
+            </Typography>
             <Chip 
-              label={order.status} 
-              color={getStatusColor(order.status) as any}
-              size="small"
+              label={getStatusLabel(order.status)}
+              color={getChipColor(order.status)}
             />
           </Box>
-          
-          <Box sx={{ mt: 1 }}>
-            <Typography variant="body2" component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-              <CalendarIcon fontSize="small" />
-              Pickup Date: {order.pickup_date ? format(new Date(order.pickup_date), 'MMMM d, yyyy') : 'Not specified'}
+
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            <CalendarIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+            Pickup: {order.pickup_date ? format(new Date(order.pickup_date), 'MMM d, yyyy h:mm a') : 'Not scheduled'}
+          </Typography>
+
+          {order.notes && (
+            <Typography variant="body2" color="text.secondary">
+              <NotesIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+              {order.notes}
             </Typography>
-            {order.notes && (
-              <Typography variant="body2" component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <NotesIcon fontSize="small" />
-                Notes: {order.notes}
-              </Typography>
-            )}
-          </Box>
-        </CardContent>
-        
-        <CardActions sx={{ px: 2, py: 1 }}>
-          {nextStatusOptions.length > 0 && (
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              {nextStatusOptions.map(status => (
-                <Button
-                  key={status}
-                  size="small"
-                  variant="outlined"
-                  onClick={() => handleStatusChange(order, status)}
-                >
-                  Mark as {status}
-                </Button>
-              ))}
-            </Box>
           )}
+        </CardContent>
+
+        <CardActions>
+          {nextStatuses.map(status => (
+            <Button
+              key={status}
+              size="small"
+              variant="contained"
+              color={getStatusColor(status)}
+              onClick={() => handleStatusChange(order, status)}
+            >
+              Mark as {getStatusLabel(status)}
+            </Button>
+          ))}
           <Box sx={{ flexGrow: 1 }} />
-          <IconButton 
-            aria-label="edit" 
-            onClick={() => onEditOrder(order)}
-            size="small"
-          >
+          <IconButton size="small" onClick={() => onEditOrder(order)}>
             <EditIcon />
           </IconButton>
-          <IconButton 
-            aria-label="delete" 
-            onClick={() => handleDeleteClick(order)}
-            color="error"
-            size="small"
-          >
+          <IconButton size="small" color="error" onClick={() => handleDeleteClick(order)}>
             <DeleteIcon />
           </IconButton>
         </CardActions>
@@ -207,9 +233,86 @@ export default function DailyQueueDashboard({
     );
   };
 
+  const displayEmpty = () => {
+    return (
+      <Box sx={{ p: 2, textAlign: 'center' }}>
+        <Typography variant="body1" color="textSecondary">
+          No orders found for today
+        </Typography>
+      </Box>
+    );
+  };
+
+  const renderStats = () => {
+    return (
+      <Grid container spacing={2} sx={{ mb: 3, maxWidth: '1200px', margin: '0 auto' }}>
+        <Grid item xs={12} sm={6} md={2}>
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="subtitle2" color="textSecondary">
+              Confirmed
+            </Typography>
+            <Typography variant="h4">
+              {orders.filter(o => o.status === 'confirmed').length}
+            </Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2}>
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="subtitle2" color="textSecondary">
+              Ready for Pickup
+            </Typography>
+            <Typography variant="h4">
+              {orders.filter(o => o.status === 'ready').length}
+            </Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2}>
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="subtitle2" color="textSecondary">
+              Out for Delivery
+            </Typography>
+            <Typography variant="h4">
+              {orders.filter(o => o.status === 'out_for_delivery').length}
+            </Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2}>
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="subtitle2" color="textSecondary">
+              Completed Today
+            </Typography>
+            <Typography variant="h4">
+              {orders.filter(o => o.status === 'picked_up' || o.status === 'delivered').length}
+            </Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2}>
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="subtitle2" color="textSecondary">
+              Issues
+            </Typography>
+            <Typography variant="h4">
+              {orders.filter(o => o.status === 'no_show' || o.status === 'failed_delivery').length}
+            </Typography>
+          </Paper>
+        </Grid>
+        <Grid item xs={12} sm={6} md={2}>
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="subtitle2" color="textSecondary">
+              Cancelled
+            </Typography>
+            <Typography variant="h4">
+              {orders.filter(o => o.status === 'cancelled').length}
+            </Typography>
+          </Paper>
+        </Grid>
+      </Grid>
+    );
+  };
+
   return (
     <Box>
-      <Paper sx={{ p: 3, mb: 3 }}>
+      <Paper sx={{ p: 3, mb: 3, maxWidth: '1200px', margin: '0 auto' }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h5" component="h2">
             Daily Queue Dashboard
@@ -217,118 +320,46 @@ export default function DailyQueueDashboard({
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
             <FormControl size="small" sx={{ minWidth: 200 }}>
               <Select
-                value={filterStatus}
-                onChange={handleFilterChange}
+                value={selectedStatus ?? ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSelectedStatus(value === '' ? null : value as OrderStatus);
+                }}
                 displayEmpty
                 startAdornment={
                   <InputAdornment position="start">
                     <FilterIcon />
                   </InputAdornment>
                 }
-                renderValue={(value) => value === 'all' ? 'All Statuses' : value}
               >
-                <MenuItem value="all">All Statuses</MenuItem>
-                <MenuItem value="pending">Pending</MenuItem>
-                <MenuItem value="approved">Approved</MenuItem>
-                <MenuItem value="scheduled">Scheduled</MenuItem>
-                <MenuItem value="ready">Ready</MenuItem>
-                <MenuItem value="picked_up">Picked Up</MenuItem>
-                <MenuItem value="completed">Completed</MenuItem>
-                <MenuItem value="cancelled">Cancelled</MenuItem>
-                <MenuItem value="no_show">No Show</MenuItem>
-                <MenuItem value="in_queue">In Queue</MenuItem>
+                <MenuItem value="">All Statuses</MenuItem>
+                {STATUS_OPTIONS.map(status => (
+                  <MenuItem key={status} value={status}>
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Box>
         </Box>
 
-        {/* Summary Statistics */}
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper 
-              elevation={0} 
-              sx={{ 
-                p: 2, 
-                bgcolor: 'primary.light', 
-                color: 'primary.contrastText',
-                borderRadius: 2
-              }}
-            >
-              <Typography variant="h4" component="div">
-                {orders.length}
-              </Typography>
-              <Typography variant="body2">
-                Total Orders
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper 
-              elevation={0} 
-              sx={{ 
-                p: 2, 
-                bgcolor: 'info.light', 
-                color: 'info.contrastText',
-                borderRadius: 2
-              }}
-            >
-              <Typography variant="h4" component="div">
-                {orders.filter(o => o.status === 'scheduled').length}
-              </Typography>
-              <Typography variant="body2">
-                Scheduled
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper 
-              elevation={0} 
-              sx={{ 
-                p: 2, 
-                bgcolor: 'secondary.light', 
-                color: 'secondary.contrastText',
-                borderRadius: 2
-              }}
-            >
-              <Typography variant="h4" component="div">
-                {orders.filter(o => o.status === 'pending').length}
-              </Typography>
-              <Typography variant="body2">
-                Pending
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper 
-              elevation={0} 
-              sx={{ 
-                p: 2, 
-                bgcolor: 'success.light', 
-                color: 'success.contrastText',
-                borderRadius: 2
-              }}
-            >
-              <Typography variant="h4" component="div">
-                {orders.filter(o => o.status === 'picked_up').length}
-              </Typography>
-              <Typography variant="body2">
-                Picked Up
-              </Typography>
-            </Paper>
-          </Grid>
-        </Grid>
+        {renderStats()}
 
         <Divider sx={{ my: 2 }} />
 
-        {filteredOrders.length === 0 ? (
-          <Alert severity="info" sx={{ mt: 2 }}>
-            No orders match your search criteria.
-          </Alert>
-        ) : (
-          <Grid container spacing={3}>
-            {filteredOrders.map((order) => renderOrderCard(order))}
-          </Grid>
-        )}
+        <Box sx={{ maxWidth: '100%' }}>
+          {filteredOrders.length === 0 ? (
+            displayEmpty()
+          ) : (
+            <Grid container spacing={2}>
+              {filteredOrders.map(order => (
+                <Grid item xs={12} key={order.id}>
+                  {renderOrderCard(order)}
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </Box>
       </Paper>
 
       {/* Delete Confirmation Dialog */}

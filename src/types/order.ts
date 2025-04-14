@@ -4,9 +4,15 @@ export type OrderStatus =
   | 'denied'
   | 'confirmed'
   | 'ready'
+  | 'out_for_delivery'
   | 'picked_up'
-  | 'completed'
-  | 'cancelled';
+  | 'delivered'
+  | 'no_show'
+  | 'failed_delivery'
+  | 'cancelled'
+  | 'scheduled'
+  | 'in_queue'
+  | 'completed';
 
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
 

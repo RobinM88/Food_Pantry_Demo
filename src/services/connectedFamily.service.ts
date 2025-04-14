@@ -1,5 +1,6 @@
 import { ConnectedFamily } from '../types/connectedFamily';
 import { api } from './api';
+import { v4 as uuidv4 } from 'uuid';
 
 export const ConnectedFamilyService = {
   async getByClientId(clientId: string) {
@@ -14,9 +15,10 @@ export const ConnectedFamilyService = {
 
   async create(data: Omit<ConnectedFamily, 'id'>) {
     const formattedData = {
-      client_id: data.clientId,
-      connected_to: data.connectedTo,
-      relationship_type: data.relationshipType
+      id: uuidv4(),
+      client_id: data.client_id,
+      connected_to: data.connected_to,
+      relationship_type: data.relationship_type
     };
 
     console.log('Creating connection with data:', formattedData);

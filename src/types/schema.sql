@@ -15,7 +15,20 @@ DROP TYPE IF EXISTS relationship_type CASCADE;
 
 -- Create enum types
 CREATE TYPE member_status AS ENUM ('active', 'inactive', 'pending', 'suspended', 'banned', 'denied');
-CREATE TYPE order_status AS ENUM ('pending', 'approved', 'completed', 'cancelled');
+CREATE TYPE order_status AS ENUM (
+    'pending',
+    'approved',
+    'denied',
+    'confirmed',
+    'ready',
+    'picked_up',
+    'completed',
+    'cancelled',
+    'no_show',
+    'out_for_delivery',
+    'delivered',
+    'failed_delivery'
+);
 CREATE TYPE delivery_type AS ENUM ('pickup', 'delivery');
 CREATE TYPE approval_status AS ENUM ('pending', 'approved', 'rejected');
 CREATE TYPE call_type AS ENUM ('incoming', 'outgoing');

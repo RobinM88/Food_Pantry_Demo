@@ -194,7 +194,7 @@ export default function ClientForm({
               ConnectedFamilyService.create({
                 client_id: client.id,
                 connected_to: connectedTo,
-                relationship_type: 'Other'
+                relationship_type: 'other'
               })
             )
           );
