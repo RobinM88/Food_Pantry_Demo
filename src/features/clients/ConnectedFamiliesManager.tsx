@@ -17,7 +17,9 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { Client } from '../../types/client';
@@ -41,6 +43,8 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [relationshipType, setRelationshipType] = useState<RelationshipType>('other');
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Load existing connections
   useEffect(() => {
@@ -155,6 +159,9 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
 
   // Memoize the connections rendering
   const ConnectionsList = React.memo(({ connections, allClients }: { connections: ConnectedFamily[], allClients: Client[] }) => {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
     if (!connections || connections.length === 0) {
       return (
         <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
@@ -186,7 +193,17 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
           }
 
           return (
-            <ListItem key={connection.id} component={Paper} variant="outlined" sx={{ mb: 1 }}>
+            <ListItem 
+              key={connection.id} 
+              component={Paper} 
+              variant="outlined" 
+              sx={{ 
+                mb: 1,
+                flexDirection: isMobile ? 'column' : 'row',
+                alignItems: isMobile ? 'flex-start' : 'center',
+                p: isMobile ? 2 : 1
+              }}
+            >
               <ListItemText
                 primary={
                   <Typography variant="subtitle1">
@@ -194,14 +211,32 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
                   </Typography>
                 }
                 secondary={
-                  <Typography variant="body2" color="text.secondary">
-                    {`Family #: ${connectedClient.family_number || 'N/A'}`}
-                    {connectedClient.phone1 ? ` | Phone: ${connectedClient.phone1}` : ''}
-                    {connection.relationship_type ? ` | Relationship: ${connection.relationship_type}` : ''}
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{ 
+                      display: 'flex',
+                      flexDirection: isMobile ? 'column' : 'row',
+                      gap: isMobile ? 0.5 : 1,
+                      '& > span': {
+                        display: 'inline-flex',
+                        alignItems: 'center'
+                      }
+                    }}
+                  >
+                    <span>{`Family #: ${connectedClient.family_number || 'N/A'}`}</span>
+                    {connectedClient.phone1 && <span>{`Phone: ${connectedClient.phone1}`}</span>}
+                    {connection.relationship_type && <span>{`Relationship: ${connection.relationship_type}`}</span>}
                   </Typography>
                 }
               />
-              <ListItemSecondaryAction>
+              <ListItemSecondaryAction sx={{ 
+                position: isMobile ? 'relative' : 'absolute',
+                transform: isMobile ? 'none' : undefined,
+                top: isMobile ? undefined : undefined,
+                right: isMobile ? undefined : 16,
+                mt: isMobile ? 1 : 0
+              }}>
                 <IconButton
                   edge="end"
                   aria-label="delete"
@@ -269,7 +304,14 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        mb: 2,
+        flexDirection: { xs: 'column', sm: 'row' },
+        gap: { xs: 2, sm: 0 }
+      }}>
         <Typography variant="h6">Connected Families</Typography>
         <Button
           variant="contained"
@@ -279,6 +321,7 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
             setSearchTerm('');
             setSearchResults([]);
           }}
+          fullWidth={isMobile}
         >
           Add Connection
         </Button>
@@ -286,7 +329,13 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
 
       <ConnectionsList connections={connections} allClients={allClients} />
 
-      <Dialog open={isSearchOpen} onClose={() => setIsSearchOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog 
+        open={isSearchOpen} 
+        onClose={() => setIsSearchOpen(false)} 
+        maxWidth="sm" 
+        fullWidth
+        fullScreen={isMobile}
+      >
         <DialogTitle>Search for Family to Connect</DialogTitle>
         <DialogContent>
           <TextField
@@ -298,6 +347,7 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             variant="outlined"
+            sx={{ mb: 2 }}
           />
           <SearchResultsList 
             results={searchResults} 
@@ -306,7 +356,7 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
           />
         </DialogContent>
         {selectedClient && (
-          <Box sx={{ px: 3, pb: 2 }}>
+          <Box sx={{ px: isMobile ? 2 : 3, pb: 2 }}>
             <FormControl fullWidth margin="dense">
               <InputLabel>Relationship Type</InputLabel>
               <Select
@@ -323,7 +373,7 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
             </FormControl>
           </Box>
         )}
-        <DialogActions>
+        <DialogActions sx={{ p: isMobile ? 2 : 1 }}>
           <Button onClick={() => {
             setIsSearchOpen(false);
             setSearchTerm('');

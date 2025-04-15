@@ -21,7 +21,9 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  SelectChangeEvent
+  SelectChangeEvent,
+  Button,
+  Stack
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -35,16 +37,20 @@ import ClientDetails from './ClientDetails';
 
 interface ClientListProps {
   clients: Client[];
-  onView: (client: Client) => void;
-  onEdit: (client: Client) => void;
-  onDelete: (client: Client) => void;
+  onViewClient: (client: Client) => void;
+  onEditClient: (client: Client) => void;
+  onDeleteClient: (client: Client) => void;
+  onAdd: () => void;
+  onPendingClick?: () => void;
 }
 
 export default function ClientList({
   clients,
-  onView,
-  onEdit,
-  onDelete
+  onViewClient,
+  onEditClient,
+  onDeleteClient,
+  onAdd,
+  onPendingClick
 }: ClientListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<MemberStatus | 'all'>('all');
@@ -85,7 +91,7 @@ export default function ClientList({
   const handleViewClient = (client: Client) => {
     setSelectedClient(client);
     setDetailsDialogOpen(true);
-    onView(client);
+    onViewClient(client);
   };
 
   const handleCloseDetailsDialog = () => {
@@ -96,22 +102,44 @@ export default function ClientList({
     // Close the details dialog if it's open
     setDetailsDialogOpen(false);
     // Call the parent's edit handler
-    onEdit(client);
+    onEditClient(client);
   };
 
   const handleDeleteClient = (client: Client) => {
-    onDelete(client);
+    onDeleteClient(client);
   };
 
   return (
     <Box>
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h5" component="h2" gutterBottom>
-          Clients
-        </Typography>
-        <Typography variant="body1" color="text.secondary" gutterBottom>
-          View and manage client information
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <div>
+            <Typography variant="h5" component="h2" gutterBottom>
+              Clients
+            </Typography>
+            <Typography variant="body1" color="text.secondary" gutterBottom>
+              View and manage client information
+            </Typography>
+          </div>
+          <Stack direction="row" spacing={2}>
+            {onPendingClick && (
+              <Button
+                variant="outlined"
+                color="warning"
+                onClick={onPendingClick}
+              >
+                Pending Clients
+              </Button>
+            )}
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={onAdd}
+            >
+              Add Client
+            </Button>
+          </Stack>
+        </Box>
 
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} md={4}>
@@ -291,9 +319,9 @@ export default function ClientList({
               allClients={clients}
               onEdit={(client) => {
                 handleCloseDetailsDialog();
-                onEdit(client);
+                onEditClient(client);
               }}
-              onDelete={onDelete}
+              onDelete={onDeleteClient}
             />
           )}
         </DialogContent>

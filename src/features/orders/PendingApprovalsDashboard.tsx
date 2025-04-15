@@ -80,10 +80,12 @@ export default function PendingApprovalsDashboard({
   const handleApprove = (order: Order) => {
     setSelectedOrder(order);
     // If order has a pickup date, use it for both date and time
-    if (order.pickup_date) {
+    if (order.pickup_date && order.pickup_date instanceof Date && !isNaN(order.pickup_date.getTime())) {
       const pickupDate = new Date(order.pickup_date);
-      setScheduledDate(pickupDate);
-      setScheduledTime(pickupDate);
+      if (!isNaN(pickupDate.getTime())) {
+        setScheduledDate(pickupDate);
+        setScheduledTime(pickupDate);
+      }
     }
     // Set delivery type from order
     setDeliveryType(order.delivery_type);

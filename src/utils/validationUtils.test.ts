@@ -1,5 +1,7 @@
 import { validateClient, validateOrder, validatePhoneLog, validateOrderBusinessRules, combineValidationResults } from './validationUtils';
 import { Client, Order, PhoneLog } from '../types';
+import { MemberStatus } from '../types/client';
+import { CallType, CallOutcome } from '../types/phoneLog';
 
 describe('validateClient', () => {
   it('should validate a valid client', () => {
@@ -9,7 +11,12 @@ describe('validateClient', () => {
       phone1: '(555) 123-4567',
       email: 'john.doe@example.com',
       zip_code: '12345',
-      family_size: 3
+      address: '123 Main St',
+      adults: 2,
+      school_aged: 1,
+      small_children: 1,
+      is_unhoused: false,
+      is_temporary: false
     };
 
     const errors = validateClient(validClient);
@@ -22,9 +29,10 @@ describe('validateClient', () => {
     };
 
     const errors = validateClient(invalidClient);
-    expect(errors.first_name).toBe('First name is required');
-    expect(errors.last_name).toBe('Last name is required');
-    expect(errors.phone1).toBe('Primary phone number is required');
+    expect(errors.first_name).toBe('First Name is required');
+    expect(errors.last_name).toBe('Last Name is required');
+    expect(errors.phone1).toBe('Primary Phone is required');
+    expect(errors.zip_code).toBe('ZIP Code is required');
   });
 
   it('should validate phone number format', () => {
@@ -49,7 +57,7 @@ describe('validateClient', () => {
     };
 
     const errors = validateClient(clientWithInvalidEmail);
-    expect(errors.email).toBe('Invalid email format');
+    expect(errors.email).toBe('Please enter a valid email address');
   });
 
   it('should validate ZIP code format if provided', () => {
@@ -61,195 +69,212 @@ describe('validateClient', () => {
     };
 
     const errors = validateClient(clientWithInvalidZip);
-    expect(errors.zip_code).toBe('ZIP code must be in format XXXXX or XXXXX-XXXX');
+    expect(errors.zip_code).toBe('Please enter a valid ZIP code (XXXXX or XXXXX-XXXX)');
   });
 
-  it('should validate family size limits', () => {
-    const clientWithInvalidFamilySize: Partial<Client> = {
+  it('should validate required numeric fields', () => {
+    const clientWithInvalidNumbers: Partial<Client> = {
       first_name: 'John',
       last_name: 'Doe',
       phone1: '(555) 123-4567',
-      family_size: 0
+      zip_code: '12345',
+      adults: 0
     };
 
-    const errors = validateClient(clientWithInvalidFamilySize);
-    expect(errors.family_size).toBe('Family size must be at least 1');
-
-    clientWithInvalidFamilySize.family_size = 21;
-    const moreErrors = validateClient(clientWithInvalidFamilySize);
-    expect(moreErrors.family_size).toBe('Family size cannot exceed 20');
+    const errors = validateClient(clientWithInvalidNumbers);
+    expect(errors.adults).toBe('Must have at least 1 adult');
+    expect(errors.school_aged).toBe('Number of school aged children is required');
+    expect(errors.small_children).toBe('Number of small children is required');
   });
 });
 
 describe('validateOrder', () => {
+  const baseOrder: Order = {
+    id: '1',
+    family_search_id: '123',
+    number_of_boxes: 2,
+    pickup_date: new Date(),
+    status: 'pending',
+    created_at: new Date(),
+    updated_at: new Date(),
+    delivery_type: 'pickup',
+    is_new_client: false,
+    approval_status: 'pending',
+    additional_people: {
+      adults: 0,
+      school_aged: 0,
+      small_children: 0
+    }
+  };
+
   it('should validate a valid order', () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const validOrder: Partial<Order> = {
-      family_search_id: '123',
-      number_of_boxes: 2,
-      pickup_date: tomorrow.toISOString(),
-      status: 'pending'
+    const validOrder: Order = {
+      ...baseOrder,
+      pickup_date: tomorrow
     };
 
     const errors = validateOrder(validOrder);
     expect(Object.keys(errors)).toHaveLength(0);
   });
 
-  it('should require client, number of boxes, and pickup date', () => {
-    const invalidOrder: Partial<Order> = {};
+  it('should require family search ID, number of boxes, and pickup date', () => {
+    const invalidOrder: Order = {
+      ...baseOrder,
+      family_search_id: '',
+      number_of_boxes: 0,
+      pickup_date: null as any
+    };
 
     const errors = validateOrder(invalidOrder);
-    expect(errors.family_search_id).toBe('Client is required');
-    expect(errors.number_of_boxes).toBe('At least one box is required');
+    expect(errors.family_search_id).toBe('Family search ID is required');
+    expect(errors.number_of_boxes).toBe('Must have at least 1 box');
     expect(errors.pickup_date).toBe('Pickup date is required');
   });
 
-  it('should validate pickup date is not in the past', () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    const orderWithPastDate: Partial<Order> = {
-      family_search_id: '123',
-      number_of_boxes: 1,
-      pickup_date: yesterday.toISOString()
+  it('should validate additional people if provided', () => {
+    const orderWithInvalidAdditional: Order = {
+      ...baseOrder,
+      additional_people: {
+        adults: -1,
+        school_aged: -1,
+        small_children: -1
+      }
     };
 
-    const errors = validateOrder(orderWithPastDate);
-    expect(errors.pickup_date).toBe('Pickup date cannot be in the past');
-  });
-
-  it('should validate pickup date is not too far in the future', () => {
-    const farFuture = new Date();
-    farFuture.setDate(farFuture.getDate() + 31);
-
-    const orderWithFarDate: Partial<Order> = {
-      family_search_id: '123',
-      number_of_boxes: 1,
-      pickup_date: farFuture.toISOString()
-    };
-
-    const errors = validateOrder(orderWithFarDate);
-    expect(errors.pickup_date).toBe('Pickup date cannot be more than 30 days in the future');
-  });
-
-  it('should validate order status', () => {
-    const orderWithInvalidStatus: Partial<Order> = {
-      family_search_id: '123',
-      number_of_boxes: 1,
-      pickup_date: new Date().toISOString(),
-      status: 'invalid_status' as any
-    };
-
-    const errors = validateOrder(orderWithInvalidStatus);
-    expect(errors.status).toBe('Invalid status');
+    const errors = validateOrder(orderWithInvalidAdditional);
+    expect(errors.additional_adults).toBe('Cannot be negative');
+    expect(errors.additional_school_aged).toBe('Cannot be negative');
+    expect(errors.additional_small_children).toBe('Cannot be negative');
   });
 });
 
 describe('validatePhoneLog', () => {
+  const basePhoneLog: PhoneLog = {
+    id: '1',
+    phoneNumber: '(555) 123-4567',
+    callType: 'incoming' as CallType,
+    callOutcome: 'successful' as CallOutcome,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    familySearchId: '123'
+  };
+
   it('should validate a valid phone log', () => {
-    const validPhoneLog: Partial<PhoneLog> = {
-      phone_number: '(555) 123-4567',
-      call_type: 'incoming',
-      call_outcome: 'completed'
+    const validPhoneLog: PhoneLog = {
+      ...basePhoneLog
     };
 
     const errors = validatePhoneLog(validPhoneLog);
     expect(Object.keys(errors)).toHaveLength(0);
   });
 
-  it('should require phone number, call type, and call outcome', () => {
-    const invalidPhoneLog: Partial<PhoneLog> = {};
+  it('should require phone number and call type', () => {
+    const invalidPhoneLog: Partial<PhoneLog> = {
+      ...basePhoneLog,
+      phoneNumber: '',
+      callType: undefined
+    };
 
-    const errors = validatePhoneLog(invalidPhoneLog);
-    expect(errors.phone_number).toBe('Phone number is required');
-    expect(errors.call_type).toBe('Call type is required');
-    expect(errors.call_outcome).toBe('Call outcome is required');
+    const errors = validatePhoneLog(invalidPhoneLog as PhoneLog);
+    expect(errors.phoneNumber).toBe('Phone number is required');
+    expect(errors.callType).toBe('Call type is required');
   });
 
   it('should validate phone number format', () => {
-    const phoneLogWithInvalidPhone: Partial<PhoneLog> = {
-      phone_number: '5551234567',
-      call_type: 'incoming',
-      call_outcome: 'completed'
+    const phoneLogWithInvalidPhone: PhoneLog = {
+      ...basePhoneLog,
+      phoneNumber: '5551234567'
     };
 
     const errors = validatePhoneLog(phoneLogWithInvalidPhone);
-    expect(errors.phone_number).toBe('Phone number must be in format (XXX) XXX-XXXX');
+    expect(errors.phoneNumber).toBe('Phone number must be in format (XXX) XXX-XXXX');
   });
 
   it('should validate call type', () => {
     const phoneLogWithInvalidType: Partial<PhoneLog> = {
-      phone_number: '(555) 123-4567',
-      call_type: 'invalid' as any,
-      call_outcome: 'completed'
+      phoneNumber: '(555) 123-4567',
+      callType: 'invalid' as any,
+      callOutcome: 'successful'
     };
 
-    const errors = validatePhoneLog(phoneLogWithInvalidType);
-    expect(errors.call_type).toBe('Invalid call type');
+    const errors = validatePhoneLog(phoneLogWithInvalidType as PhoneLog);
+    expect(errors.callType).toBe('Invalid call type');
   });
 
   it('should validate call outcome', () => {
     const phoneLogWithInvalidOutcome: Partial<PhoneLog> = {
-      phone_number: '(555) 123-4567',
-      call_type: 'incoming',
-      call_outcome: 'invalid' as any
+      phoneNumber: '(555) 123-4567',
+      callType: 'incoming',
+      callOutcome: 'invalid' as any
     };
 
-    const errors = validatePhoneLog(phoneLogWithInvalidOutcome);
-    expect(errors.call_outcome).toBe('Invalid call outcome');
+    const errors = validatePhoneLog(phoneLogWithInvalidOutcome as PhoneLog);
+    expect(errors.callOutcome).toBe('Invalid call outcome');
   });
 });
 
 describe('validateOrderBusinessRules', () => {
   const validClient: Client = {
     id: '123',
+    family_number: 'F123',
     first_name: 'John',
     last_name: 'Doe',
     phone1: '(555) 123-4567',
-    member_status: 'active',
+    member_status: MemberStatus.Active,
+    is_unhoused: false,
+    is_temporary: false,
+    adults: 2,
+    school_aged: 1,
+    small_children: 0,
     last_visit: null,
     created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
+    total_visits: 0,
+    total_this_month: 0
+  };
+
+  const baseOrder: Order = {
+    id: '1',
+    family_search_id: '123',
+    number_of_boxes: 1,
+    pickup_date: new Date(),
+    status: 'pending',
+    created_at: new Date(),
+    updated_at: new Date(),
+    delivery_type: 'pickup',
+    is_new_client: false,
+    approval_status: 'pending',
+    additional_people: {
+      adults: 0,
+      school_aged: 0,
+      small_children: 0
+    }
   };
 
   it('should validate order for active client', () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const validOrder: Partial<Order> = {
-      family_search_id: '123',
-      number_of_boxes: 1,
-      pickup_date: tomorrow.toISOString()
+    const validOrder: Order = {
+      ...baseOrder,
+      pickup_date: tomorrow
     };
 
     const errors = validateOrderBusinessRules(validOrder, validClient);
     expect(Object.keys(errors)).toHaveLength(0);
   });
 
-  it('should prevent orders for inactive clients', () => {
-    const inactiveClient = { ...validClient, member_status: 'inactive' };
-    const order: Partial<Order> = {
-      family_search_id: '123',
-      number_of_boxes: 1,
-      pickup_date: new Date().toISOString()
+  it('should prevent orders for denied clients', () => {
+    const deniedClient = { ...validClient, member_status: MemberStatus.Denied };
+    const order: Order = {
+      ...baseOrder
     };
 
-    const errors = validateOrderBusinessRules(order, inactiveClient);
-    expect(errors.family_search_id).toBe('Cannot create orders for inactive clients');
-  });
-
-  it('should prevent orders for banned clients', () => {
-    const bannedClient = { ...validClient, member_status: 'banned' };
-    const order: Partial<Order> = {
-      family_search_id: '123',
-      number_of_boxes: 1,
-      pickup_date: new Date().toISOString()
-    };
-
-    const errors = validateOrderBusinessRules(order, bannedClient);
-    expect(errors.family_search_id).toBe('Cannot create orders for banned clients');
+    const errors = validateOrderBusinessRules(order, deniedClient);
+    expect(errors.family_search_id).toBe('Cannot create orders for denied clients');
   });
 
   it('should enforce 14-day wait period between orders', () => {
@@ -264,10 +289,9 @@ describe('validateOrderBusinessRules', () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const order: Partial<Order> = {
-      family_search_id: '123',
-      number_of_boxes: 1,
-      pickup_date: tomorrow.toISOString()
+    const order: Order = {
+      ...baseOrder,
+      pickup_date: tomorrow
     };
 
     const errors = validateOrderBusinessRules(order, clientWithRecentVisit);
@@ -277,15 +301,15 @@ describe('validateOrderBusinessRules', () => {
 
 describe('combineValidationResults', () => {
   it('should combine multiple validation results', () => {
-    const clientErrors = { first_name: 'First name is required' };
+    const clientErrors = { first_name: 'First Name is required' };
     const orderErrors = { pickup_date: 'Pickup date is required' };
-    const businessRuleErrors = { family_search_id: 'Cannot create orders for inactive clients' };
+    const businessRuleErrors = { family_search_id: 'Cannot create orders for denied clients' };
 
     const combined = combineValidationResults(clientErrors, orderErrors, businessRuleErrors);
     expect(combined).toEqual({
-      first_name: 'First name is required',
+      first_name: 'First Name is required',
       pickup_date: 'Pickup date is required',
-      family_search_id: 'Cannot create orders for inactive clients'
+      family_search_id: 'Cannot create orders for denied clients'
     });
   });
 

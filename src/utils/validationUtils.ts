@@ -100,30 +100,30 @@ export const validateOrder = (order: Order): ValidationErrors => {
   const errors: ValidationErrors = {};
 
   // Required Fields
-  if (!order.familySearchId?.trim()) {
-    errors.familySearchId = 'Family search ID is required';
+  if (!order.family_search_id?.trim()) {
+    errors.family_search_id = 'Family search ID is required';
   }
 
   // Pickup Date Validation
-  if (!order.pickupDate) {
-    errors.pickupDate = 'Pickup date is required';
+  if (!order.pickup_date || order.pickup_date === null) {
+    errors.pickup_date = 'Pickup date is required';
   }
 
   // Number of Boxes Validation
-  if (typeof order.numberOfBoxes === 'undefined' || order.numberOfBoxes < 1) {
-    errors.numberOfBoxes = 'Must have at least 1 box';
+  if (typeof order.number_of_boxes === 'undefined' || order.number_of_boxes < 1) {
+    errors.number_of_boxes = 'Must have at least 1 box';
   }
 
   // Additional People Validation
-  if (order.additionalPeople) {
-    if (typeof order.additionalPeople.adults === 'undefined' || order.additionalPeople.adults < 0) {
-      errors.additionalAdults = 'Cannot be negative';
+  if (order.additional_people) {
+    if (typeof order.additional_people.adults === 'undefined' || order.additional_people.adults < 0) {
+      errors.additional_adults = 'Cannot be negative';
     }
-    if (typeof order.additionalPeople.schoolAged === 'undefined' || order.additionalPeople.schoolAged < 0) {
-      errors.additionalSchoolAged = 'Cannot be negative';
+    if (typeof order.additional_people.school_aged === 'undefined' || order.additional_people.school_aged < 0) {
+      errors.additional_school_aged = 'Cannot be negative';
     }
-    if (typeof order.additionalPeople.smallChildren === 'undefined' || order.additionalPeople.smallChildren < 0) {
-      errors.additionalSmallChildren = 'Cannot be negative';
+    if (typeof order.additional_people.small_children === 'undefined' || order.additional_people.small_children < 0) {
+      errors.additional_small_children = 'Cannot be negative';
     }
   }
 
@@ -148,6 +148,16 @@ export const validatePhoneLog = (log: Partial<PhoneLog>): ValidationErrors => {
     errors.phoneNumber = 'Phone number must be in format (XXX) XXX-XXXX';
   }
 
+  // Call Type Validation
+  if (log.callType && !['incoming', 'outgoing'].includes(log.callType)) {
+    errors.callType = 'Invalid call type';
+  }
+
+  // Call Outcome Validation
+  if (log.callOutcome && !['successful', 'voicemail', 'no_answer', 'wrong_number', 'disconnected'].includes(log.callOutcome)) {
+    errors.callOutcome = 'Invalid call outcome';
+  }
+
   return errors;
 };
 
@@ -169,8 +179,8 @@ export const validateOrderBusinessRules = (
   }
 
   // Check frequency of orders
-  if (order.pickupDate) {
-    const pickup_date = new Date(order.pickupDate);
+  if (order.pickup_date) {
+    const pickup_date = new Date(order.pickup_date);
     const lastVisit = client.last_visit ? new Date(client.last_visit) : null;
 
     if (lastVisit) {
@@ -179,7 +189,7 @@ export const validateOrderBusinessRules = (
       );
 
       if (daysSinceLastVisit < 14) {
-        errors.pickupDate = 'Must wait 14 days between orders';
+        errors.pickup_date = 'Must wait 14 days between orders';
       }
     }
   }

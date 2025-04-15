@@ -81,10 +81,10 @@ export default function Clients() {
 
   const handleStatusChange = async (client: Client, newStatus: MemberStatus) => {
     try {
-      const updatedClient: Client = {
+      const updatedClient = {
         ...client,
         member_status: newStatus,
-        updated_at: new Date()
+        updated_at: new Date().toISOString()
       };
       
       await ClientService.update(client.id, updatedClient);
@@ -156,7 +156,7 @@ export default function Clients() {
           ...existingClient,
           ...clientData,
           family_size: calculateFamilySize(clientData),
-          updated_at: new Date(),
+          updated_at: new Date().toISOString(),
           // Preserve these fields from the existing client
           created_at: existingClient.created_at,
           last_visit: existingClient.last_visit,
@@ -232,15 +232,13 @@ export default function Clients() {
           total_visits: 0,
           total_this_month: 0,
           member_status: MemberStatus.Pending,
-          created_at: new Date(),
-          updated_at: new Date(),
-          last_visit: new Date()
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          last_visit: new Date().toISOString()
         };
 
-        // Remove any fields that don't exist in the database before sending
-        const { connectedFamilies, ...clientToSave } = newClient;
-
-        await ClientService.create(clientToSave);
+        // Save the new client directly
+        await ClientService.create(newClient);
         const updatedClients = await ClientService.getAll();
         setClients(updatedClients);
         
@@ -295,6 +293,11 @@ export default function Clients() {
     setNotification({ ...notification, open: false });
   };
 
+  const handlePendingClick = () => {
+    setViewMode('pending');
+    navigate('/clients/pending');
+  };
+
   return (
     <Container maxWidth="lg">
       {loading ? (
@@ -322,6 +325,8 @@ export default function Clients() {
                   onViewClient={handleViewClient}
                   onEditClient={handleEditClient}
                   onDeleteClient={handleDeleteClient}
+                  onAdd={handleAddClient}
+                  onPendingClick={handlePendingClick}
                 />
               } 
             />

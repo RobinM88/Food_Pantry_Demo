@@ -16,10 +16,15 @@ import {
   ListItemText,
   Grid,
   Paper,
+  useTheme,
+  useMediaQuery,
+  Stack,
+  Divider
 } from '@mui/material';
 import { Client } from '../../types/client';
 import { PhoneLog } from '../../types';
 import { NewOrder } from '../../types/order';
+import { CallType, CallOutcome } from '../../types/phoneLog';
 import { usePhoneLogForm } from '../../hooks/usePhoneLogForm';
 import { useNavigate } from 'react-router-dom';
 import { OrderService } from '../../services/order.service';
@@ -49,6 +54,8 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
   initialPhoneNumber = '',
 }) => {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [isSaving, setIsSaving] = useState(false);
   const [matchingClients, setMatchingClients] = useState<Client[]>([]);
   const [nameSearch, setNameSearch] = useState('');
@@ -278,274 +285,211 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        <Typography variant="h5" component="div">
-          {phoneLog ? 'Edit Phone Log' : 'New Phone Log'}
-        </Typography>
-      </DialogTitle>
-      <DialogContent sx={{ pt: 3 }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <TextField
-                label="Phone Number"
-                value={state.phoneNumber}
-                onChange={(e) => handlePhoneNumberChange(e.target.value)}
-                error={!!errors.phoneNumber}
-                helperText={errors.phoneNumber || "Enter phone number to search"}
-                fullWidth
-                disabled={isSaving}
-                placeholder="(XXX) XXX-XXXX"
-                size="medium"
-                sx={{ '& .MuiInputBase-root': { backgroundColor: 'background.paper' } }}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                label="Search by Name"
-                value={nameSearch}
-                onChange={(e) => setNameSearch(e.target.value)}
-                fullWidth
-                disabled={isSaving}
-                placeholder="Enter client name"
-                size="medium"
-                sx={{ '& .MuiInputBase-root': { backgroundColor: 'background.paper' } }}
-              />
-            </Grid>
-          </Grid>
+    <Box sx={{ p: { xs: 1, sm: 2 } }}>
+      <Grid container spacing={isMobile ? 2 : 3}>
+        {/* Phone Number and Client Search Section */}
+        <Grid item xs={12}>
+          <Typography variant="h6" gutterBottom sx={{ fontSize: isMobile ? '1.1rem' : '1.25rem' }}>
+            Call Details
+          </Typography>
+          <Stack spacing={2}>
+            <TextField
+              label="Phone Number"
+              value={state.phoneNumber}
+              onChange={(e) => handlePhoneNumberChange(e.target.value)}
+              error={!!errors.phoneNumber}
+              helperText={errors.phoneNumber}
+              fullWidth
+              size={isMobile ? "small" : "medium"}
+            />
 
-          {/* Client search results */}
-          {matchingClients.length > 0 && (
-            <Paper variant="outlined" sx={{ mt: 2, mb: 3 }}>
-              <List>
+            <TextField
+              label="Search by Name"
+              value={nameSearch}
+              onChange={(e) => setNameSearch(e.target.value)}
+              fullWidth
+              size={isMobile ? "small" : "medium"}
+            />
+          </Stack>
+        </Grid>
+
+        {/* Matching Clients Section */}
+        {matchingClients.length > 0 && (
+          <Grid item xs={12}>
+            <Typography variant="subtitle1" gutterBottom sx={{ fontSize: isMobile ? '1rem' : '1.1rem' }}>
+              Matching Clients
+            </Typography>
+            <Paper variant="outlined" sx={{ mt: 1 }}>
+              <List dense={isMobile}>
                 {matchingClients.map((client) => (
                   <ListItem
                     key={client.id}
                     button
                     onClick={() => handleClientSelect(client)}
                     selected={state.selectedClient?.id === client.id}
+                    sx={{ 
+                      flexDirection: isMobile ? 'column' : 'row',
+                      alignItems: isMobile ? 'flex-start' : 'center',
+                      py: isMobile ? 1.5 : 1
+                    }}
                   >
                     <ListItemText
                       primary={`${client.first_name} ${client.last_name}`}
-                      secondary={`Phone: ${client.phone1}`}
+                      secondary={
+                        <Stack 
+                          direction={isMobile ? "column" : "row"} 
+                          spacing={isMobile ? 0.5 : 2}
+                          sx={{ mt: isMobile ? 0.5 : 0 }}
+                        >
+                          <Box component="span" sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
+                            {`Family #: ${client.family_number || 'N/A'}`}
+                          </Box>
+                          {client.phone1 && (
+                            <Box component="span" sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
+                              {`Phone: ${client.phone1}`}
+                            </Box>
+                          )}
+                        </Stack>
+                      }
+                      primaryTypographyProps={{
+                        variant: isMobile ? "body1" : "subtitle1",
+                        component: "div"
+                      }}
                     />
                   </ListItem>
                 ))}
               </List>
             </Paper>
-          )}
-
-          {/* Form fields */}
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Call Type</InputLabel>
-                <Select
-                  value={state.callType}
-                  onChange={(e) => handleCallTypeChange(e.target.value as 'incoming' | 'outgoing')}
-                  label="Call Type"
-                  disabled={isSaving}
-                >
-                  <MenuItem value="incoming">Incoming</MenuItem>
-                  <MenuItem value="outgoing">Outgoing</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Call Outcome</InputLabel>
-                <Select
-                  value={state.callOutcome}
-                  onChange={(e) => handleCallOutcomeChange(e.target.value as 'successful' | 'voicemail' | 'no_answer' | 'wrong_number' | 'disconnected')}
-                  label="Call Outcome"
-                  disabled={isSaving}
-                >
-                  <MenuItem value="successful">Successful</MenuItem>
-                  <MenuItem value="voicemail">Voicemail</MenuItem>
-                  <MenuItem value="no_answer">No Answer</MenuItem>
-                  <MenuItem value="wrong_number">Wrong Number</MenuItem>
-                  <MenuItem value="disconnected">Disconnected</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                label="Notes"
-                value={state.notes}
-                onChange={(e) => handleNotesChange(e.target.value)}
-                multiline
-                rows={4}
-                fullWidth
-                disabled={isSaving}
-              />
-            </Grid>
           </Grid>
+        )}
 
-          {/* Order Creation Toggle */}
-          {state.selectedClient && (
-            <Box sx={{ mt: 2 }}>
-              <Button
-                variant={isCreatingOrder ? "contained" : "outlined"}
-                color="primary"
-                onClick={toggleOrderCreation}
-                disabled={isSaving}
-              >
-                {isCreatingOrder ? 'Cancel Order Creation' : 'Create Order'}
-              </Button>
-            </Box>
-          )}
-
-          {/* Order Form */}
-          {isCreatingOrder && state.selectedClient && (
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Order Details
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Delivery Type</InputLabel>
-                    <Select
-                      value={orderData.delivery_type}
-                      onChange={(e) => setOrderData(prev => ({ ...prev, delivery_type: e.target.value as 'pickup' | 'delivery' }))}
-                      label="Delivery Type"
-                    >
-                      <MenuItem value="pickup">Pickup</MenuItem>
-                      <MenuItem value="delivery">Delivery</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <LocalizationProvider dateAdapter={AdapterDateFns}>
-                    <DatePicker
-                      label="Pickup Date"
-                      value={orderData.pickup_date}
-                      onChange={(newValue) => {
-                        if (newValue) {
-                          setOrderData(prev => ({ ...prev, pickup_date: newValue }));
-                        }
-                      }}
-                      slotProps={{
-                        textField: { fullWidth: true }
-                      }}
-                    />
-                  </LocalizationProvider>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="Number of Boxes"
-                    value={orderData.number_of_boxes}
-                    onChange={(e) => setOrderData(prev => ({ ...prev, number_of_boxes: parseInt(e.target.value) || 1 }))}
-                    InputProps={{ inputProps: { min: 1 } }}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <Typography variant="subtitle1" gutterBottom>
-                    Additional People
-                  </Typography>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} sm={4}>
-                      <TextField
-                        fullWidth
-                        type="number"
-                        label="Adults"
-                        value={orderData.additional_people.adults}
-                        onChange={(e) => setOrderData(prev => ({
-                          ...prev,
-                          additional_people: {
-                            ...prev.additional_people,
-                            adults: parseInt(e.target.value) || 0
-                          }
-                        }))}
-                        InputProps={{ inputProps: { min: 0 } }}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={4}>
-                      <TextField
-                        fullWidth
-                        type="number"
-                        label="Small Children"
-                        value={orderData.additional_people.small_children}
-                        onChange={(e) => setOrderData(prev => ({
-                          ...prev,
-                          additional_people: {
-                            ...prev.additional_people,
-                            small_children: parseInt(e.target.value) || 0
-                          }
-                        }))}
-                        InputProps={{ inputProps: { min: 0 } }}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={4}>
-                      <TextField
-                        fullWidth
-                        type="number"
-                        label="School Aged"
-                        value={orderData.additional_people.school_aged}
-                        onChange={(e) => setOrderData(prev => ({
-                          ...prev,
-                          additional_people: {
-                            ...prev.additional_people,
-                            school_aged: parseInt(e.target.value) || 0
-                          }
-                        }))}
-                        InputProps={{ inputProps: { min: 0 } }}
-                      />
-                    </Grid>
-                  </Grid>
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    multiline
-                    rows={3}
-                    label="Order Notes"
-                    value={orderData.notes}
-                    onChange={(e) => setOrderData(prev => ({ ...prev, notes: e.target.value }))}
-                  />
-                </Grid>
-              </Grid>
-            </Box>
-          )}
-
-          {/* Action Buttons */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3, gap: 2 }}>
-            <Box>
-              {!state.selectedClient && (
+        {/* No Matches - Create New Client Section */}
+        {state.phoneNumber && !matchingClients.length && (
+          <Grid item xs={12}>
+            <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
+              <Stack spacing={2}>
+                <Typography variant="subtitle1" sx={{ fontSize: isMobile ? '1rem' : '1.1rem' }}>
+                  No matching clients found
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Would you like to create a new client with this phone number?
+                </Typography>
                 <Button
                   variant="contained"
                   color="primary"
                   onClick={handleCreateNewClient}
-                  disabled={isSaving || !state.phoneNumber}
+                  size={isMobile ? "small" : "medium"}
+                  sx={{ alignSelf: 'flex-start' }}
                 >
                   Create New Client
                 </Button>
-              )}
-            </Box>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button
-                variant="outlined"
-                onClick={handleClose}
-                disabled={isSaving}
+              </Stack>
+            </Paper>
+          </Grid>
+        )}
+
+        {/* Call Type and Outcome Section */}
+        <Grid item xs={12}>
+          <Stack spacing={2}>
+            <FormControl fullWidth size={isMobile ? "small" : "medium"}>
+              <InputLabel>Call Type</InputLabel>
+              <Select
+                value={state.callType}
+                onChange={(e) => handleCallTypeChange(e.target.value as CallType)}
+                label="Call Type"
+                error={!!errors.callType}
               >
-                Cancel
-              </Button>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleSave}
-                disabled={isSaving || !state.selectedClient || !state.phoneNumber}
+                <MenuItem value="incoming">Incoming</MenuItem>
+                <MenuItem value="outgoing">Outgoing</MenuItem>
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth size={isMobile ? "small" : "medium"}>
+              <InputLabel>Call Outcome</InputLabel>
+              <Select
+                value={state.callOutcome}
+                onChange={(e) => handleCallOutcomeChange(e.target.value as CallOutcome)}
+                label="Call Outcome"
+                error={!!errors.callOutcome}
               >
-                Save {isCreatingOrder ? 'Phone Log & Order' : 'Phone Log'}
-              </Button>
-            </Box>
-          </Box>
-        </Box>
-      </DialogContent>
-    </Dialog>
+                <MenuItem value="successful">Successful</MenuItem>
+                <MenuItem value="voicemail">Voicemail</MenuItem>
+                <MenuItem value="no_answer">No Answer</MenuItem>
+                <MenuItem value="wrong_number">Wrong Number</MenuItem>
+                <MenuItem value="disconnected">Disconnected</MenuItem>
+              </Select>
+            </FormControl>
+          </Stack>
+        </Grid>
+
+        {/* Notes Section */}
+        <Grid item xs={12}>
+          <TextField
+            label="Notes"
+            multiline
+            rows={4}
+            value={state.notes}
+            onChange={(e) => handleNotesChange(e.target.value)}
+            error={!!errors.notes}
+            helperText={errors.notes}
+            fullWidth
+            size={isMobile ? "small" : "medium"}
+          />
+        </Grid>
+
+        {/* Create Order Section */}
+        {state.selectedClient && (
+          <>
+            <Grid item xs={12}>
+              <Divider sx={{ my: isMobile ? 1 : 2 }} />
+            </Grid>
+            <Grid item xs={12}>
+              <Stack direction="row" alignItems="center" spacing={2}>
+                <Typography variant="subtitle1" sx={{ fontSize: isMobile ? '1rem' : '1.1rem' }}>
+                  Create Service Request
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size={isMobile ? "small" : "medium"}
+                  onClick={toggleOrderCreation}
+                >
+                  {isCreatingOrder ? 'Cancel Request' : 'Add Request'}
+                </Button>
+              </Stack>
+            </Grid>
+          </>
+        )}
+
+        {/* Action Buttons */}
+        <Grid item xs={12}>
+          <Stack 
+            direction={isMobile ? "column" : "row"} 
+            spacing={2} 
+            justifyContent="flex-end"
+            sx={{ mt: 2 }}
+          >
+            <Button
+              onClick={handleClose}
+              variant="outlined"
+              size={isMobile ? "small" : "medium"}
+              fullWidth={isMobile}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSave}
+              variant="contained"
+              color="primary"
+              disabled={isSaving}
+              size={isMobile ? "small" : "medium"}
+              fullWidth={isMobile}
+            >
+              {isSaving ? 'Saving...' : 'Save Phone Log'}
+            </Button>
+          </Stack>
+        </Grid>
+      </Grid>
+    </Box>
   );
 }
 

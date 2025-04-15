@@ -24,6 +24,12 @@ import {
   DialogContent,
   DialogActions,
   SelectChangeEvent,
+  Card,
+  CardContent,
+  useTheme,
+  useMediaQuery,
+  Stack,
+  List,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -53,6 +59,8 @@ export default function PhoneLogList({
   clients,
   onViewLog,
 }: PhoneLogListProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCallType, setFilterCallType] = useState<CallType | 'all'>('all');
   const [filterCallOutcome, setFilterCallOutcome] = useState<CallOutcome | 'all'>('all');
@@ -205,23 +213,104 @@ export default function PhoneLogList({
     },
   };
 
+  // Mobile view for phone logs
+  const renderMobileView = () => (
+    <List>
+      {filteredPhoneLogs
+        .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+        .map((log) => (
+            <Card key={log.id} sx={{ mb: 2 }}>
+              <CardContent>
+                <Stack spacing={1}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                    {getClientName(log.familySearchId)}
+                  </Typography>
+                  
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Typography variant="body2" color="text.secondary">
+                      {format(new Date(log.createdAt), 'MMM d, yyyy h:mm a')}
+                    </Typography>
+                  </Stack>
+
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Typography variant="body2">
+                      {formatPhoneNumberDisplay(log.phoneNumber)}
+                    </Typography>
+                  </Stack>
+
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                    <Chip
+                      icon={getCallTypeIcon(log.callType)}
+                      label={log.callType === 'incoming' ? 'Incoming' : 'Outgoing'}
+                      color={getCallTypeColor(log.callType)}
+                      size="small"
+                      sx={{ minWidth: '90px' }}
+                    />
+                    <Chip
+                      icon={getCallOutcomeIcon(log.callOutcome)}
+                      label={log.callOutcome.replace('_', ' ')}
+                      color={getCallOutcomeColor(log.callOutcome)}
+                      size="small"
+                      sx={{ minWidth: '90px' }}
+                    />
+                  </Stack>
+
+                  {log.notes && (
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary"
+                      sx={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
+                      {log.notes}
+                    </Typography>
+                  )}
+
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleViewPhoneLog(log)}
+                      sx={{ color: 'primary.main' }}
+                    >
+                      <ViewIcon />
+                    </IconButton>
+                  </Box>
+                </Stack>
+              </CardContent>
+            </Card>
+          ))}
+    </List>
+  );
+
   return (
     <Box>
-      <Paper sx={{ p: 3 }}>
-        <Box sx={{ textAlign: 'center', mb: 4 }}>
+      <Paper sx={{ p: { xs: 2, sm: 3 } }}>
+        <Box sx={{ textAlign: 'center', mb: { xs: 3, sm: 4 } }}>
           <Typography variant="h6" gutterBottom>
             View and manage phone call logs
           </Typography>
         </Box>
 
         {/* Search and Filters Section */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid 
+          container 
+          spacing={2} 
+          sx={{ 
+            mb: { xs: 3, sm: 4 },
+            flexDirection: { xs: 'column', sm: 'row' }
+          }}
+        >
           {/* Search Field */}
           <Grid item xs={12} md={4}>
             <Typography 
               variant="body2" 
               color="textSecondary"
-              sx={{ mb: 0 }}
+              sx={{ mb: 0.5 }}
             >
               Search
             </Typography>
@@ -251,7 +340,7 @@ export default function PhoneLogList({
             <Typography 
               variant="body2" 
               color="textSecondary"
-              sx={{ mb: 0 }}
+              sx={{ mb: 0.5 }}
             >
               Filter by Call Type
             </Typography>
@@ -277,7 +366,7 @@ export default function PhoneLogList({
             <Typography 
               variant="body2" 
               color="textSecondary"
-              sx={{ mb: 0 }}
+              sx={{ mb: 0.5 }}
             >
               Filter by Call Outcome
             </Typography>
@@ -302,72 +391,83 @@ export default function PhoneLogList({
           </Grid>
         </Grid>
 
-        {/* Phone Logs Table */}
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ width: '18%' }}>Date & Time</TableCell>
-                <TableCell sx={{ width: '20%' }}>Client</TableCell>
-                <TableCell sx={{ width: '15%' }}>Phone Number</TableCell>
-                <TableCell sx={{ width: '12%' }}>Call Type</TableCell>
-                <TableCell sx={{ width: '12%' }}>Call Outcome</TableCell>
-                <TableCell sx={{ width: '18%' }}>Notes</TableCell>
-                <TableCell sx={{ width: '5%' }} align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredPhoneLogs
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((log) => (
-                  <TableRow key={log.id} hover>
-                    <TableCell>
-                      {format(new Date(log.createdAt), 'MMM d, yyyy h:mm a')}
-                    </TableCell>
-                    <TableCell>{getClientName(log.familySearchId)}</TableCell>
-                    <TableCell>{formatPhoneNumberDisplay(log.phoneNumber)}</TableCell>
-                    <TableCell>
-                      <Chip
-                        icon={getCallTypeIcon(log.callType)}
-                        label={log.callType === 'incoming' ? 'Incoming' : 'Outgoing'}
-                        color={getCallTypeColor(log.callType)}
-                        size="small"
-                        sx={{ minWidth: '90px' }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        icon={getCallOutcomeIcon(log.callOutcome)}
-                        label={log.callOutcome.replace('_', ' ')}
-                        color={getCallOutcomeColor(log.callOutcome)}
-                        size="small"
-                        sx={{ minWidth: '90px' }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Typography noWrap variant="body2">
-                        {log.notes || '-'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Tooltip title="View Details">
-                        <IconButton
+        {/* Phone Logs Table/List */}
+        {isMobile ? (
+          renderMobileView()
+        ) : (
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ width: '18%' }}>Date & Time</TableCell>
+                  <TableCell sx={{ width: '20%' }}>Client</TableCell>
+                  <TableCell sx={{ width: '15%' }}>Phone Number</TableCell>
+                  <TableCell sx={{ width: '12%' }}>Call Type</TableCell>
+                  <TableCell sx={{ width: '12%' }}>Call Outcome</TableCell>
+                  <TableCell sx={{ width: '18%' }}>Notes</TableCell>
+                  <TableCell sx={{ width: '5%' }} align="right">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredPhoneLogs
+                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                  .map((log) => (
+                    <TableRow key={log.id} hover>
+                      <TableCell>
+                        {format(new Date(log.createdAt), 'MMM d, yyyy h:mm a')}
+                      </TableCell>
+                      <TableCell>{getClientName(log.familySearchId)}</TableCell>
+                      <TableCell>{formatPhoneNumberDisplay(log.phoneNumber)}</TableCell>
+                      <TableCell>
+                        <Chip
+                          icon={getCallTypeIcon(log.callType)}
+                          label={log.callType === 'incoming' ? 'Incoming' : 'Outgoing'}
+                          color={getCallTypeColor(log.callType)}
                           size="small"
-                          onClick={() => handleViewPhoneLog(log)}
-                          sx={{ color: 'primary.main' }}
-                        >
-                          <ViewIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                          sx={{ minWidth: '90px' }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          icon={getCallOutcomeIcon(log.callOutcome)}
+                          label={log.callOutcome.replace('_', ' ')}
+                          color={getCallOutcomeColor(log.callOutcome)}
+                          size="small"
+                          sx={{ minWidth: '90px' }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography noWrap variant="body2">
+                          {log.notes || '-'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Tooltip title="View Details">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleViewPhoneLog(log)}
+                            sx={{ color: 'primary.main' }}
+                          >
+                            <ViewIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
 
         {/* Pagination */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 2 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'flex-end', 
+          pt: 2,
+          '.MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows': {
+            display: { xs: 'none', sm: 'block' }
+          }
+        }}>
           <TablePagination
             component="div"
             count={filteredPhoneLogs.length}
@@ -375,7 +475,7 @@ export default function PhoneLogList({
             onPageChange={handleChangePage}
             rowsPerPage={rowsPerPage}
             onRowsPerPageChange={handleChangeRowsPerPage}
-            rowsPerPageOptions={[5, 10, 25]}
+            rowsPerPageOptions={isMobile ? [5, 10] : [5, 10, 25]}
           />
         </Box>
       </Paper>
@@ -386,6 +486,7 @@ export default function PhoneLogList({
         onClose={handleCloseDetailsDialog}
         maxWidth="md"
         fullWidth
+        fullScreen={isMobile}
       >
         <DialogTitle>Phone Log Details</DialogTitle>
         <DialogContent>
@@ -396,7 +497,7 @@ export default function PhoneLogList({
             />
           )}
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ p: isMobile ? 2 : 1 }}>
           <Button onClick={handleCloseDetailsDialog}>Close</Button>
         </DialogActions>
       </Dialog>

@@ -117,13 +117,31 @@ export default function Orders() {
       )}
 
       {isDetailsOpen && selectedOrder && (
-        <OrderDetails
-          order={selectedOrder}
-          client={clients.find(c => c.id === selectedOrder.familySearchId)!}
-          onEdit={handleEditOrder}
-          onDelete={handleDeleteOrder}
-          onStatusChange={handleStatusChange}
-        />
+        <>
+          {clients.find(c => c.id === selectedOrder.family_search_id) ? (
+            <OrderDetails
+              order={selectedOrder}
+              client={clients.find(c => c.id === selectedOrder.family_search_id)!}
+              onEdit={handleEditOrder}
+              onDelete={handleDeleteOrder}
+              onStatusChange={handleStatusChange}
+            />
+          ) : (
+            <Box sx={{ p: 2, textAlign: 'center' }}>
+              <Typography color="error">
+                Error: Could not find client with ID {selectedOrder.family_search_id}
+              </Typography>
+              <Button 
+                variant="contained" 
+                color="primary" 
+                onClick={() => setIsDetailsOpen(false)}
+                sx={{ mt: 2 }}
+              >
+                Close
+              </Button>
+            </Box>
+          )}
+        </>
       )}
     </Box>
   );

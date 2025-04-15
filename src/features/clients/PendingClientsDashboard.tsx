@@ -25,16 +25,18 @@ import { Client, MemberStatus } from '../../types';
 
 interface PendingClientsDashboardProps {
   clients: Client[];
-  onApprove: (client: Client) => Promise<void>;
-  onDeny: (client: Client) => Promise<void>;
-  onView: (client: Client) => void;
+  onViewClient: (client: Client) => void;
+  onEditClient: (client: Client) => void;
+  onDeleteClient: (client: Client) => void;
+  onStatusChange: (client: Client, newStatus: MemberStatus) => void;
 }
 
 export default function PendingClientsDashboard({
   clients,
-  onApprove,
-  onDeny,
-  onView
+  onViewClient,
+  onEditClient,
+  onDeleteClient,
+  onStatusChange
 }: PendingClientsDashboardProps) {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -44,55 +46,19 @@ export default function PendingClientsDashboard({
   const pendingClients = clients.filter(client => client.member_status === MemberStatus.Pending);
 
   const handleApprove = (client: Client) => {
-    const updatedClient: Client = {
-      ...client,
-      member_status: MemberStatus.Active,
-      updated_at: new Date().toISOString()
-    };
-    
-    onApprove(updatedClient);
-    setSnackbarMessage('Client approved successfully');
-    setSnackbarSeverity('success');
-    setSnackbarOpen(true);
+    onStatusChange(client, MemberStatus.Active);
   };
 
   const handleDeny = (client: Client) => {
-    const updatedClient: Client = {
-      ...client,
-      member_status: MemberStatus.Denied,
-      updated_at: new Date().toISOString()
-    };
-    
-    onDeny(updatedClient);
-    setSnackbarMessage('Client denied');
-    setSnackbarSeverity('success');
-    setSnackbarOpen(true);
+    onStatusChange(client, MemberStatus.Denied);
   };
 
   const handleSuspend = (client: Client) => {
-    const updatedClient: Client = {
-      ...client,
-      member_status: MemberStatus.Suspended,
-      updated_at: new Date().toISOString()
-    };
-    
-    onApprove(updatedClient);
-    setSnackbarMessage('Client suspended');
-    setSnackbarSeverity('warning');
-    setSnackbarOpen(true);
+    onStatusChange(client, MemberStatus.Suspended);
   };
 
   const handleBan = (client: Client) => {
-    const updatedClient: Client = {
-      ...client,
-      member_status: MemberStatus.Banned,
-      updated_at: new Date().toISOString()
-    };
-    
-    onApprove(updatedClient);
-    setSnackbarMessage('Client banned');
-    setSnackbarSeverity('error');
-    setSnackbarOpen(true);
+    onStatusChange(client, MemberStatus.Banned);
   };
 
   const handleSnackbarClose = () => {
@@ -190,7 +156,7 @@ export default function PendingClientsDashboard({
           </Button>
           <IconButton 
             size="small"
-            onClick={() => onView(client)}
+            onClick={() => onViewClient(client)}
             sx={{ ml: 'auto' }}
           >
             <EditIcon />
