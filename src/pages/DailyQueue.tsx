@@ -4,9 +4,11 @@ import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import DailyQueueDashboard from '../features/orders/DailyQueueDashboard';
 import PendingApprovalsDashboard from '../features/orders/PendingApprovalsDashboard';
 import OrderDetails from '../features/orders/OrderDetails';
+import { OrderForm } from '../features/orders/OrderForm';
 import { Order, Client } from '../types';
 import { OrderService } from '../services/order.service';
 import { ClientService } from '../services/client.service';
+import { NewOrder } from '../types/order';
 
 type ViewMode = 'dashboard' | 'edit' | 'view';
 
@@ -61,6 +63,49 @@ export default function DailyQueue() {
     setViewMode('edit');
   };
 
+  const handleSubmitOrder = async (orderData: NewOrder) => {
+    try {
+      if (!selectedOrder) return;
+      
+      // Get only the fields we want to update to avoid any issues with the types
+      const updates: Partial<Order> = {
+        family_search_id: orderData.family_search_id,
+        status: orderData.status,
+        delivery_type: orderData.delivery_type,
+        pickup_date: orderData.pickup_date,
+        notes: orderData.notes,
+        is_new_client: orderData.is_new_client,
+        approval_status: orderData.approval_status,
+        number_of_boxes: orderData.number_of_boxes,
+        additional_people: orderData.additional_people,
+        visit_contact: orderData.visit_contact,
+        updated_at: new Date()
+      };
+      
+      const updatedOrder = await OrderService.update(selectedOrder.id, updates);
+      
+      // Update the local state with the updated order
+      setOrders(orders.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+      
+      // Return to dashboard
+      setViewMode('dashboard');
+      setSelectedOrder(null);
+      
+      setNotification({
+        open: true,
+        message: 'Order updated successfully',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Error updating order:', error);
+      setNotification({
+        open: true,
+        message: 'Error updating order',
+        severity: 'error'
+      });
+    }
+  };
+
   const handleDeleteOrder = async (order: Order) => {
     try {
       await OrderService.delete(order.id);
@@ -83,10 +128,18 @@ export default function DailyQueue() {
 
   const handleStatusChange = async (order: Order, newStatus: Order['status']) => {
     try {
-      const updatedOrder = await OrderService.update(order.id, {
+      // Check if we need to update both status and box count
+      const updates: Partial<Order> = {
         status: newStatus,
         updated_at: new Date()
-      });
+      };
+      
+      // If the order status is changing to 'ready', make sure to include the box count
+      if (newStatus === 'ready' && order.number_of_boxes) {
+        updates.number_of_boxes = order.number_of_boxes;
+      }
+
+      const updatedOrder = await OrderService.update(order.id, updates);
 
       setOrders(orders.map(o => o.id === updatedOrder.id ? updatedOrder : o));
       
@@ -122,12 +175,11 @@ export default function DailyQueue() {
     switch (viewMode) {
       case 'edit':
         return selectedOrder ? (
-          <OrderDetails 
-            order={selectedOrder}
-            client={clients.find(c => c.id === selectedOrder.family_search_id)!}
-            onEdit={handleEditOrder} 
-            onDelete={handleDeleteOrder}
-            onStatusChange={handleStatusChange}
+          <OrderForm 
+            initialData={selectedOrder}
+            clients={clients}
+            onSubmit={handleSubmitOrder}
+            onCancel={handleCancel}
           />
         ) : null;
       case 'view':

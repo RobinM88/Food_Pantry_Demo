@@ -68,12 +68,12 @@ export const OrderForm: React.FC<OrderFormProps> = ({
 
   const [orderData, setOrderData] = React.useState<NewOrder>({
     family_search_id: initialData?.family_search_id || '',
-    status: 'pending',
+    status: initialData ? initialData.status : 'pending',
     pickup_date: initialData?.pickup_date ? new Date(initialData.pickup_date) : undefined,
     notes: initialData?.notes || '',
     delivery_type: initialData?.delivery_type || 'pickup',
     is_new_client: initialData?.is_new_client || false,
-    approval_status: 'pending',
+    approval_status: initialData ? initialData.approval_status : 'pending',
     number_of_boxes: initialData?.number_of_boxes || 1,
     additional_people: initialData?.additional_people || {
       adults: 0,

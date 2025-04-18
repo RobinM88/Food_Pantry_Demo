@@ -20,14 +20,16 @@ import {
   DialogContent,
   DialogActions,
   Alert,
-  Snackbar
+  Snackbar,
+  TextField
 } from '@mui/material';
 import {
   CalendarToday as CalendarIcon,
   Notes as NotesIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  FilterList as FilterIcon
+  FilterList as FilterIcon,
+  Inventory as BoxesIcon
 } from '@mui/icons-material';
 import { Order, Client, OrderStatus } from '../../types';
 import { format } from 'date-fns';
@@ -55,6 +57,10 @@ export default function DailyQueueDashboard({
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
+  const [boxCountDialogOpen, setBoxCountDialogOpen] = useState(false);
+  const [boxCount, setBoxCount] = useState(1);
+  const [boxCountError, setBoxCountError] = useState('');
+  const [statusToChangeTo, setStatusToChangeTo] = useState<OrderStatus | null>(null);
 
   // Filter orders based on status
   const filteredOrders = orders.filter(order => {
@@ -62,10 +68,54 @@ export default function DailyQueueDashboard({
   });
 
   const handleStatusChange = (order: Order, newStatus: OrderStatus) => {
-    onStatusChange(order, newStatus);
-    setSnackbarMessage(`Order status updated to ${newStatus}`);
+    // If changing from confirmed to ready, open the box count dialog
+    if (order.status === 'confirmed' && newStatus === 'ready') {
+      setSelectedOrder(order);
+      setStatusToChangeTo(newStatus);
+      setBoxCount(order.number_of_boxes);
+      setBoxCountDialogOpen(true);
+    } else {
+      // For other status changes, proceed directly
+      onStatusChange(order, newStatus);
+      setSnackbarMessage(`Order status updated to ${newStatus}`);
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+    }
+  };
+
+  const handleBoxCountSubmit = () => {
+    if (!selectedOrder || !statusToChangeTo) return;
+    
+    if (boxCount < 1) {
+      setBoxCountError('Number of boxes must be at least 1');
+      return;
+    }
+
+    // Create updated order with new box count
+    const updatedOrder: Order = {
+      ...selectedOrder,
+      number_of_boxes: boxCount
+    };
+
+    // Call the status change handler with updated order
+    onStatusChange(updatedOrder, statusToChangeTo);
+    
+    // Close dialog and reset state
+    setBoxCountDialogOpen(false);
+    setSelectedOrder(null);
+    setStatusToChangeTo(null);
+    setBoxCountError('');
+    
+    setSnackbarMessage(`Order status updated to ${statusToChangeTo} with ${boxCount} boxes`);
     setSnackbarSeverity('success');
     setSnackbarOpen(true);
+  };
+
+  const handleBoxCountCancel = () => {
+    setBoxCountDialogOpen(false);
+    setSelectedOrder(null);
+    setStatusToChangeTo(null);
+    setBoxCountError('');
   };
 
   const handleDeleteClick = (order: Order) => {
@@ -201,10 +251,11 @@ export default function DailyQueueDashboard({
             Pickup: {order.pickup_date ? format(new Date(order.pickup_date), 'MMM d, yyyy h:mm a') : 'Not scheduled'}
           </Typography>
 
-          {order.notes && (
-            <Typography variant="body2" color="text.secondary">
-              <NotesIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-              {order.notes}
+          {/* Note: Phone log notes are now hidden as per requirements */}
+          {(order.status === 'ready' || order.status === 'out_for_delivery' || order.status === 'picked_up' || order.status === 'delivered') && (
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              <BoxesIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+              Boxes: {order.number_of_boxes}
             </Typography>
           )}
         </CardContent>
@@ -312,7 +363,7 @@ export default function DailyQueueDashboard({
 
   return (
     <Box>
-      <Paper sx={{ p: 3, mb: 3, maxWidth: '1200px', margin: '0 auto' }}>
+      <Paper sx={{ p: { xs: 2, md: 3 } }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h5" component="h2">
             Daily Queue Dashboard
@@ -377,6 +428,46 @@ export default function DailyQueueDashboard({
           <Button onClick={handleDeleteCancel}>Cancel</Button>
           <Button onClick={handleDeleteConfirm} color="error" variant="contained">
             Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Box Count Dialog */}
+      <Dialog
+        open={boxCountDialogOpen}
+        onClose={handleBoxCountCancel}
+      >
+        <DialogTitle>Set Number of Boxes</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 2, mt: 1 }}>
+            Please specify the number of boxes for this order before marking it as ready.
+          </Typography>
+          <TextField
+            label="Number of Boxes"
+            type="number"
+            value={boxCount}
+            onChange={(e) => {
+              setBoxCount(parseInt(e.target.value) || 0);
+              if (parseInt(e.target.value) >= 1) {
+                setBoxCountError('');
+              }
+            }}
+            fullWidth
+            error={!!boxCountError}
+            helperText={boxCountError}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <BoxesIcon />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleBoxCountCancel}>Cancel</Button>
+          <Button onClick={handleBoxCountSubmit} color="primary" variant="contained">
+            Confirm
           </Button>
         </DialogActions>
       </Dialog>
