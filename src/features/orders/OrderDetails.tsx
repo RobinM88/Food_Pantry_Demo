@@ -241,8 +241,8 @@ export default function OrderDetails({
                         <CalendarIcon color="primary" />
                       </ListItemIcon>
                       <ListItemText 
-                        primary={order.pickup_date && order.pickup_date instanceof Date && !isNaN(order.pickup_date.getTime()) 
-                          ? format(order.pickup_date, 'MMM d, yyyy') 
+                        primary={order.pickup_date 
+                          ? format(new Date(order.pickup_date), 'MMM d, yyyy') 
                           : 'Not scheduled'}
                         secondary="Pickup Date"
                         primaryTypographyProps={{ fontWeight: 500 }}
