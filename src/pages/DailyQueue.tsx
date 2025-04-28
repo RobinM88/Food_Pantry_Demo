@@ -128,18 +128,35 @@ export default function DailyQueue() {
 
   const handleStatusChange = async (order: Order, newStatus: Order['status']) => {
     try {
-      // Check if we need to update both status and box count
+      console.log('Updating order status:', { originalOrder: order, newStatus });
+      
+      // Create an updates object with changes
       const updates: Partial<Order> = {
         status: newStatus,
         updated_at: new Date()
       };
+      
+      // Copy important fields that might have been updated
+      if (order.pickup_date) {
+        updates.pickup_date = order.pickup_date;
+      }
+      
+      if (order.approval_status) {
+        updates.approval_status = order.approval_status;
+      }
+      
+      if (order.delivery_type) {
+        updates.delivery_type = order.delivery_type;
+      }
       
       // If the order status is changing to 'ready', make sure to include the box count
       if (newStatus === 'ready' && order.number_of_boxes) {
         updates.number_of_boxes = order.number_of_boxes;
       }
 
+      console.log('Sending updates to server:', updates);
       const updatedOrder = await OrderService.update(order.id, updates);
+      console.log('Received updated order from server:', updatedOrder);
 
       setOrders(orders.map(o => o.id === updatedOrder.id ? updatedOrder : o));
       

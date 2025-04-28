@@ -5,7 +5,6 @@ import {
   ShoppingCart as OrdersIcon,
   Phone as PhoneIcon,
 } from '@mui/icons-material'
-import DatabaseTest from '../components/DatabaseTest'
 
 const quickAccessItems = [
   {
@@ -58,11 +57,6 @@ export default function Home() {
           </Grid>
         ))}
       </Grid>
-
-      {/* Temporary Database Test Section */}
-      <Box mt={4}>
-        <DatabaseTest />
-      </Box>
     </div>
   )
 } 

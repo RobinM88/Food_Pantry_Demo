@@ -215,75 +215,82 @@ export default function PhoneLogList({
 
   // Mobile view for phone logs
   const renderMobileView = () => (
-    <List>
+    <List sx={{ px: 0 }}>
       {filteredPhoneLogs
         .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
         .map((log) => (
-            <Card key={log.id} sx={{ mb: 2 }}>
-              <CardContent>
-                <Stack spacing={1}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+          <Card key={log.id} sx={{ mb: 2, overflow: 'hidden' }}>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Stack spacing={1.5}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'flex-start'
+                }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 500, flexGrow: 1 }}>
                     {getClientName(log.familySearchId)}
                   </Typography>
-                  
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Typography variant="body2" color="text.secondary">
-                      {format(new Date(log.createdAt), 'MMM d, yyyy h:mm a')}
-                    </Typography>
-                  </Stack>
-
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Typography variant="body2">
-                      {formatPhoneNumberDisplay(log.phoneNumber)}
-                    </Typography>
-                  </Stack>
-
-                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                    <Chip
-                      icon={getCallTypeIcon(log.callType)}
-                      label={log.callType === 'incoming' ? 'Incoming' : 'Outgoing'}
-                      color={getCallTypeColor(log.callType)}
-                      size="small"
-                      sx={{ minWidth: '90px' }}
-                    />
-                    <Chip
-                      icon={getCallOutcomeIcon(log.callOutcome)}
-                      label={log.callOutcome.replace('_', ' ')}
-                      color={getCallOutcomeColor(log.callOutcome)}
-                      size="small"
-                      sx={{ minWidth: '90px' }}
-                    />
-                  </Stack>
-
-                  {log.notes && (
-                    <Typography 
-                      variant="body2" 
-                      color="text.secondary"
-                      sx={{
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                      }}
-                    >
-                      {log.notes}
-                    </Typography>
-                  )}
-
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleViewPhoneLog(log)}
-                      sx={{ color: 'primary.main' }}
-                    >
-                      <ViewIcon />
-                    </IconButton>
-                  </Box>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleViewPhoneLog(log)}
+                    sx={{ 
+                      color: 'primary.main',
+                      mr: -1,
+                      mt: -0.5
+                    }}
+                  >
+                    <ViewIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+                
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Typography variant="body2" color="text.secondary">
+                    {format(new Date(log.createdAt), 'MMM d, yyyy h:mm a')}
+                  </Typography>
                 </Stack>
-              </CardContent>
-            </Card>
-          ))}
+
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Typography variant="body2">
+                    {formatPhoneNumberDisplay(log.phoneNumber)}
+                  </Typography>
+                </Stack>
+
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  <Chip
+                    icon={getCallTypeIcon(log.callType)}
+                    label={log.callType === 'incoming' ? 'Incoming' : 'Outgoing'}
+                    color={getCallTypeColor(log.callType)}
+                    size="small"
+                    sx={{ minWidth: '90px', mb: 0.5 }}
+                  />
+                  <Chip
+                    icon={getCallOutcomeIcon(log.callOutcome)}
+                    label={log.callOutcome.replace('_', ' ')}
+                    color={getCallOutcomeColor(log.callOutcome)}
+                    size="small"
+                    sx={{ minWidth: '90px', mb: 0.5 }}
+                  />
+                </Stack>
+
+                {log.notes && (
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
+                    {log.notes}
+                  </Typography>
+                )}
+              </Stack>
+            </CardContent>
+          </Card>
+        ))}
     </List>
   );
 
@@ -301,8 +308,7 @@ export default function PhoneLogList({
           container 
           spacing={2} 
           sx={{ 
-            mb: { xs: 3, sm: 4 },
-            flexDirection: { xs: 'column', sm: 'row' }
+            mb: { xs: 3, sm: 4 }
           }}
         >
           {/* Search Field */}
@@ -336,13 +342,13 @@ export default function PhoneLogList({
           </Grid>
 
           {/* Call Type Filter */}
-          <Grid item xs={12} md={4}>
+          <Grid item xs={6} md={4}>
             <Typography 
               variant="body2" 
               color="textSecondary"
               sx={{ mb: 0.5 }}
             >
-              Filter by Call Type
+              Call Type
             </Typography>
             <Select
               fullWidth
@@ -355,20 +361,20 @@ export default function PhoneLogList({
                 mt: 0
               }}
             >
-              <MenuItem value="all">All Call Types</MenuItem>
+              <MenuItem value="all">All Types</MenuItem>
               <MenuItem value="incoming">Incoming</MenuItem>
               <MenuItem value="outgoing">Outgoing</MenuItem>
             </Select>
           </Grid>
 
           {/* Call Outcome Filter */}
-          <Grid item xs={12} md={4}>
+          <Grid item xs={6} md={4}>
             <Typography 
               variant="body2" 
               color="textSecondary"
               sx={{ mb: 0.5 }}
             >
-              Filter by Call Outcome
+              Outcome
             </Typography>
             <Select
               fullWidth
@@ -381,7 +387,7 @@ export default function PhoneLogList({
                 mt: 0
               }}
             >
-              <MenuItem value="all">All Outcomes</MenuItem>
+              <MenuItem value="all">All</MenuItem>
               <MenuItem value="successful">Successful</MenuItem>
               <MenuItem value="voicemail">Voicemail</MenuItem>
               <MenuItem value="no_answer">No Answer</MenuItem>
@@ -395,8 +401,13 @@ export default function PhoneLogList({
         {isMobile ? (
           renderMobileView()
         ) : (
-          <TableContainer>
-            <Table>
+          <TableContainer sx={{ 
+            overflowX: 'auto',
+            '.MuiTable-root': {
+              minWidth: 800 // ensures table has a minimum width, forcing scroll on smaller screens
+            }
+          }}>
+            <Table size={isMobile ? "small" : "medium"}>
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ width: '18%' }}>Date & Time</TableCell>
@@ -466,6 +477,9 @@ export default function PhoneLogList({
           pt: 2,
           '.MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows': {
             display: { xs: 'none', sm: 'block' }
+          },
+          '.MuiTablePagination-select, .MuiTablePagination-actions': {
+            marginRight: { xs: 0, sm: 2 }
           }
         }}>
           <TablePagination
@@ -476,6 +490,7 @@ export default function PhoneLogList({
             rowsPerPage={rowsPerPage}
             onRowsPerPageChange={handleChangeRowsPerPage}
             rowsPerPageOptions={isMobile ? [5, 10] : [5, 10, 25]}
+            labelRowsPerPage={isMobile ? "" : "Rows per page:"}
           />
         </Box>
       </Paper>

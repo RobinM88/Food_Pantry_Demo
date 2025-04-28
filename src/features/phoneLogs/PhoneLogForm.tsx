@@ -8,9 +8,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
   List,
   ListItem,
   ListItemText,
@@ -28,28 +25,21 @@ import { CallType, CallOutcome } from '../../types/phoneLog';
 import { usePhoneLogForm } from '../../hooks/usePhoneLogForm';
 import { useNavigate } from 'react-router-dom';
 import { OrderService } from '../../services/order.service';
-import { LocalizationProvider } from '@mui/x-date-pickers';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
 interface PhoneLogFormProps {
-  phoneLog?: PhoneLog | null;
   clients: Client[];
   onSavePhoneLog: (phoneLog: PhoneLog) => void;
   onSaveOrder?: (order: NewOrder) => void;
   onComplete?: () => void;
-  open?: boolean;
   onClose?: () => void;
   initialPhoneNumber?: string;
 }
 
 const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
-  phoneLog,
   clients,
   onSavePhoneLog,
   onSaveOrder,
   onComplete = () => {},
-  open = true,
   onClose = () => {},
   initialPhoneNumber = '',
 }) => {
@@ -270,7 +260,7 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
         family_search_id: state.selectedClient?.id || '',
         status: 'pending',
         notes: state.notes || '',
-        pickup_date: new Date(),
+        pickup_date: undefined,
         delivery_type: 'pickup',
         is_new_client: false,
         approval_status: 'pending',
@@ -340,6 +330,7 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
                           direction={isMobile ? "column" : "row"} 
                           spacing={isMobile ? 0.5 : 2}
                           sx={{ mt: isMobile ? 0.5 : 0 }}
+                          component="span"
                         >
                           <Box component="span" sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
                             {`Family #: ${client.family_number || 'N/A'}`}
@@ -353,6 +344,9 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
                       }
                       primaryTypographyProps={{
                         variant: isMobile ? "body1" : "subtitle1",
+                        component: "div"
+                      }}
+                      secondaryTypographyProps={{
                         component: "div"
                       }}
                     />

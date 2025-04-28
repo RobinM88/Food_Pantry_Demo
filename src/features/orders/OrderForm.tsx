@@ -156,6 +156,13 @@ export const OrderForm: React.FC<OrderFormProps> = ({
     }
   };
 
+  // Function to determine if a date is valid (Monday or Wednesday)
+  const isValidPickupDay = (date: Date): boolean => {
+    const day = date.getDay();
+    // 1 is Monday, 3 is Wednesday
+    return day === 1 || day === 3;
+  };
+
   const handleChange = (field: keyof NewOrder, value: any) => {
     setOrderData(prev => ({
       ...prev,
@@ -279,11 +286,12 @@ export const OrderForm: React.FC<OrderFormProps> = ({
                             ? orderData.pickup_date 
                             : null}
                           onChange={handleDateChange}
+                          shouldDisableDate={(date) => !isValidPickupDay(date)}
                           slotProps={{
                             textField: {
                               fullWidth: true,
                               error: !!errors.pickup_date,
-                              helperText: errors.pickup_date,
+                              helperText: errors.pickup_date || "Food pantry is only open on Mondays and Wednesdays",
                               InputProps: {
                                 startAdornment: (
                                   <InputAdornment position="start">

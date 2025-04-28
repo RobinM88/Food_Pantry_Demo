@@ -21,18 +21,20 @@ import {
   DialogActions,
   Alert,
   Snackbar,
-  TextField
+  TextField,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import {
   CalendarToday as CalendarIcon,
-  Notes as NotesIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   FilterList as FilterIcon,
   Inventory as BoxesIcon
 } from '@mui/icons-material';
 import { Order, Client, OrderStatus } from '../../types';
-import { format } from 'date-fns';
+import { format, isSameDay } from 'date-fns';
+import { DatePicker } from '@mui/x-date-pickers';
 
 interface DailyQueueDashboardProps {
   orders: Order[];
@@ -51,7 +53,10 @@ export default function DailyQueueDashboard({
   onEditOrder,
   onDeleteOrder
 }: DailyQueueDashboardProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -62,9 +67,16 @@ export default function DailyQueueDashboard({
   const [boxCountError, setBoxCountError] = useState('');
   const [statusToChangeTo, setStatusToChangeTo] = useState<OrderStatus | null>(null);
 
-  // Filter orders based on status
+  // Filter orders based on status and date
   const filteredOrders = orders.filter(order => {
-    return !selectedStatus || order.status === selectedStatus;
+    // Filter by status if selected
+    const statusMatch = !selectedStatus || order.status === selectedStatus;
+
+    // Filter by date if selected (checking if pickup_date matches selected date)
+    const dateMatch = !selectedDate || 
+      (order.pickup_date && isSameDay(new Date(order.pickup_date), selectedDate));
+
+    return statusMatch && dateMatch;
   });
 
   const handleStatusChange = (order: Order, newStatus: OrderStatus) => {
@@ -237,12 +249,13 @@ export default function DailyQueueDashboard({
       <Card key={order.id} sx={{ mb: 2 }}>
         <CardContent>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6">
+            <Typography variant={isMobile ? "subtitle1" : "h6"}>
               {client ? `${client.first_name} ${client.last_name}` : 'Unknown Client'}
             </Typography>
             <Chip 
               label={getStatusLabel(order.status)}
               color={getChipColor(order.status)}
+              size={isMobile ? "small" : "medium"}
             />
           </Box>
 
@@ -260,7 +273,11 @@ export default function DailyQueueDashboard({
           )}
         </CardContent>
 
-        <CardActions>
+        <CardActions sx={{ 
+          flexWrap: isMobile ? 'wrap' : 'nowrap',
+          gap: 1,
+          justifyContent: 'flex-start'
+        }}>
           {nextStatuses.map(status => (
             <Button
               key={status}
@@ -268,17 +285,29 @@ export default function DailyQueueDashboard({
               variant="contained"
               color={getStatusColor(status)}
               onClick={() => handleStatusChange(order, status)}
+              sx={{
+                mb: isMobile ? 1 : 0,
+                fontSize: isMobile ? '0.75rem' : '0.8125rem',
+                whiteSpace: 'nowrap'
+              }}
             >
               Mark as {getStatusLabel(status)}
             </Button>
           ))}
           <Box sx={{ flexGrow: 1 }} />
-          <IconButton size="small" onClick={() => onEditOrder(order)}>
-            <EditIcon />
-          </IconButton>
-          <IconButton size="small" color="error" onClick={() => handleDeleteClick(order)}>
-            <DeleteIcon />
-          </IconButton>
+          <Box sx={{ 
+            display: 'flex',
+            gap: 1, 
+            ml: isMobile && nextStatuses.length > 0 ? 'auto' : 0,
+            mt: isMobile && nextStatuses.length > 0 ? 1 : 0
+          }}>
+            <IconButton size="small" onClick={() => onEditOrder(order)}>
+              <EditIcon />
+            </IconButton>
+            <IconButton size="small" color="error" onClick={() => handleDeleteClick(order)}>
+              <DeleteIcon />
+            </IconButton>
+          </Box>
         </CardActions>
       </Card>
     );
@@ -288,72 +317,75 @@ export default function DailyQueueDashboard({
     return (
       <Box sx={{ p: 2, textAlign: 'center' }}>
         <Typography variant="body1" color="textSecondary">
-          No orders found for today
+          {selectedDate 
+            ? 'No orders found for the selected date'
+            : 'No orders found'}
         </Typography>
       </Box>
     );
   };
 
   const renderStats = () => {
+    // Use different grid breakpoints for mobile
     return (
       <Grid container spacing={2} sx={{ mb: 3, maxWidth: '1200px', margin: '0 auto' }}>
-        <Grid item xs={12} sm={6} md={2}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="subtitle2" color="textSecondary">
+        <Grid item xs={6} sm={6} md={2}>
+          <Paper sx={{ p: isMobile ? 1 : 2 }}>
+            <Typography variant="subtitle2" color="textSecondary" noWrap>
               Confirmed
             </Typography>
-            <Typography variant="h4">
-              {orders.filter(o => o.status === 'confirmed').length}
+            <Typography variant={isMobile ? "h5" : "h4"}>
+              {filteredOrders.filter(o => o.status === 'confirmed').length}
             </Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="subtitle2" color="textSecondary">
-              Ready for Pickup
+        <Grid item xs={6} sm={6} md={2}>
+          <Paper sx={{ p: isMobile ? 1 : 2 }}>
+            <Typography variant="subtitle2" color="textSecondary" noWrap>
+              Ready
             </Typography>
-            <Typography variant="h4">
-              {orders.filter(o => o.status === 'ready').length}
+            <Typography variant={isMobile ? "h5" : "h4"}>
+              {filteredOrders.filter(o => o.status === 'ready').length}
             </Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="subtitle2" color="textSecondary">
+        <Grid item xs={6} sm={6} md={2}>
+          <Paper sx={{ p: isMobile ? 1 : 2 }}>
+            <Typography variant="subtitle2" color="textSecondary" noWrap>
               Out for Delivery
             </Typography>
-            <Typography variant="h4">
-              {orders.filter(o => o.status === 'out_for_delivery').length}
+            <Typography variant={isMobile ? "h5" : "h4"}>
+              {filteredOrders.filter(o => o.status === 'out_for_delivery').length}
             </Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="subtitle2" color="textSecondary">
-              Completed Today
+        <Grid item xs={6} sm={6} md={2}>
+          <Paper sx={{ p: isMobile ? 1 : 2 }}>
+            <Typography variant="subtitle2" color="textSecondary" noWrap>
+              Completed
             </Typography>
-            <Typography variant="h4">
-              {orders.filter(o => o.status === 'picked_up' || o.status === 'delivered').length}
+            <Typography variant={isMobile ? "h5" : "h4"}>
+              {filteredOrders.filter(o => o.status === 'picked_up' || o.status === 'delivered').length}
             </Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="subtitle2" color="textSecondary">
+        <Grid item xs={6} sm={6} md={2}>
+          <Paper sx={{ p: isMobile ? 1 : 2 }}>
+            <Typography variant="subtitle2" color="textSecondary" noWrap>
               Issues
             </Typography>
-            <Typography variant="h4">
-              {orders.filter(o => o.status === 'no_show' || o.status === 'failed_delivery').length}
+            <Typography variant={isMobile ? "h5" : "h4"}>
+              {filteredOrders.filter(o => o.status === 'no_show' || o.status === 'failed_delivery').length}
             </Typography>
           </Paper>
         </Grid>
-        <Grid item xs={12} sm={6} md={2}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="subtitle2" color="textSecondary">
+        <Grid item xs={6} sm={6} md={2}>
+          <Paper sx={{ p: isMobile ? 1 : 2 }}>
+            <Typography variant="subtitle2" color="textSecondary" noWrap>
               Cancelled
             </Typography>
-            <Typography variant="h4">
-              {orders.filter(o => o.status === 'cancelled').length}
+            <Typography variant={isMobile ? "h5" : "h4"}>
+              {filteredOrders.filter(o => o.status === 'cancelled').length}
             </Typography>
           </Paper>
         </Grid>
@@ -364,12 +396,40 @@ export default function DailyQueueDashboard({
   return (
     <Box>
       <Paper sx={{ p: { xs: 2, md: 3 } }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h5" component="h2">
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: isMobile ? 'column' : 'row',
+          justifyContent: 'space-between', 
+          alignItems: isMobile ? 'flex-start' : 'center', 
+          mb: 2 
+        }}>
+          <Typography variant="h5" component="h2" sx={{ mb: isMobile ? 2 : 0 }}>
             Daily Queue Dashboard
           </Typography>
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-            <FormControl size="small" sx={{ minWidth: 200 }}>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', width: isMobile ? '100%' : 'auto', flexDirection: isMobile ? 'column' : 'row' }}>
+            {/* Date Filter */}
+            <DatePicker
+              label="Filter by Date"
+              value={selectedDate}
+              onChange={(date) => setSelectedDate(date)}
+              slotProps={{
+                textField: {
+                  size: "small",
+                  fullWidth: isMobile,
+                  sx: { minWidth: isMobile ? '100%' : 200 },
+                  InputProps: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <CalendarIcon fontSize="small" />
+                      </InputAdornment>
+                    ),
+                  },
+                }
+              }}
+            />
+            
+            {/* Status Filter */}
+            <FormControl size="small" sx={{ minWidth: isMobile ? '100%' : 200 }}>
               <Select
                 value={selectedStatus ?? ''}
                 onChange={(e) => {
@@ -391,6 +451,21 @@ export default function DailyQueueDashboard({
                 ))}
               </Select>
             </FormControl>
+            
+            {/* Clear Filters Button */}
+            {(selectedDate || selectedStatus) && (
+              <Button 
+                variant="outlined" 
+                size="small"
+                onClick={() => {
+                  setSelectedDate(new Date()); // Reset to current date
+                  setSelectedStatus(null);
+                }}
+                sx={{ minWidth: isMobile ? '100%' : 'auto' }}
+              >
+                Reset Filters
+              </Button>
+            )}
           </Box>
         </Box>
 
@@ -417,6 +492,8 @@ export default function DailyQueueDashboard({
       <Dialog
         open={deleteDialogOpen}
         onClose={handleDeleteCancel}
+        fullWidth
+        maxWidth="xs"
       >
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
@@ -436,6 +513,8 @@ export default function DailyQueueDashboard({
       <Dialog
         open={boxCountDialogOpen}
         onClose={handleBoxCountCancel}
+        fullWidth
+        maxWidth="xs"
       >
         <DialogTitle>Set Number of Boxes</DialogTitle>
         <DialogContent>

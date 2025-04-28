@@ -79,14 +79,21 @@ export default function PendingApprovalsDashboard({
 
   const handleApprove = (order: Order) => {
     setSelectedOrder(order);
+    // Initialize with current date if no pickup date
+    let initialDate = new Date();
+    
+    // Set initial time to 10:00 AM
+    initialDate.setHours(10, 0, 0, 0);
+    
     // If order has a pickup date, use it for both date and time
     if (order.pickup_date && order.pickup_date instanceof Date && !isNaN(order.pickup_date.getTime())) {
-      const pickupDate = new Date(order.pickup_date);
-      if (!isNaN(pickupDate.getTime())) {
-        setScheduledDate(pickupDate);
-        setScheduledTime(pickupDate);
-      }
+      initialDate = new Date(order.pickup_date);
     }
+    
+    // Set the initial values
+    setScheduledDate(initialDate);
+    setScheduledTime(initialDate);
+    
     // Set delivery type from order
     setDeliveryType(order.delivery_type);
     setSchedulingDialogOpen(true);
@@ -94,25 +101,52 @@ export default function PendingApprovalsDashboard({
 
   const handleScheduleConfirm = () => {
     if (selectedOrder && scheduledDate && scheduledTime) {
-      // Combine date and time
-      const combinedDateTime = new Date(scheduledDate);
-      combinedDateTime.setHours(scheduledTime.getHours());
-      combinedDateTime.setMinutes(scheduledTime.getMinutes());
-      
-      // Update the order with the scheduled date and change status to 'approved'
-      const updatedOrder: Order = {
-        ...selectedOrder,
-        pickup_date: combinedDateTime,
-        delivery_type: deliveryType,
-        status: 'approved',
-        approval_status: 'approved',
-        updated_at: new Date()
-      };
-      
-      onStatusChange(updatedOrder, 'approved');
-      setSchedulingDialogOpen(false);
-      setSnackbarMessage('Order approved and scheduled successfully');
-      setSnackbarSeverity('success');
+      try {
+        // Create a new Date object using the scheduledDate
+        const combinedDateTime = new Date(scheduledDate.getTime());
+        
+        // Set hours and minutes from scheduledTime
+        combinedDateTime.setHours(
+          scheduledTime.getHours(),
+          scheduledTime.getMinutes(),
+          0, 0
+        );
+        
+        console.log("Scheduling order for:", {
+          date: scheduledDate.toISOString(),
+          time: scheduledTime.toISOString(),
+          combined: combinedDateTime.toISOString()
+        });
+        
+        // Create a complete updated order object
+        const updatedOrder: Order = {
+          ...selectedOrder,
+          pickup_date: combinedDateTime,
+          delivery_type: deliveryType,
+          status: 'approved',
+          approval_status: 'approved',
+          updated_at: new Date()
+        };
+        
+        // Pass the complete updated order to the parent component
+        onStatusChange(updatedOrder, 'approved');
+        
+        // Reset the scheduling dialog
+        setSchedulingDialogOpen(false);
+        setScheduledDate(null);
+        setScheduledTime(null);
+        setSnackbarMessage('Order approved and scheduled successfully');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
+      } catch (error) {
+        console.error("Error scheduling order:", error);
+        setSnackbarMessage('Error scheduling order. Please try again.');
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
+      }
+    } else {
+      setSnackbarMessage('Please select both date and time before scheduling');
+      setSnackbarSeverity('error');
       setSnackbarOpen(true);
     }
   };
@@ -314,10 +348,16 @@ export default function PendingApprovalsDashboard({
                   label="Pickup/Delivery Date"
                   value={scheduledDate}
                   onChange={(date) => setScheduledDate(date)}
+                  shouldDisableDate={(date) => {
+                    // Only allow Monday (1) and Wednesday (3)
+                    const day = date.getDay();
+                    return day !== 1 && day !== 3;
+                  }}
                   slotProps={{
                     textField: {
                       fullWidth: true,
-                      margin: 'normal'
+                      margin: 'normal',
+                      helperText: "Food pantry is only open on Mondays and Wednesdays"
                     }
                   }}
                 />
