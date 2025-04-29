@@ -131,35 +131,34 @@ export const validateOrder = (order: Order): ValidationErrors => {
 };
 
 // Phone Log Validations
-export const validatePhoneLog = (log: Partial<PhoneLog>): ValidationErrors => {
-  const errors: ValidationErrors = {};
-
-  // Required Fields
-  if (!log.phoneNumber?.trim()) {
-    errors.phoneNumber = 'Phone number is required';
-  }
-  if (!log.callType?.trim()) {
-    errors.callType = 'Call type is required';
-  }
-
-  // Phone Number Format (XXX) XXX-XXXX
+export function validatePhoneLog(log: any) {
+  const errors: Record<string, string> = {};
   const phoneRegex = /^\(\d{3}\) \d{3}-\d{4}$/;
-  if (log.phoneNumber && !phoneRegex.test(log.phoneNumber)) {
-    errors.phoneNumber = 'Phone number must be in format (XXX) XXX-XXXX';
+
+  // Required fields
+  if (!log.phone_number?.trim()) {
+    errors.phone_number = 'Phone number is required';
+  }
+  if (!log.call_type?.trim()) {
+    errors.call_type = 'Call type is required';
   }
 
-  // Call Type Validation
-  if (log.callType && !['incoming', 'outgoing'].includes(log.callType)) {
-    errors.callType = 'Invalid call type';
+  // Format validation
+  if (log.phone_number && !phoneRegex.test(log.phone_number)) {
+    errors.phone_number = 'Phone number must be in format (XXX) XXX-XXXX';
   }
 
-  // Call Outcome Validation
-  if (log.callOutcome && !['successful', 'voicemail', 'no_answer', 'wrong_number', 'disconnected'].includes(log.callOutcome)) {
-    errors.callOutcome = 'Invalid call outcome';
+  // Enum validation
+  if (log.call_type && !['incoming', 'outgoing'].includes(log.call_type)) {
+    errors.call_type = 'Invalid call type';
+  }
+
+  if (log.call_outcome && !['successful', 'voicemail', 'no_answer', 'wrong_number', 'disconnected'].includes(log.call_outcome)) {
+    errors.call_outcome = 'Invalid call outcome';
   }
 
   return errors;
-};
+}
 
 // Business Rule Validations
 export const validateOrderBusinessRules = (

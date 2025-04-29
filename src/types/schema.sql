@@ -86,7 +86,7 @@ CREATE TABLE "ConnectedFamily" (
 -- Create Order table
 CREATE TABLE "Order" (
     "id" TEXT PRIMARY KEY,
-    "family_search_id" TEXT NOT NULL,
+    "family_number" TEXT NOT NULL,
     "status" order_status NOT NULL DEFAULT 'pending',
     "pickup_date" TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     "notes" TEXT DEFAULT NULL,
@@ -98,28 +98,28 @@ CREATE TABLE "Order" (
     "visit_contact" TEXT DEFAULT NULL,
     "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY ("family_search_id") REFERENCES "Client"("id") ON DELETE CASCADE
+    FOREIGN KEY ("family_number") REFERENCES "Client"("family_number") ON DELETE CASCADE
 );
 
 -- Create PhoneLog table
 CREATE TABLE "PhoneLog" (
     "id" TEXT PRIMARY KEY,
-    "family_search_id" TEXT NOT NULL,
+    "family_number" TEXT NOT NULL,
     "phone_number" TEXT NOT NULL,
     "call_type" call_type NOT NULL,
     "call_outcome" call_outcome NOT NULL,
     "notes" TEXT DEFAULT NULL,
     "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY ("family_search_id") REFERENCES "Client"("id") ON DELETE CASCADE
+    FOREIGN KEY ("family_number") REFERENCES "Client"("family_number") ON DELETE CASCADE
 );
 
 -- Create indexes for better query performance
 CREATE INDEX "idx_client_family_number" ON "Client"("family_number");
 CREATE INDEX "idx_client_phone1" ON "Client"("phone1");
 CREATE INDEX "idx_client_phone2" ON "Client"("phone2");
-CREATE INDEX "idx_order_family_search_id" ON "Order"("family_search_id");
-CREATE INDEX "idx_phone_log_family_search_id" ON "PhoneLog"("family_search_id");
+CREATE INDEX "idx_order_family_number" ON "Order"("family_number");
+CREATE INDEX "idx_phone_log_family_number" ON "PhoneLog"("family_number");
 CREATE INDEX "idx_connected_family_client_id" ON "ConnectedFamily"("client_id");
 CREATE INDEX "idx_connected_family_connected_to" ON "ConnectedFamily"("connected_to");
 

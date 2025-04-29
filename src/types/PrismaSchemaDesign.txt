@@ -76,12 +76,12 @@ model Order {
 
 model PhoneLog {
   id               String    @id
-  family_search_id String
+  family_number    String
   phone_number     String
   call_type        String
   call_outcome     String
   notes            String?
   created_at       DateTime  @default(now())
   updated_at       DateTime  @updatedAt
-  client           Client    @relation(fields: [family_search_id], references: [id])
+  client           Client    @relation(fields: [family_number], references: [family_number])
 }

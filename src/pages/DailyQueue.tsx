@@ -19,6 +19,7 @@ interface Notification {
 }
 
 export default function DailyQueue() {
+  console.log('DailyQueue component rendered');
   const [orders, setOrders] = useState<Order[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
@@ -32,16 +33,17 @@ export default function DailyQueue() {
   });
 
   const loadData = async () => {
+    console.log('loadData called');
     try {
       setLoading(true);
       const [ordersData, clientsData] = await Promise.all([
         OrderService.getAll(),
         ClientService.getAll()
       ]);
-      console.log('Loaded orders:', ordersData);
-      console.log('Loaded clients:', clientsData);
-      setOrders(ordersData);
-      setClients(clientsData);
+      console.log('Raw orders data:', ordersData);
+      console.log('Raw clients data:', clientsData);
+      setOrders(ordersData || []);
+      setClients(clientsData || []);
     } catch (error) {
       console.error('Error loading data:', error);
       setNotification({
@@ -50,6 +52,7 @@ export default function DailyQueue() {
         severity: 'error'
       });
     } finally {
+      console.log('Setting loading to false');
       setLoading(false);
     }
   };
@@ -57,6 +60,15 @@ export default function DailyQueue() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Add logging for state changes
+  useEffect(() => {
+    console.log('Orders state updated:', orders);
+  }, [orders]);
+
+  useEffect(() => {
+    console.log('Clients state updated:', clients);
+  }, [clients]);
 
   const handleEditOrder = (order: Order) => {
     setSelectedOrder(order);
@@ -189,6 +201,11 @@ export default function DailyQueue() {
   };
 
   const renderContent = () => {
+    console.log('renderContent called with viewMode:', viewMode);
+    console.log('Current orders:', orders);
+    console.log('Current clients:', clients);
+    console.log('Selected tab:', selectedTab);
+    
     switch (viewMode) {
       case 'edit':
         return selectedOrder ? (

@@ -25,7 +25,7 @@ import {
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { PhoneLog, Client } from '../../types';
-import { CallType, CallOutcome } from '../../types/phoneLog';
+import { CallType, CallOutcome } from '../../types';
 
 interface PhoneLogDetailsProps {
   phoneLog: PhoneLog;
@@ -116,7 +116,7 @@ export default function PhoneLogDetails({ phoneLog, client }: PhoneLogDetailsPro
                   }
                   secondary={
                     <Typography variant={isMobile ? "body1" : "h6"} sx={{ mt: 0.5 }}>
-                      {format(new Date(phoneLog.createdAt), 'MMM d, yyyy h:mm a')}
+                      {format(new Date(phoneLog.created_at), 'MMM d, yyyy h:mm a')}
                     </Typography>
                   }
                 />
@@ -133,14 +133,14 @@ export default function PhoneLogDetails({ phoneLog, client }: PhoneLogDetailsPro
                   }
                   secondary={
                     <Typography variant={isMobile ? "body1" : "h6"} sx={{ mt: 0.5 }}>
-                      {phoneLog.phoneNumber}
+                      {phoneLog.phone_number}
                     </Typography>
                   }
                 />
               </ListItem>
               <ListItem sx={{ px: isMobile ? 0 : 2 }}>
                 <ListItemIcon sx={{ minWidth: isMobile ? 40 : 56 }}>
-                  {getCallTypeIcon(phoneLog.callType)}
+                  {getCallTypeIcon(phoneLog.call_type)}
                 </ListItemIcon>
                 <ListItemText
                   primary={
@@ -149,20 +149,20 @@ export default function PhoneLogDetails({ phoneLog, client }: PhoneLogDetailsPro
                     </Typography>
                   }
                   secondary={
-                    <Box component="div" sx={{ mt: 0.5 }}>
-                      <Chip
-                        icon={getCallTypeIcon(phoneLog.callType, true)}
-                        label={phoneLog.callType === 'incoming' ? 'Incoming' : 'Outgoing'}
-                        size={isMobile ? "small" : "medium"}
-                        color={getCallTypeColor(phoneLog.callType)}
-                      />
-                    </Box>
+                    <Chip
+                      icon={getCallTypeIcon(phoneLog.call_type, true)}
+                      label={phoneLog.call_type === 'incoming' ? 'Incoming' : 'Outgoing'}
+                      size={isMobile ? "small" : "medium"}
+                      color={getCallTypeColor(phoneLog.call_type)}
+                      sx={{ mt: 0.5 }}
+                    />
                   }
+                  secondaryTypographyProps={{ component: 'div' }}
                 />
               </ListItem>
               <ListItem sx={{ px: isMobile ? 0 : 2 }}>
                 <ListItemIcon sx={{ minWidth: isMobile ? 40 : 56 }}>
-                  {getCallOutcomeIcon(phoneLog.callOutcome)}
+                  {getCallOutcomeIcon(phoneLog.call_outcome)}
                 </ListItemIcon>
                 <ListItemText
                   primary={
@@ -171,15 +171,15 @@ export default function PhoneLogDetails({ phoneLog, client }: PhoneLogDetailsPro
                     </Typography>
                   }
                   secondary={
-                    <Box component="div" sx={{ mt: 0.5 }}>
-                      <Chip
-                        icon={getCallOutcomeIcon(phoneLog.callOutcome, true)}
-                        label={phoneLog.callOutcome.replace('_', ' ')}
-                        size={isMobile ? "small" : "medium"}
-                        color={getCallOutcomeColor(phoneLog.callOutcome)}
-                      />
-                    </Box>
+                    <Chip
+                      icon={getCallOutcomeIcon(phoneLog.call_outcome, true)}
+                      label={phoneLog.call_outcome.replace('_', ' ')}
+                      size={isMobile ? "small" : "medium"}
+                      color={getCallOutcomeColor(phoneLog.call_outcome)}
+                      sx={{ mt: 0.5 }}
+                    />
                   }
+                  secondaryTypographyProps={{ component: 'div' }}
                 />
               </ListItem>
             </List>
@@ -241,14 +241,14 @@ export default function PhoneLogDetails({ phoneLog, client }: PhoneLogDetailsPro
                       </Typography>
                     }
                     secondary={
-                      <Box component="div" sx={{ mt: 0.5 }}>
-                        <Chip
-                          label={client.member_status}
-                          color={client.member_status === 'active' ? 'success' : 'warning'}
-                          size={isMobile ? "small" : "medium"}
-                        />
-                      </Box>
+                      <Chip
+                        label={client.member_status}
+                        color={client.member_status === 'active' ? 'success' : 'warning'}
+                        size={isMobile ? "small" : "medium"}
+                        sx={{ mt: 0.5 }}
+                      />
                     }
+                    secondaryTypographyProps={{ component: 'div' }}
                   />
                 </ListItem>
               </List>

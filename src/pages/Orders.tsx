@@ -5,7 +5,7 @@ import OrderDetails from '../features/orders/OrderDetails';
 import { api } from '../services/api';
 import { Order, Client } from '../types';
 import { NewOrder } from '../types/order';
-import { Box, Button, Typography } from '@mui/material';
+import { Box, Button, Typography, Snackbar, Alert } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 
 export default function Orders() {
@@ -14,6 +14,15 @@ export default function Orders() {
   const [selectedOrder, setSelectedOrder] = useState<Order | undefined>(undefined);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [notification, setNotification] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error';
+  }>({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
 
   useEffect(() => {
     fetchOrders();
@@ -21,13 +30,31 @@ export default function Orders() {
   }, []);
 
   const fetchOrders = async () => {
-    const fetchedOrders = await api.orders.getAll();
-    setOrders(fetchedOrders);
+    try {
+      const fetchedOrders = await api.orders.getAll();
+      setOrders(fetchedOrders);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      setNotification({
+        open: true,
+        message: 'Error loading orders',
+        severity: 'error'
+      });
+    }
   };
 
   const fetchClients = async () => {
-    const fetchedClients = await api.clients.getAll();
-    setClients(fetchedClients);
+    try {
+      const fetchedClients = await api.clients.getAll();
+      setClients(fetchedClients);
+    } catch (error) {
+      console.error('Error fetching clients:', error);
+      setNotification({
+        open: true,
+        message: 'Error loading clients',
+        severity: 'error'
+      });
+    }
   };
 
   const handleViewOrder = (order: Order) => {
@@ -49,14 +76,29 @@ export default function Orders() {
     try {
       if (selectedOrder) {
         await api.orders.update(selectedOrder.id, orderData);
+        setNotification({
+          open: true,
+          message: 'Order updated successfully',
+          severity: 'success'
+        });
       } else {
         await api.orders.create(orderData);
+        setNotification({
+          open: true,
+          message: 'Order created successfully',
+          severity: 'success'
+        });
       }
       await fetchOrders();
       setIsFormOpen(false);
       setSelectedOrder(undefined);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting order:', error);
+      setNotification({
+        open: true,
+        message: error.message || 'Error submitting order',
+        severity: 'error'
+      });
     }
   };
 
@@ -66,8 +108,18 @@ export default function Orders() {
       await fetchOrders();
       setIsDetailsOpen(false);
       setSelectedOrder(undefined);
+      setNotification({
+        open: true,
+        message: 'Order deleted successfully',
+        severity: 'success'
+      });
     } catch (error) {
       console.error('Error deleting order:', error);
+      setNotification({
+        open: true,
+        message: 'Error deleting order',
+        severity: 'error'
+      });
     }
   };
 
@@ -75,9 +127,23 @@ export default function Orders() {
     try {
       await api.orders.update(order.id, { ...order, status: newStatus });
       await fetchOrders();
+      setNotification({
+        open: true,
+        message: 'Order status updated successfully',
+        severity: 'success'
+      });
     } catch (error) {
       console.error('Error updating order status:', error);
+      setNotification({
+        open: true,
+        message: 'Error updating order status',
+        severity: 'error'
+      });
     }
+  };
+
+  const handleCloseNotification = () => {
+    setNotification({ ...notification, open: false });
   };
 
   return (
@@ -143,6 +209,20 @@ export default function Orders() {
           )}
         </>
       )}
+
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={handleCloseNotification}
+      >
+        <Alert 
+          onClose={handleCloseNotification} 
+          severity={notification.severity}
+          sx={{ width: '100%' }}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 } 

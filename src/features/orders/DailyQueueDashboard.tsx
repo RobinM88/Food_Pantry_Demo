@@ -69,15 +69,35 @@ export default function DailyQueueDashboard({
 
   // Filter orders based on status and date
   const filteredOrders = orders.filter(order => {
+    console.log('Processing order:', order);
+    
     // Filter by status if selected
     const statusMatch = !selectedStatus || order.status === selectedStatus;
+    console.log('Status match:', { 
+      selectedStatus, 
+      orderStatus: order.status, 
+      statusMatch 
+    });
 
-    // Filter by date if selected (checking if pickup_date matches selected date)
-    const dateMatch = !selectedDate || 
-      (order.pickup_date && isSameDay(new Date(order.pickup_date), selectedDate));
+    // Filter by date if selected
+    const dateMatch = !selectedDate || !order.pickup_date || 
+      isSameDay(new Date(order.pickup_date), selectedDate);
+    console.log('Date match:', { 
+      selectedDate, 
+      orderPickupDate: order.pickup_date, 
+      dateMatch 
+    });
 
-    return statusMatch && dateMatch;
+    const shouldInclude = statusMatch && dateMatch;
+    console.log('Final decision for order:', { 
+      orderId: order.id, 
+      shouldInclude 
+    });
+
+    return shouldInclude;
   });
+
+  console.log('Filtered orders:', filteredOrders);
 
   const handleStatusChange = (order: Order, newStatus: OrderStatus) => {
     // If changing from confirmed to ready, open the box count dialog
@@ -240,8 +260,21 @@ export default function DailyQueueDashboard({
   };
 
   const renderOrderCard = (order: Order) => {
-    const client = clients.find(c => c.id === order.family_search_id);
-    if (!client) return null;
+    console.log('Looking up client for order:', { 
+      orderId: order.id, 
+      familyNumber: order.family_number,
+      availableClients: clients.map(c => ({ id: c.id, familyNumber: c.family_number, name: `${c.first_name} ${c.last_name}` }))
+    });
+    
+    const client = clients.find(c => c.family_number === order.family_number);
+    if (!client) {
+      console.log('No client found for order:', { 
+        orderId: order.id, 
+        familyNumber: order.family_number,
+        availableClients: clients.map(c => ({ id: c.id, familyNumber: c.family_number, name: `${c.first_name} ${c.last_name}` }))
+      });
+      return null;
+    }
 
     const nextStatuses = getNextStatusOptions(order.status, order.delivery_type);
     
@@ -411,7 +444,10 @@ export default function DailyQueueDashboard({
             <DatePicker
               label="Filter by Date"
               value={selectedDate}
-              onChange={(date) => setSelectedDate(date)}
+              onChange={(newDate) => {
+                console.log('Date changed:', newDate);
+                setSelectedDate(newDate);
+              }}
               slotProps={{
                 textField: {
                   size: "small",

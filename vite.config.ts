@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       VitePWA({
-        registerType: 'autoUpdate',
+        registerType: 'prompt',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
         manifest: {
           name: env.VITE_APP_NAME || 'St. Trinity Food Pantry',
@@ -37,28 +37,37 @@ export default defineConfig(({ mode }) => {
             }
           ]
         },
+        devOptions: {
+          enabled: false // Disable PWA in development
+        },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
           runtimeCaching: [
             {
-              urlPattern: /^https:\/\/.*\.(png|jpg|jpeg|svg|gif)$/i,
+              urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
               handler: 'CacheFirst',
               options: {
-                cacheName: 'images',
+                cacheName: 'google-fonts-cache',
                 expiration: {
                   maxEntries: 10,
-                  maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
+                  maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                },
+                cacheableResponse: {
+                  statuses: [0, 200]
                 }
               }
             },
             {
-              urlPattern: /^https:\/\/.*\.(woff2|woff|ttf)$/i,
+              urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
               handler: 'CacheFirst',
               options: {
-                cacheName: 'fonts',
+                cacheName: 'gstatic-fonts-cache',
                 expiration: {
                   maxEntries: 10,
-                  maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
+                  maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                },
+                cacheableResponse: {
+                  statuses: [0, 200]
                 }
               }
             }
@@ -66,10 +75,20 @@ export default defineConfig(({ mode }) => {
         }
       })
     ],
-    resolve: {
-      alias: {
-        '@': path.resolve(__dirname, './src')
+    build: {
+      sourcemap: true,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            vendor: ['react', 'react-dom', 'react-router-dom'],
+            ui: ['@mui/material', '@mui/icons-material']
+          }
+        }
       }
+    },
+    server: {
+      port: 5174,
+      strictPort: true
     }
   }
 }) 

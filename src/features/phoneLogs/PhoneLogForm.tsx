@@ -19,7 +19,7 @@ import {
   Divider
 } from '@mui/material';
 import { Client } from '../../types/client';
-import { PhoneLog } from '../../types';
+import { PhoneLog } from '../../types/phoneLog';
 import { NewOrder } from '../../types/order';
 import { CallType, CallOutcome } from '../../types/phoneLog';
 import { usePhoneLogForm } from '../../hooks/usePhoneLogForm';
@@ -51,7 +51,7 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
   const [nameSearch, setNameSearch] = useState('');
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [orderData, setOrderData] = useState<NewOrder>({
-    family_search_id: '',
+    family_number: '',
     status: 'pending',
     pickup_date: new Date(),
     notes: '',
@@ -73,7 +73,7 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
     handleCallTypeChange,
     handleCallOutcomeChange,
     handleNotesChange,
-    handleClientSelect: originalHandleClientSelect,
+    handleClientSelect,
     handleCreateNewClient,
     handleSubmit,
     reset
@@ -94,52 +94,29 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
     }
   });
 
-  // Enhanced handleClientSelect that also updates phone number
-  const handleClientSelect = (client: Client) => {
-    // Get the partial search number without any formatting
-    const searchNumber = state.phoneNumber.replace(/\D/g, '');
-    
-    // Get client's phone numbers without any formatting
-    const phone1 = (client.phone1 || '').replace(/\D/g, '');
-    const phone2 = (client.phone2 || '').replace(/\D/g, '');
-    
-    // Check if the search number matches or is contained in either phone number
-    if (phone1.includes(searchNumber)) {
-      handlePhoneNumberChange(client.phone1 || '');
-    } else if (phone2.includes(searchNumber)) {
-      handlePhoneNumberChange(client.phone2 || '');
-    } else {
-      // If no match found, default to phone1
-      handlePhoneNumberChange(client.phone1 || '');
-    }
-    
-    // Call the original handler
-    originalHandleClientSelect(client);
-  };
-
   // Initialize with phone number if provided
   useEffect(() => {
-    if (initialPhoneNumber && !state.phoneNumber) {
+    if (initialPhoneNumber && !state.phone_number) {
       handlePhoneNumberChange(initialPhoneNumber);
     }
-  }, [initialPhoneNumber, state.phoneNumber, handlePhoneNumberChange]);
+  }, [initialPhoneNumber, state.phone_number, handlePhoneNumberChange]);
 
   // Auto-select client if there's exactly one match
   useEffect(() => {
-    if (matchingClients.length === 1 && !state.selectedClient) {
+    if (matchingClients.length === 1 && !state.selected_client) {
       handleClientSelect(matchingClients[0]);
     }
-  }, [matchingClients, state.selectedClient, handleClientSelect]);
+  }, [matchingClients, state.selected_client, handleClientSelect]);
 
   // Update search results when either phone or name changes
   useEffect(() => {
-    const searchByPhone = state.phoneNumber.replace(/\D/g, '').length >= 3;
+    const searchByPhone = state.phone_number.replace(/\D/g, '').length >= 3;
     const searchByName = nameSearch.length >= 2;
 
     if (searchByPhone || searchByName) {
       const filteredClients = clients.filter(client => {
         // Phone number search
-        const normalizedSearchNumber = state.phoneNumber.replace(/\D/g, '');
+        const normalizedSearchNumber = state.phone_number.replace(/\D/g, '');
         const phone1Normalized = (client.phone1 || '').replace(/\D/g, '');
         const phone2Normalized = (client.phone2 || '').replace(/\D/g, '');
         
@@ -159,7 +136,7 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
     } else {
       setMatchingClients([]);
     }
-  }, [state.phoneNumber, nameSearch, clients]);
+  }, [state.phone_number, nameSearch, clients]);
 
   const handleClose = () => {
     if (!isSaving) {
@@ -176,14 +153,14 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
       setIsSaving(true);
       const success = await handleSubmit();
       
-      if (success && state.selectedClient) {
+      if (success && state.selected_client) {
         // Create the phone log
         if (isCreatingOrder && orderData) {
           try {
             console.log('Preparing order data...'); // Debug log
             const orderWithDates: NewOrder = {
               ...orderData,
-              family_search_id: state.selectedClient.id,
+              family_number: state.selected_client.family_number,
               notes: `${orderData.notes || ''}\n\nPhone Log Notes: ${state.notes || ''}`.trim(),
             };
 
@@ -214,13 +191,13 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
         try {
           const newPhoneLog: PhoneLog = {
             id: Date.now().toString(),
-            familySearchId: state.selectedClient.id,
-            phoneNumber: state.phoneNumber,
-            callType: state.callType,
-            callOutcome: state.callOutcome,
+            family_number: state.selected_client.family_number,
+            phone_number: state.phone_number,
+            call_type: state.call_type,
+            call_outcome: state.call_outcome,
             notes: state.notes,
-            createdAt: new Date(),
-            updatedAt: new Date()
+            created_at: new Date(),
+            updated_at: new Date()
           };
 
           await onSavePhoneLog(newPhoneLog);
@@ -230,11 +207,11 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
           navigate('/phone-logs', {
             state: {
               fromPhoneLog: true,
-              phoneNumber: state.phoneNumber,
+              phoneNumber: state.phone_number,
               success: true,
               phoneLogState: {
-                callType: state.callType,
-                callOutcome: state.callOutcome,
+                call_type: state.call_type,
+                call_outcome: state.call_outcome,
                 notes: state.notes
               }
             },
@@ -257,7 +234,7 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
     if (!isCreatingOrder) {
       // Initialize order data when enabling order creation
       setOrderData({
-        family_search_id: state.selectedClient?.id || '',
+        family_number: state.selected_client?.family_number || '',
         status: 'pending',
         notes: state.notes || '',
         pickup_date: undefined,
@@ -266,9 +243,9 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
         approval_status: 'pending',
         number_of_boxes: 1,
         additional_people: {
-          adults: state.selectedClient?.adults || 0,
-          small_children: state.selectedClient?.small_children || 0,
-          school_aged: state.selectedClient?.school_aged || 0
+          adults: state.selected_client?.adults || 0,
+          small_children: state.selected_client?.small_children || 0,
+          school_aged: state.selected_client?.school_aged || 0
         }
       });
     }
@@ -285,10 +262,10 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
           <Stack spacing={2}>
             <TextField
               label="Phone Number"
-              value={state.phoneNumber}
+              value={state.phone_number}
               onChange={(e) => handlePhoneNumberChange(e.target.value)}
-              error={!!errors.phoneNumber}
-              helperText={errors.phoneNumber}
+              error={!!errors.phone_number}
+              helperText={errors.phone_number}
               fullWidth
               size={isMobile ? "small" : "medium"}
             />
@@ -316,7 +293,7 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
                     key={client.id}
                     button
                     onClick={() => handleClientSelect(client)}
-                    selected={state.selectedClient?.id === client.id}
+                    selected={state.selected_client?.id === client.id}
                     sx={{ 
                       flexDirection: isMobile ? 'column' : 'row',
                       alignItems: isMobile ? 'flex-start' : 'center',
@@ -358,7 +335,7 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
         )}
 
         {/* No Matches - Create New Client Section */}
-        {state.phoneNumber && !matchingClients.length && (
+        {state.phone_number && !matchingClients.length && (
           <Grid item xs={12}>
             <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
               <Stack spacing={2}>
@@ -388,10 +365,10 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
             <FormControl fullWidth size={isMobile ? "small" : "medium"}>
               <InputLabel>Call Type</InputLabel>
               <Select
-                value={state.callType}
+                value={state.call_type}
                 onChange={(e) => handleCallTypeChange(e.target.value as CallType)}
                 label="Call Type"
-                error={!!errors.callType}
+                error={!!errors.call_type}
               >
                 <MenuItem value="incoming">Incoming</MenuItem>
                 <MenuItem value="outgoing">Outgoing</MenuItem>
@@ -401,10 +378,10 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
             <FormControl fullWidth size={isMobile ? "small" : "medium"}>
               <InputLabel>Call Outcome</InputLabel>
               <Select
-                value={state.callOutcome}
+                value={state.call_outcome}
                 onChange={(e) => handleCallOutcomeChange(e.target.value as CallOutcome)}
                 label="Call Outcome"
-                error={!!errors.callOutcome}
+                error={!!errors.call_outcome}
               >
                 <MenuItem value="successful">Successful</MenuItem>
                 <MenuItem value="voicemail">Voicemail</MenuItem>
@@ -432,7 +409,7 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
         </Grid>
 
         {/* Create Order Section */}
-        {state.selectedClient && (
+        {state.selected_client && (
           <>
             <Grid item xs={12}>
               <Divider sx={{ my: isMobile ? 1 : 2 }} />

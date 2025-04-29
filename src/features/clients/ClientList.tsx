@@ -23,13 +23,16 @@ import {
   DialogContent,
   SelectChangeEvent,
   Button,
-  Stack
+  Stack,
+  Tooltip
 } from '@mui/material';
 import {
   Search as SearchIcon,
   Visibility as ViewIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  CheckCircle as ApproveIcon,
+  Block as RejectIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { Client, MemberStatus } from '../../types';
@@ -40,7 +43,10 @@ interface ClientListProps {
   onViewClient: (client: Client) => void;
   onEditClient: (client: Client) => void;
   onDeleteClient: (client: Client) => void;
-  onAdd: () => void;
+  onAdd?: () => void;
+  onApprove?: (client: Client) => void;
+  onReject?: (client: Client) => void;
+  hideAddButton?: boolean;
   onPendingClick?: () => void;
 }
 
@@ -50,6 +56,9 @@ export default function ClientList({
   onEditClient,
   onDeleteClient,
   onAdd,
+  onApprove,
+  onReject,
+  hideAddButton = false,
   onPendingClick
 }: ClientListProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -131,13 +140,15 @@ export default function ClientList({
                 Pending Clients
               </Button>
             )}
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={onAdd}
-            >
-              Add Client
-            </Button>
+            {!hideAddButton && onAdd && (
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={onAdd}
+              >
+                Add Client
+              </Button>
+            )}
           </Stack>
         </Box>
 
@@ -244,7 +255,8 @@ export default function ClientList({
                           client.member_status === MemberStatus.Active ? 'success' :
                           client.member_status === MemberStatus.Pending ? 'warning' :
                           client.member_status === MemberStatus.Suspended || 
-                          client.member_status === MemberStatus.Banned ? 'error' :
+                          client.member_status === MemberStatus.Banned ||
+                          client.member_status === MemberStatus.Denied ? 'error' :
                           'default'
                         }
                         size="small"
@@ -254,27 +266,56 @@ export default function ClientList({
                       {client.last_visit ? format(new Date(client.last_visit), 'MMM d, yyyy') : 'Never'}
                     </TableCell>
                     <TableCell>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleViewClient(client)}
-                        title="View Details"
-                      >
-                        <ViewIcon />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleEditClient(client)}
-                        title="Edit"
-                      >
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleDeleteClient(client)}
-                        title="Delete"
-                      >
-                        <DeleteIcon />
-                      </IconButton>
+                      <Stack direction="row" spacing={1}>
+                        <Tooltip title="View Details">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleViewClient(client)}
+                          >
+                            <ViewIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Edit">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleEditClient(client)}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                        {onApprove && client.member_status === MemberStatus.Pending && (
+                          <>
+                            <Tooltip title="Approve Client">
+                              <IconButton
+                                size="small"
+                                onClick={() => onApprove(client)}
+                                color="success"
+                              >
+                                <ApproveIcon />
+                              </IconButton>
+                            </Tooltip>
+                            {onReject && (
+                              <Tooltip title="Reject Client">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => onReject(client)}
+                                  color="error"
+                                >
+                                  <RejectIcon />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </>
+                        )}
+                        <Tooltip title="Delete">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDeleteClient(client)}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
                     </TableCell>
                   </TableRow>
                 ))}

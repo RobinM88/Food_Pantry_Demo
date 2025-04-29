@@ -1,23 +1,29 @@
 import { ConnectedFamily } from '../types/connectedFamily';
 import { api } from './api';
 import { v4 as uuidv4 } from 'uuid';
+import { ClientService } from './client.service';
 
 export const ConnectedFamilyService = {
   async getByClientId(clientId: string) {
     const { data, error } = await api.supabase
       .from('ConnectedFamily')
       .select('*')
-      .eq('client_id', clientId);
+      .eq('family_number', clientId);
     
     if (error) throw error;
     return data;
   },
 
   async create(data: Omit<ConnectedFamily, 'id'>) {
+    // Generate a new connected family number if one isn't provided
+    const connected_family_number = data.connected_family_number.startsWith('cf') 
+      ? data.connected_family_number 
+      : await ClientService.generateConnectedFamilyNumber();
+
     const formattedData = {
       id: uuidv4(),
-      client_id: data.client_id,
-      connected_to: data.connected_to,
+      family_number: data.family_number,
+      connected_family_number,
       relationship_type: data.relationship_type
     };
 
@@ -49,7 +55,7 @@ export const ConnectedFamilyService = {
     const { error } = await api.supabase
       .from('ConnectedFamily')
       .delete()
-      .eq('client_id', clientId);
+      .eq('family_number', clientId);
     
     if (error) throw error;
   }

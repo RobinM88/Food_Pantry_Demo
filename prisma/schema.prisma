@@ -8,80 +8,92 @@ datasource db {
 }
 
 model Client {
-  id            String    @id @default(uuid())
-  familyNumber  String    @unique
-  firstName     String
-  lastName      String
-  email         String?
-  address       String
-  aptNumber     String?
-  zipCode       String
-  phone1        String
-  phone2        String?
-  
-  // Status
-  isUnhoused    Boolean   @default(false)
-  isTemporary   Boolean   @default(false)
-  memberStatus  String    @default("active")
-  
-  // Family composition
-  familySize    Int
-  adults        Int
-  schoolAged    Int
-  smallChildren Int
-  
-  // Temporary members
-  temporaryMembers Json?
-  
-  // Notes
-  foodNotes     String?
-  officeNotes   String?
-  
-  // Tracking
-  totalVisits     Int      @default(0)
-  totalThisMonth  Int      @default(0)
-  lastVisit       DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  
-  // Relations
-  orders      Order[]
-  phoneLogs   PhoneLog[]
-  connectedFamilies ConnectedFamily[]
+  id                 String            @id @default(uuid())
+  family_number      String            @unique
+  first_name         String
+  last_name          String
+  email              String?
+  address            String
+  apt_number         String?
+  zip_code           String
+  phone1             String
+  phone2             String?
+  is_unhoused        Boolean           @default(false)
+  is_temporary       Boolean           @default(false)
+  member_status      String            @default("active")
+  family_size        Int
+  adults             Int
+  school_aged        Int
+  small_children     Int
+  temporary_members  Json?
+  food_notes         String?
+  office_notes       String?
+  total_visits       Int               @default(0)
+  total_this_month   Int               @default(0)
+  last_visit         DateTime?
+  created_at         DateTime          @default(now())
+  updated_at         DateTime          @updatedAt
+  connected_families ConnectedFamily[] @relation("ConnectedFamilies")
+  connected_to       ConnectedFamily[] @relation("ConnectedTo")
+  contact_notes      ContactNote[]
+  orders             Order[]
+  phone_logs         PhoneLog[]
 }
 
 model Order {
-  id              String   @id @default(uuid())
-  familySearchId  String
-  status          String
-  pickupDate      DateTime?
-  notes           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  deliveryType    String
-  isNewClient     Boolean  @default(false)
-  approvalStatus  String   @default("pending")
-  numberOfBoxes   Int      @default(1)
-  additionalPeople Json
-  visitContact    String?
-  client          Client   @relation(fields: [familySearchId], references: [familyNumber])
+  id                String    @id @default(uuid())
+  family_number     String
+  status            String
+  pickup_date       DateTime?
+  notes             String?
+  delivery_type     String
+  is_new_client     Boolean   @default(false)
+  approval_status   String    @default("pending")
+  number_of_boxes   Int       @default(1)
+  additional_people Json
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  client            Client    @relation(fields: [family_number], references: [family_number], onDelete: Cascade)
+
+  @@index([family_number])
 }
 
 model PhoneLog {
-  id              String    @id @default(uuid())
-  client          Client    @relation(fields: [familySearchId], references: [familyNumber])
-  familySearchId  String
-  phoneNumber     String
-  callType        String
-  callOutcome     String
-  notes           String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id           String   @id @default(uuid())
+  family_number String
+  phone_number String
+  call_type    String
+  call_outcome String
+  notes        String?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+  client       Client   @relation(fields: [family_number], references: [family_number], onDelete: Cascade)
+
+  @@index([family_number])
 }
 
 model ConnectedFamily {
-  id          String  @id @default(uuid())
-  client      Client  @relation(fields: [clientId], references: [id])
-  clientId    String
-  connectedTo String
-} 
+  id                      String  @id @default(uuid())
+  family_number          String
+  connected_family_number String
+  relationship_type      String?
+  client                 Client  @relation("ConnectedFamilies", fields: [family_number], references: [family_number], onDelete: Cascade)
+  connected_to           Client  @relation("ConnectedTo", fields: [connected_family_number], references: [family_number], onDelete: Cascade)
+
+  @@index([family_number])
+  @@index([connected_family_number])
+}
+
+model ContactNote {
+  id              String   @id @default(uuid())
+  family_number   String
+  contact_date    DateTime
+  notes           String
+  contact_purpose String
+  contact_method  String
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+  client          Client   @relation(fields: [family_number], references: [family_number], onDelete: Cascade)
+
+  @@index([family_number])
+}

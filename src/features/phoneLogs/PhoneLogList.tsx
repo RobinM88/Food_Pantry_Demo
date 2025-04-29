@@ -74,19 +74,34 @@ export default function PhoneLogList({
     return formatPhoneNumber(value);
   };
 
+  const formatDate = (dateString: string | Date | undefined): string => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      // Check if the date is valid
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+      }
+      return format(date, 'MMM d, yyyy h:mm a');
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid Date';
+    }
+  };
+
   // Filter phone logs based on search query and filters
   const filteredPhoneLogs = phoneLogs.filter(log => {
-    const client = clients.find(c => c.id === log.familySearchId);
+    const client = clients.find(c => c.family_number === log.family_number);
     const clientName = client ? `${client.first_name} ${client.last_name}`.toLowerCase() : '';
     const searchLower = searchQuery.toLowerCase();
     
     const matchesSearch = 
       clientName.includes(searchLower) || 
-      log.phoneNumber.toLowerCase().includes(searchLower) ||
+      log.phone_number.toLowerCase().includes(searchLower) ||
       log.notes?.toLowerCase().includes(searchLower) || '';
     
-    const matchesCallType = filterCallType === 'all' || log.callType === filterCallType;
-    const matchesCallOutcome = filterCallOutcome === 'all' || log.callOutcome === filterCallOutcome;
+    const matchesCallType = filterCallType === 'all' || log.call_type === filterCallType;
+    const matchesCallOutcome = filterCallOutcome === 'all' || log.call_outcome === filterCallOutcome;
     
     return matchesSearch && matchesCallType && matchesCallOutcome;
   });
@@ -125,8 +140,8 @@ export default function PhoneLogList({
     setDetailsDialogOpen(false);
   };
 
-  const getClientName = (familySearchId: string) => {
-    const client = clients.find(c => c.id === familySearchId);
+  const getClientName = (familyNumber: string) => {
+    const client = clients.find(c => c.family_number === familyNumber);
     return client ? `${client.first_name} ${client.last_name}` : 'Unknown Client';
   };
 
@@ -228,7 +243,7 @@ export default function PhoneLogList({
                   alignItems: 'flex-start'
                 }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 500, flexGrow: 1 }}>
-                    {getClientName(log.familySearchId)}
+                    {getClientName(log.family_number)}
                   </Typography>
                   <IconButton
                     size="small"
@@ -245,28 +260,28 @@ export default function PhoneLogList({
                 
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Typography variant="body2" color="text.secondary">
-                    {format(new Date(log.createdAt), 'MMM d, yyyy h:mm a')}
+                    {formatDate(log.created_at)}
                   </Typography>
                 </Stack>
 
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Typography variant="body2">
-                    {formatPhoneNumberDisplay(log.phoneNumber)}
+                    {formatPhoneNumberDisplay(log.phone_number)}
                   </Typography>
                 </Stack>
 
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                   <Chip
-                    icon={getCallTypeIcon(log.callType)}
-                    label={log.callType === 'incoming' ? 'Incoming' : 'Outgoing'}
-                    color={getCallTypeColor(log.callType)}
+                    icon={getCallTypeIcon(log.call_type)}
+                    label={log.call_type === 'incoming' ? 'Incoming' : 'Outgoing'}
+                    color={getCallTypeColor(log.call_type)}
                     size="small"
                     sx={{ minWidth: '90px', mb: 0.5 }}
                   />
                   <Chip
-                    icon={getCallOutcomeIcon(log.callOutcome)}
-                    label={log.callOutcome.replace('_', ' ')}
-                    color={getCallOutcomeColor(log.callOutcome)}
+                    icon={getCallOutcomeIcon(log.call_outcome)}
+                    label={log.call_outcome.replace('_', ' ')}
+                    color={getCallOutcomeColor(log.call_outcome)}
                     size="small"
                     sx={{ minWidth: '90px', mb: 0.5 }}
                   />
@@ -425,24 +440,24 @@ export default function PhoneLogList({
                   .map((log) => (
                     <TableRow key={log.id} hover>
                       <TableCell>
-                        {format(new Date(log.createdAt), 'MMM d, yyyy h:mm a')}
+                        {formatDate(log.created_at)}
                       </TableCell>
-                      <TableCell>{getClientName(log.familySearchId)}</TableCell>
-                      <TableCell>{formatPhoneNumberDisplay(log.phoneNumber)}</TableCell>
+                      <TableCell>{getClientName(log.family_number)}</TableCell>
+                      <TableCell>{formatPhoneNumberDisplay(log.phone_number)}</TableCell>
                       <TableCell>
                         <Chip
-                          icon={getCallTypeIcon(log.callType)}
-                          label={log.callType === 'incoming' ? 'Incoming' : 'Outgoing'}
-                          color={getCallTypeColor(log.callType)}
+                          icon={getCallTypeIcon(log.call_type)}
+                          label={log.call_type === 'incoming' ? 'Incoming' : 'Outgoing'}
+                          color={getCallTypeColor(log.call_type)}
                           size="small"
                           sx={{ minWidth: '90px' }}
                         />
                       </TableCell>
                       <TableCell>
                         <Chip
-                          icon={getCallOutcomeIcon(log.callOutcome)}
-                          label={log.callOutcome.replace('_', ' ')}
-                          color={getCallOutcomeColor(log.callOutcome)}
+                          icon={getCallOutcomeIcon(log.call_outcome)}
+                          label={log.call_outcome.replace('_', ' ')}
+                          color={getCallOutcomeColor(log.call_outcome)}
                           size="small"
                           sx={{ minWidth: '90px' }}
                         />
@@ -508,7 +523,7 @@ export default function PhoneLogList({
           {selectedPhoneLog && (
             <PhoneLogDetails
               phoneLog={selectedPhoneLog}
-              client={clients.find(c => c.id === selectedPhoneLog.familySearchId) || null}
+              client={clients.find(c => c.family_number === selectedPhoneLog.family_number) || null}
             />
           )}
         </DialogContent>

@@ -22,7 +22,7 @@ import { validateClient } from '../../utils/validationUtils';
 
 interface ClientFormProps {
   client?: Client;
-  onSubmit: (client: Omit<Client, 'id' | 'created_at' | 'updated_at'> | Partial<Client>) => void;
+  onSubmit: (client: Omit<Client, 'id' | 'created_at' | 'updated_at'>) => void;
   onCancel: () => void;
   initialData?: Partial<Client>;
   allClients: Client[];
@@ -35,62 +35,39 @@ export default function ClientForm({
   initialData = {},
   allClients
 }: ClientFormProps) {
-  const [formData, setFormData] = useState<Omit<Client, 'id' | 'created_at' | 'updated_at'>>(() => {
+  const getInitialFormData = (): Omit<Client, 'id' | 'created_at' | 'updated_at'> => {
     if (client) {
-      // When editing an existing client
       const { id, created_at, updated_at, ...clientData } = client;
-      return clientData;
+      return {
+        ...clientData,
+        last_visit: clientData.last_visit ? new Date(clientData.last_visit) : null,
+        family_size: clientData.family_size
+      };
     }
     
-    // For new clients, merge initialData with default values
-    const baseData = {
+    return {
       ...DEFAULT_VALUES,
       ...initialData,
-      // Ensure required fields have non-empty defaults
       family_number: initialData?.family_number || '',
       family_size: initialData?.family_size || 1,
       total_visits: initialData?.total_visits || 0,
       total_this_month: initialData?.total_this_month || 0,
-      last_visit: initialData?.last_visit || new Date().toISOString(),
-    };
-
-    // Explicitly set member_status to the enum value
-    return {
-      ...baseData,
+      last_visit: initialData?.last_visit ? new Date(initialData.last_visit) : new Date(),
       member_status: MemberStatus.Pending
     };
-  });
+  };
+
+  const [formData, setFormData] = useState<Omit<Client, 'id' | 'created_at' | 'updated_at'>>(getInitialFormData);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // State for connected families
   const [connectedFamilyIds, setConnectedFamilyIds] = useState<string[]>([]);
 
   useEffect(() => {
-    if (client) {
-      const { created_at, updated_at, last_visit, family_size, ...clientData } = client;
-      const newFormData: Omit<Client, 'id' | 'created_at' | 'updated_at'> = {
-        ...clientData,
-        email: client.email || '',
-        apt_number: client.apt_number || '',
-        phone2: client.phone2 || '',
-        temporary_members: client.is_temporary ? {
-          adults: client.temporary_members?.adults ?? 0,
-          school_aged: client.temporary_members?.school_aged ?? 0,
-          small_children: client.temporary_members?.small_children ?? 0
-        } : undefined,
-        food_notes: client.food_notes || '',
-        office_notes: client.office_notes || ''
-      };
-      setFormData(newFormData);
-    }
-  }, [client]);
-
-  // Load connected families when editing an existing client
-  useEffect(() => {
     if (client?.id) {
       ConnectedFamilyService.getByClientId(client.id)
         .then(connections => {
-          setConnectedFamilyIds(connections.map(c => c.connected_to));
+          setConnectedFamilyIds(connections.map(c => c.connected_family_number));
         })
         .catch(error => {
           console.error('Error loading connected families:', error);
@@ -168,42 +145,38 @@ export default function ClientForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('Form Data being submitted:', JSON.stringify(formData, null, 2));
-    
-    // Validate form data
     const validationErrors = validateClient(formData);
-    console.log('Validation Errors:', JSON.stringify(validationErrors, null, 2));
-    
     if (Object.keys(validationErrors).length > 0) {
-      console.log('Form has validation errors:', Object.keys(validationErrors));
       setErrors(validationErrors);
       return;
     }
 
     try {
-      console.log('Attempting to submit client data');
-      // Submit the client data
       await onSubmit(formData);
 
-      // Handle connected families if editing an existing client
       if (client?.id && connectedFamilyIds.length > 0) {
-        try {
-          await ConnectedFamilyService.deleteByClientId(client.id);
-          await Promise.all(
-            connectedFamilyIds.map(connectedTo => 
-              ConnectedFamilyService.create({
-                client_id: client.id,
-                connected_to: connectedTo,
-                relationship_type: 'other'
-              })
-            )
-          );
-        } catch (error) {
-          console.error('Error managing connected families:', error);
+        await ConnectedFamilyService.deleteByClientId(client.id);
+        await Promise.all(
+          connectedFamilyIds.map(connectedId => 
+            ConnectedFamilyService.create({
+              family_number: client.id!,
+              connected_family_number: connectedId,
+              relationship_type: 'other'
+            })
+          )
+        );
+      }
+
+      // Find and remove the reverse connection
+      if (client) {
+        const reverseConnections = await ConnectedFamilyService.getByClientId(client.family_number);
+        const reverseConnection = reverseConnections.find(c => c.connected_family_number === client.family_number);
+        if (reverseConnection) {
+          await ConnectedFamilyService.delete(reverseConnection.id);
         }
       }
     } catch (error) {
-      console.error('Error saving client:', error);
+      console.error('Error submitting form:', error);
     }
   };
 
@@ -530,7 +503,7 @@ export default function ClientForm({
                 client={client}
                 allClients={allClients}
                 onConnectionsChange={(connections) => {
-                  setConnectedFamilyIds(connections.map(c => c.connected_to));
+                  setConnectedFamilyIds(connections.map(c => c.connected_family_number));
                 }}
               />
             )}

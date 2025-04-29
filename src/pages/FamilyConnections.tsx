@@ -69,7 +69,7 @@ export default function FamilyConnections() {
       // Get all connections first
       let allConnectionsData: ConnectedFamily[] = [];
       for (const client of clientsData) {
-        const clientConnections = await ConnectedFamilyService.getByClientId(client.id);
+        const clientConnections = await ConnectedFamilyService.getByClientId(client.family_number);
         allConnectionsData = [...allConnectionsData, ...clientConnections];
       }
       
@@ -78,9 +78,9 @@ export default function FamilyConnections() {
       const processedClients = new Set<string>();
 
       for (const client of clientsData) {
-        if (processedClients.has(client.id)) continue;
+        if (processedClients.has(client.family_number)) continue;
 
-        const clientConnections = allConnectionsData.filter(conn => conn.client_id === client.id);
+        const clientConnections = allConnectionsData.filter(conn => conn.family_number === client.family_number);
         if (clientConnections.length > 0) {
           const group: FamilyGroup = {
             mainClient: client,
@@ -88,19 +88,19 @@ export default function FamilyConnections() {
           };
 
           for (const conn of clientConnections) {
-            const connectedClient = clientsData.find((c: Client) => c.id === conn.connected_to);
+            const connectedClient = clientsData.find((c: Client) => c.family_number === conn.connected_family_number);
             if (connectedClient) {
               group.connections.push({
                 client: connectedClient,
                 connectionId: conn.id,
                 relationshipType: conn.relationship_type
               });
-              processedClients.add(connectedClient.id);
+              processedClients.add(connectedClient.family_number);
             }
           }
 
           groups.push(group);
-          processedClients.add(client.id);
+          processedClients.add(client.family_number);
         }
       }
 
@@ -117,14 +117,14 @@ export default function FamilyConnections() {
     try {
       // Create the connection in both directions
       const connection1 = {
-        client_id: selectedClient.id,
-        connected_to: client.id,
+        family_number: selectedClient.family_number,
+        connected_family_number: client.family_number,
         relationship_type: relationshipType
       };
 
       const connection2 = {
-        client_id: client.id,
-        connected_to: selectedClient.id,
+        family_number: client.family_number,
+        connected_family_number: selectedClient.family_number,
         relationship_type: relationshipType
       };
 

@@ -19,8 +19,8 @@ import {
   FormHelperText
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers';
-import { Order, Client } from '../../types';
-import { NewOrder } from '../../types/order';
+import { Client } from '../../types';
+import { Order, NewOrder } from '../../types/order';
 import {
   Person as PersonIcon,
   LocalShipping as DeliveryIcon,
@@ -40,7 +40,6 @@ interface OrderFormProps {
 
 interface FormErrors {
   status?: string;
-  family_search_id?: string;
   pickup_date?: string;
   notes?: string;
   delivery_type?: string;
@@ -53,6 +52,7 @@ interface FormErrors {
     small_children?: string;
   };
   visit_contact?: string;
+  family_number?: string;
 }
 
 export const OrderForm: React.FC<OrderFormProps> = ({
@@ -67,10 +67,10 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'error' as 'error' | 'success' });
 
   const [orderData, setOrderData] = React.useState<NewOrder>({
-    family_search_id: initialData?.family_search_id || '',
+    family_number: initialData?.family_number || '',
     status: initialData ? initialData.status : 'pending',
-    pickup_date: initialData?.pickup_date ? new Date(initialData.pickup_date) : undefined,
-    notes: initialData?.notes || '',
+    pickup_date: initialData?.pickup_date || null,
+    notes: initialData?.notes || null,
     delivery_type: initialData?.delivery_type || 'pickup',
     is_new_client: initialData?.is_new_client || false,
     approval_status: initialData ? initialData.approval_status : 'pending',
@@ -80,14 +80,24 @@ export const OrderForm: React.FC<OrderFormProps> = ({
       small_children: 0,
       school_aged: 0
     },
-    visit_contact: initialData?.visit_contact || ''
+    visit_contact: initialData?.visit_contact || null
   });
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
     
-    if (!orderData.family_search_id) {
-      newErrors.family_search_id = 'Please select a client';
+    // Client validation
+    if (!orderData.family_number) {
+      newErrors.family_number = 'Please select a client';
+    } else {
+      const selectedClient = clients.find(client => client.family_number === orderData.family_number);
+      if (!selectedClient) {
+        console.error('Client validation failed:', {
+          family_number: orderData.family_number,
+          availableClients: clients.map(c => ({ family_number: c.family_number, name: `${c.first_name} ${c.last_name}` }))
+        });
+        newErrors.family_number = 'Selected client does not exist in the database';
+      }
     }
     
     if (orderData.number_of_boxes < 1) {
@@ -117,6 +127,11 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      console.log('Submitting order with data:', {
+        orderData,
+        selectedClient: clients.find(c => c.family_number === orderData.family_number)
+      });
+
       if (!validateForm()) {
         setSnackbar({
           open: true,
@@ -125,6 +140,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
         });
         return;
       }
+
       await onSubmit(orderData);
       setSnackbar({
         open: true,
@@ -135,25 +151,17 @@ export const OrderForm: React.FC<OrderFormProps> = ({
       console.error('Error submitting form:', error);
       setSnackbar({
         open: true,
-        message: 'Failed to submit order. Please try again.',
+        message: error && typeof error === 'object' && 'message' in error ? error.message as string : 'Failed to submit order. Please try again.',
         severity: 'error'
       });
     }
   };
 
   const handleDateChange = (date: Date | null) => {
-    try {
-      setOrderData(prev => ({
-        ...prev,
-        pickup_date: date instanceof Date && !isNaN(date.getTime()) ? date : undefined
-      }));
-    } catch (error) {
-      console.error('Error handling date change:', error);
-      setOrderData(prev => ({
-        ...prev,
-        pickup_date: undefined
-      }));
-    }
+    setOrderData(prev => ({
+      ...prev,
+      pickup_date: date
+    }));
   };
 
   // Function to determine if a date is valid (Monday or Wednesday)
@@ -174,7 +182,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
     }
   };
 
-  const selectedClient = clients.find(c => c.id === orderData.family_search_id);
+  const selectedClient = clients.find(c => c.family_number === orderData.family_number);
 
   return (
     <Box sx={{ maxWidth: 1200, margin: '0 auto', p: { xs: 1, sm: 2, md: 3 } }}>
@@ -201,12 +209,12 @@ export const OrderForm: React.FC<OrderFormProps> = ({
                       <Grid item xs={12} md={6}>
                         <FormControl 
                           fullWidth 
-                          error={!!errors.family_search_id}
+                          error={!!errors.family_number}
                         >
                           <InputLabel>Select Client</InputLabel>
                           <Select
-                            value={orderData.family_search_id}
-                            onChange={(e) => handleChange('family_search_id', e.target.value)}
+                            value={orderData.family_number}
+                            onChange={(e) => handleChange('family_number', e.target.value)}
                             label="Select Client"
                             startAdornment={
                               <InputAdornment position="start">
@@ -215,13 +223,13 @@ export const OrderForm: React.FC<OrderFormProps> = ({
                             }
                           >
                             {clients.map(client => (
-                              <MenuItem key={client.id} value={client.id}>
+                              <MenuItem key={client.family_number} value={client.family_number}>
                                 {client.first_name} {client.last_name} ({client.family_number})
                               </MenuItem>
                             ))}
                           </Select>
-                          {errors.family_search_id && (
-                            <FormHelperText error>{errors.family_search_id}</FormHelperText>
+                          {errors.family_number && (
+                            <FormHelperText error>{errors.family_number}</FormHelperText>
                           )}
                         </FormControl>
                       </Grid>
@@ -282,9 +290,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
                       <Grid item xs={12} md={6}>
                         <DatePicker
                           label="Pickup Date"
-                          value={orderData.pickup_date instanceof Date && !isNaN(orderData.pickup_date.getTime()) 
-                            ? orderData.pickup_date 
-                            : null}
+                          value={orderData.pickup_date}
                           onChange={handleDateChange}
                           shouldDisableDate={(date) => !isValidPickupDay(date)}
                           slotProps={{
@@ -317,6 +323,22 @@ export const OrderForm: React.FC<OrderFormProps> = ({
                             startAdornment: (
                               <InputAdornment position="start">
                                 <BoxesIcon color="primary" />
+                              </InputAdornment>
+                            ),
+                          }}
+                        />
+                      </Grid>
+
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          fullWidth
+                          label="Family Number"
+                          value={orderData.family_number}
+                          onChange={(e) => handleChange('family_number', e.target.value)}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <PeopleIcon />
                               </InputAdornment>
                             ),
                           }}

@@ -47,22 +47,22 @@ export const loadTestData = (): TestData => {
     // Convert date strings back to Date objects
     data.clients = data.clients.map((client: Client) => ({
       ...client,
-      createdAt: new Date(client.createdAt),
-      updatedAt: new Date(client.updatedAt),
-      lastVisit: client.lastVisit ? new Date(client.lastVisit) : undefined
+      created_at: new Date(client.created_at),
+      updated_at: new Date(client.updated_at),
+      last_visit: client.last_visit ? new Date(client.last_visit) : undefined
     }));
 
     data.orders = data.orders.map((order: Order) => ({
       ...order,
-      createdAt: new Date(order.createdAt),
-      updatedAt: new Date(order.updatedAt),
-      pickupDate: order.pickupDate ? new Date(order.pickupDate) : undefined
+      created_at: new Date(order.created_at),
+      updated_at: new Date(order.updated_at),
+      pickup_date: order.pickup_date ? new Date(order.pickup_date) : undefined
     }));
 
     data.phoneLogs = data.phoneLogs.map((log: PhoneLog) => ({
       ...log,
-      createdAt: new Date(log.createdAt),
-      updatedAt: new Date(log.updatedAt)
+      created_at: new Date(log.created_at),
+      updated_at: new Date(log.updated_at)
     }));
     
     return data;
@@ -121,8 +121,8 @@ export const addOrder = (order: NewOrder): void => {
   const newOrder: Order = {
     ...order,
     id: `o${data.orders.length + 1}`,
-    createdAt: new Date(),
-    updatedAt: new Date()
+    created_at: new Date(),
+    updated_at: new Date()
   };
   data.orders.push(newOrder);
   saveTestData(data);
@@ -134,7 +134,7 @@ export const updateOrder = (updatedOrder: Order): void => {
   if (index !== -1) {
     data.orders[index] = {
       ...updatedOrder,
-      updatedAt: new Date()
+      updated_at: new Date()
     };
     saveTestData(data);
   }
@@ -145,7 +145,7 @@ export const getOrders = (): Order[] => {
 };
 
 export const getOrdersByClientId = (clientId: string): Order[] => {
-  return loadTestData().orders.filter(o => o.familySearchId === clientId);
+  return loadTestData().orders.filter(o => o.family_search_id === clientId);
 };
 
 export const deleteOrder = (orderId: string): void => {
@@ -175,5 +175,21 @@ export const getPhoneLogs = (): PhoneLog[] => {
 };
 
 export const getPhoneLogsByClientId = (clientId: string): PhoneLog[] => {
-  return loadTestData().phoneLogs.filter(pl => pl.familySearchId === clientId);
-}; 
+  return loadTestData().phoneLogs.filter(pl => pl.family_search_id === clientId);
+};
+
+function convertDates(data: any) {
+  if (data.created_at) {
+    data.created_at = new Date(data.created_at);
+  }
+  if (data.updated_at) {
+    data.updated_at = new Date(data.updated_at);
+  }
+  if (data.last_visit) {
+    data.last_visit = data.last_visit ? new Date(data.last_visit) : null;
+  }
+  if (data.pickup_date) {
+    data.pickup_date = data.pickup_date ? new Date(data.pickup_date) : null;
+  }
+  return data;
+} 

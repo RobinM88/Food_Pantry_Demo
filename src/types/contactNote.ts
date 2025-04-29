@@ -1,28 +1,15 @@
-export enum ContactMethod {
-  Phone = 'phone',
-  Email = 'email',
-  InPerson = 'in_person',
-  Other = 'other'
-}
-
-export enum ContactPurpose {
-  RequestAssistance = 'request_assistance',
-  UpdateInformation = 'update_information',
-  SchedulePickup = 'schedule_pickup',
-  Other = 'other'
-}
+import { ContactMethod, ContactPurpose } from './index';
 
 export interface ContactNote {
   id: string;
-  familySearchId: string;
-  contactDate: Date;
+  family_search_id: string;
+  contact_method: ContactMethod;
+  contact_purpose: ContactPurpose;
   notes: string;
-  contactPurpose: ContactPurpose;
-  contactMethod: ContactMethod;
-  
-  createdAt: Date;
-  updatedAt: Date;
+  contact_date: Date;
+  created_at: Date;
+  updated_at: Date;
 }
 
-export type NewContactNote = Omit<ContactNote, 'id' | 'createdAt' | 'updatedAt'>;
+export type NewContactNote = Omit<ContactNote, 'id' | 'created_at' | 'updated_at'>;
 export type UpdateContactNote = Partial<NewContactNote>; 

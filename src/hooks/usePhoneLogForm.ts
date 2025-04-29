@@ -1,50 +1,44 @@
 import { useState, useCallback } from 'react';
 import { isValidUSPhoneNumber, formatPhoneNumber } from '../utils/phoneNumberUtils';
 import { Client } from '../types';
-import { CallType, CallOutcome } from '../types/phoneLog';
+import { CallType, CallOutcome, PhoneLogFormState } from '../types/phoneLog';
 
-interface FormState {
-  phoneNumber: string;
-  callType: CallType;
-  callOutcome: CallOutcome;
-  notes: string;
-  selectedClient: Client | null;
-}
-
-const initialState: FormState = {
-  phoneNumber: '',
-  callType: 'incoming',
-  callOutcome: 'successful',
+const initialState: PhoneLogFormState = {
+  phone_number: '',
+  call_type: 'incoming',
+  call_outcome: 'successful',
   notes: '',
-  selectedClient: null
+  selected_client: null,
+  matching_clients: [],
+  show_new_client_form: false
 };
 
 interface UsePhoneLogFormProps {
   onComplete?: () => void;
-  onCreateNewClient?: (phoneNumber: string) => void;
+  onCreateNewClient?: (phone_number: string) => void;
 }
 
 export const usePhoneLogForm = ({ onComplete, onCreateNewClient }: UsePhoneLogFormProps = {}) => {
-  const [state, setState] = useState<FormState>(initialState);
+  const [state, setState] = useState<PhoneLogFormState>(initialState);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handlePhoneNumberChange = useCallback((value: string) => {
     const formattedNumber = formatPhoneNumber(value);
     setState(prev => ({
       ...prev,
-      phoneNumber: formattedNumber,
-      selectedClient: null // Clear selected client when phone number changes
+      phone_number: formattedNumber,
+      selected_client: null // Clear selected client when phone number changes
     }));
 
     // Validate phone number
     if (formattedNumber && !isValidUSPhoneNumber(formattedNumber)) {
       setErrors(prev => ({
         ...prev,
-        phoneNumber: 'Please enter a valid US phone number: (XXX) XXX-XXXX'
+        phone_number: 'Please enter a valid US phone number: (XXX) XXX-XXXX'
       }));
     } else {
       setErrors(prev => {
-        const { phoneNumber, ...rest } = prev;
+        const { phone_number, ...rest } = prev;
         return rest;
       });
     }
@@ -53,14 +47,14 @@ export const usePhoneLogForm = ({ onComplete, onCreateNewClient }: UsePhoneLogFo
   const handleCallTypeChange = useCallback((value: CallType) => {
     setState(prev => ({
       ...prev,
-      callType: value
+      call_type: value
     }));
   }, []);
 
   const handleCallOutcomeChange = useCallback((value: CallOutcome) => {
     setState(prev => ({
       ...prev,
-      callOutcome: value
+      call_outcome: value
     }));
   }, []);
 
@@ -74,7 +68,7 @@ export const usePhoneLogForm = ({ onComplete, onCreateNewClient }: UsePhoneLogFo
   const handleClientSelect = useCallback((client: Client | null) => {
     setState(prev => ({
       ...prev,
-      selectedClient: client
+      selected_client: client
     }));
     
     // Clear any client-related errors
@@ -85,30 +79,30 @@ export const usePhoneLogForm = ({ onComplete, onCreateNewClient }: UsePhoneLogFo
   }, []);
 
   const handleCreateNewClient = useCallback(() => {
-    if (onCreateNewClient && state.phoneNumber) {
-      onCreateNewClient(state.phoneNumber);
+    if (onCreateNewClient && state.phone_number) {
+      onCreateNewClient(state.phone_number);
     }
-  }, [state.phoneNumber, onCreateNewClient]);
+  }, [state.phone_number, onCreateNewClient]);
 
   const validate = useCallback(() => {
     const newErrors: Record<string, string> = {};
     
-    if (!state.phoneNumber) {
-      newErrors.phoneNumber = 'Phone number is required';
-    } else if (!isValidUSPhoneNumber(state.phoneNumber)) {
-      newErrors.phoneNumber = 'Please enter a valid US phone number: (XXX) XXX-XXXX';
+    if (!state.phone_number) {
+      newErrors.phone_number = 'Phone number is required';
+    } else if (!isValidUSPhoneNumber(state.phone_number)) {
+      newErrors.phone_number = 'Please enter a valid US phone number: (XXX) XXX-XXXX';
     }
 
-    if (!state.selectedClient) {
+    if (!state.selected_client) {
       newErrors.client = 'Please select a client or create a new one';
     }
 
-    if (state.selectedClient) {
-      if (!state.callType) {
-        newErrors.callType = 'Call type is required';
+    if (state.selected_client) {
+      if (!state.call_type) {
+        newErrors.call_type = 'Call type is required';
       }
-      if (!state.callOutcome) {
-        newErrors.callOutcome = 'Call outcome is required';
+      if (!state.call_outcome) {
+        newErrors.call_outcome = 'Call outcome is required';
       }
     }
 

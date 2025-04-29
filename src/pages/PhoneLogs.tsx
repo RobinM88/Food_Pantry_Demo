@@ -142,9 +142,9 @@ const PhoneLogs: React.FC = () => {
 
   const handleSaveClient = async (clientData: NewClient | UpdateClient) => {
     try {
-      if ('familyNumber' in clientData) {
+      if ('family_number' in clientData) {
         // Update existing client
-        const existingClient = clients.find(c => c.familyNumber === clientData.familyNumber);
+        const existingClient = clients.find(c => c.family_number === clientData.family_number);
         if (!existingClient) {
           throw new Error('Client not found');
         }
@@ -152,53 +152,53 @@ const PhoneLogs: React.FC = () => {
         const updatedClient: Client = {
           ...existingClient,
           ...clientData,
-          familySize: (clientData.adults || existingClient.adults || 0) + 
-                     (clientData.schoolAged || existingClient.schoolAged || 0) + 
-                     (clientData.smallChildren || existingClient.smallChildren || 0),
-          updatedAt: new Date()
+          family_size: (clientData.adults || existingClient.adults || 0) + 
+                     (clientData.school_aged || existingClient.school_aged || 0) + 
+                     (clientData.small_children || existingClient.small_children || 0),
+          updated_at: new Date()
         };
         
         await ClientService.update(existingClient.id, updatedClient);
       } else {
         // Create new client
-        if (!clientData.firstName || !clientData.lastName || 
-            !clientData.phone1 || !clientData.zipCode ||
-            (!clientData.isUnhoused && !clientData.address)) {
+        if (!clientData.first_name || !clientData.last_name || 
+            !clientData.phone1 || !clientData.zip_code ||
+            (!clientData.is_unhoused && !clientData.address)) {
           throw new Error('Please fill in all required fields');
         }
 
         const newFamilyNumber = generateNextFamilyNumber(clients);
         const newClient: Client = {
           id: `c${Date.now()}`,
-          familyNumber: newFamilyNumber,
-          firstName: clientData.firstName,
-          lastName: clientData.lastName,
+          family_number: newFamilyNumber,
+          first_name: clientData.first_name,
+          last_name: clientData.last_name,
           email: clientData.email || '',
-          address: clientData.isUnhoused ? '' : (clientData.address || ''),
-          aptNumber: clientData.isUnhoused ? '' : (clientData.aptNumber || ''),
-          zipCode: clientData.zipCode,
+          address: clientData.is_unhoused ? '' : (clientData.address || ''),
+          apt_number: clientData.is_unhoused ? '' : (clientData.apt_number || ''),
+          zip_code: clientData.zip_code,
           phone1: clientData.phone1,
           phone2: clientData.phone2 || '',
-          isUnhoused: clientData.isUnhoused || false,
-          isTemporary: clientData.isTemporary || false,
+          is_unhoused: clientData.is_unhoused || false,
+          is_temporary: clientData.is_temporary || false,
           adults: clientData.adults || 0,
-          schoolAged: clientData.schoolAged || 0,
-          smallChildren: clientData.smallChildren || 0,
-          temporaryMembers: clientData.temporaryMembers || {
+          school_aged: clientData.school_aged || 0,
+          small_children: clientData.small_children || 0,
+          temporary_members: clientData.temporary_members || {
             adults: 0,
-            schoolAged: 0,
-            smallChildren: 0
+            school_aged: 0,
+            small_children: 0
           },
-          familySize: (clientData.adults || 0) + (clientData.schoolAged || 0) + (clientData.smallChildren || 0),
-          foodNotes: clientData.foodNotes || '',
-          officeNotes: clientData.officeNotes || '',
-          totalVisits: 0,
-          totalThisMonth: 0,
-          connectedFamilies: [],
-          memberStatus: MemberStatus.Pending,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          lastVisit: new Date()
+          family_size: (clientData.adults || 0) + (clientData.school_aged || 0) + (clientData.small_children || 0),
+          food_notes: clientData.food_notes || '',
+          office_notes: clientData.office_notes || '',
+          total_visits: 0,
+          total_this_month: 0,
+          connected_families: [],
+          member_status: MemberStatus.Pending,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          last_visit: new Date().toISOString()
         };
         
         await ClientService.create(newClient);
@@ -251,7 +251,7 @@ const PhoneLogs: React.FC = () => {
         return selectedPhoneLog ? (
           <PhoneLogDetails
             phoneLog={selectedPhoneLog}
-            client={clients.find(c => c.familyNumber === selectedPhoneLog.familySearchId) || null}
+            client={clients.find(c => c.family_number === selectedPhoneLog.familySearchId) || null}
           />
         ) : null;
       case 'clientForm':
@@ -340,7 +340,7 @@ const PhoneLogs: React.FC = () => {
           {selectedPhoneLog && (
             <PhoneLogDetails
               phoneLog={selectedPhoneLog}
-              client={clients.find(c => c.familyNumber === selectedPhoneLog.familySearchId) || null}
+              client={clients.find(c => c.family_number === selectedPhoneLog.familySearchId) || null}
             />
           )}
         </DialogContent>

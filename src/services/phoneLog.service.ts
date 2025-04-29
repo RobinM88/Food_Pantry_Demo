@@ -5,13 +5,13 @@ import { api } from './api';
 function toPhoneLog(dbLog: any): PhoneLog {
   return {
     id: dbLog.id,
-    familySearchId: dbLog.family_search_id,
-    phoneNumber: dbLog.phone_number,
-    callType: dbLog.call_type,
-    callOutcome: dbLog.call_outcome,
+    family_number: dbLog.family_number,
+    phone_number: dbLog.phone_number,
+    call_type: dbLog.call_type,
+    call_outcome: dbLog.call_outcome,
     notes: dbLog.notes || '',
-    createdAt: new Date(dbLog.created_at),
-    updatedAt: new Date(dbLog.updated_at)
+    created_at: dbLog.created_at ? new Date(dbLog.created_at) : new Date(),
+    updated_at: dbLog.updated_at ? new Date(dbLog.updated_at) : new Date()
   };
 }
 

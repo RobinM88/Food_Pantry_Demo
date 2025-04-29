@@ -1,35 +1,35 @@
 {
   "clients": [
     {
-      "familyNumber": "f1",
-      "firstName": "John",
-      "lastName": "Doe",
-      "email": "john.doe@example.com",
+      "id": "f1",
+      "family_number": "F001",
+      "first_name": "John",
+      "last_name": "Doe",
+      "email": "john@example.com",
       "address": "123 Main St",
-      "aptNumber": "",
-      "zipCode": "12345",
+      "apt_number": "4B",
+      "zip_code": "12345",
       "phone1": "(314) 123-4567",
       "phone2": "",
-      "isUnhoused": false,
-      "isTemporary": false,
-      "adults": 1,
-      "schoolAged": 0,
-      "smallChildren": 0,
-      "temporaryMembers": {
+      "is_unhoused": false,
+      "is_temporary": false,
+      "member_status": "active",
+      "family_size": 3,
+      "adults": 2,
+      "school_aged": 1,
+      "small_children": 0,
+      "temporary_members": {
         "adults": 0,
-        "schoolAged": 0,
-        "smallChildren": 0
+        "school_aged": 0,
+        "small_children": 0
       },
-      "familySize": 1,
-      "foodNotes": "Prefers gluten-free items",
-      "officeNotes": "",
-      "totalVisits": 5,
-      "totalThisMonth": 1,
-      "connectedFamilies": [],
-      "memberStatus": "active",
-      "createdAt": "2023-01-15T00:00:00.000Z",
-      "updatedAt": "2023-01-15T00:00:00.000Z",
-      "lastVisit": "2023-03-10T00:00:00.000Z"
+      "food_notes": "",
+      "office_notes": "",
+      "total_visits": 5,
+      "total_this_month": 1,
+      "last_visit": "2023-05-01T00:00:00.000Z",
+      "created_at": "2023-01-15T00:00:00.000Z",
+      "updated_at": "2023-01-15T00:00:00.000Z"
     },
     {
       "familyNumber": "f2",
@@ -206,30 +206,22 @@
   ],
   "orders": [
     {
-      "id": "1",
-      "familySearchId": "f1",
-      "status": "pending",
-      "pickupDate": "2024-03-20T00:00:00.000Z",
-      "notes": "Gluten-free items requested",
-      "createdAt": "2024-03-15T00:00:00.000Z",
-      "updatedAt": "2024-03-15T00:00:00.000Z",
-      "deliveryType": "pickup",
-      "isNewClient": false,
-      "approvalStatus": "pending",
-      "numberOfBoxes": 2,
-      "additionalPeople": {
-        "adults": 0,
-        "smallChildren": 0,
-        "schoolAged": 0
+      "id": "o1",
+      "family_search_id": "f1",
+      "status": "completed",
+      "pickup_date": "2024-03-15T00:00:00.000Z",
+      "notes": "Regular pickup",
+      "delivery_type": "pickup",
+      "is_new_client": false,
+      "approval_status": "approved",
+      "number_of_boxes": 2,
+      "additional_people": {
+        "adults": 2,
+        "school_aged": 1,
+        "small_children": 0
       },
-      "visitTotals": {
-        "adults": 1,
-        "smallChildren": 0,
-        "schoolAged": 0,
-        "total": 1
-      },
-      "seasonalItems": ["Spring vegetables"],
-      "visitContact": "(314) 123-4567"
+      "created_at": "2024-03-15T00:00:00.000Z",
+      "updated_at": "2024-03-15T00:00:00.000Z"
     },
     {
       "id": "2",
@@ -261,13 +253,13 @@
   "phoneLogs": [
     {
       "id": "pl1",
-      "familySearchId": "f1",
-      "phoneNumber": "(314) 123-4567",
-      "callType": "incoming",
-      "callOutcome": "completed",
-      "notes": "Client called to confirm pickup time",
-      "createdAt": "2023-05-10T00:00:00.000Z",
-      "updatedAt": "2023-05-10T00:00:00.000Z"
+      "family_search_id": "f1",
+      "phone_number": "(314) 123-4567",
+      "call_type": "incoming",
+      "call_outcome": "successful",
+      "notes": "Called to schedule pickup",
+      "created_at": "2023-05-10T00:00:00.000Z",
+      "updated_at": "2023-05-10T00:00:00.000Z"
     },
     {
       "id": "pl2",

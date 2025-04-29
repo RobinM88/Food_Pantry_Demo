@@ -81,26 +81,32 @@ export default function Clients() {
 
   const handleStatusChange = async (client: Client, newStatus: MemberStatus) => {
     try {
-      const updatedClient = {
+      const updatedClient = await ClientService.update(client.id, {
         ...client,
-        member_status: newStatus,
-        updated_at: new Date().toISOString()
-      };
-      
-      await ClientService.update(client.id, updatedClient);
-      const updatedClients = await ClientService.getAll();
-      setClients(updatedClients);
-      
+        member_status: newStatus
+      });
+
+      setClients(prevClients => 
+        prevClients.map(c => 
+          c.id === updatedClient.id ? updatedClient : c
+        )
+      );
+
       setNotification({
         open: true,
-        message: `Client ${newStatus === MemberStatus.Active ? 'approved' : 'denied'} successfully`,
+        message: `Client ${newStatus === MemberStatus.Active ? 'approved' : 'status updated'} successfully`,
         severity: 'success'
       });
+
+      // If we're in pending view and the client was approved, they should no longer appear in the list
+      if (viewMode === 'pending' && newStatus === MemberStatus.Active) {
+        navigate('/clients');
+      }
     } catch (error) {
       console.error('Error updating client status:', error);
       setNotification({
         open: true,
-        message: 'Error updating client status',
+        message: error instanceof Error ? error.message : 'Error updating client status',
         severity: 'error'
       });
     }
@@ -375,7 +381,7 @@ export default function Clients() {
               path="/pending" 
               element={
                 <PendingClientsDashboard 
-                  clients={clients.filter(c => c.member_status === MemberStatus.Pending)}
+                  clients={clients}
                   onViewClient={handleViewClient}
                   onEditClient={handleEditClient}
                   onDeleteClient={handleDeleteClient}

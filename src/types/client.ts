@@ -1,4 +1,7 @@
-// Enums for standardization
+import { Order } from './order';
+import { PhoneLog } from './phoneLog';
+import { ConnectedFamily } from './connectedFamily';
+
 export enum MemberStatus {
   Active = 'active',
   Inactive = 'inactive',
@@ -9,71 +12,23 @@ export enum MemberStatus {
 }
 
 export interface Client {
-  // Primary identifiers
   id: string;
   family_number: string;
-  
-  // Basic information
   first_name: string;
   last_name: string;
   email?: string;
-  address?: string;
+  address: string;
   apt_number?: string;
-  zip_code?: string;
+  zip_code: string;
   phone1: string;
   phone2?: string;
-  
-  // Status flags
   is_unhoused: boolean;
   is_temporary: boolean;
-  
-  // Household composition
-  adults: number;
-  school_aged: number;
-  small_children: number;
-  family_size?: number;
-  
-  // Connected families
-  connected_families?: string[];
-  
-  // Temporary family members
-  temporary_members?: {
-    adults: number;
-    school_aged: number;
-    small_children: number;
-  };
-  
-  // Notes and additional information
-  food_notes?: string;
-  office_notes?: string;
-  
-  // Tracking and status
   member_status: MemberStatus;
-  total_visits: number;
-  total_this_month: number;
-  
-  // System fields
-  created_at: string;
-  updated_at: string;
-  last_visit?: string | null;
-}
-
-export interface NewClient {
-  family_number: string;
-  first_name: string;
-  last_name: string;
-  email?: string;
-  address?: string;
-  apt_number?: string;
-  zip_code?: string;
-  phone1: string;
-  phone2?: string;
-  is_unhoused: boolean;
-  is_temporary: boolean;
+  family_size: number;
   adults: number;
   school_aged: number;
   small_children: number;
-  family_size?: number;
   temporary_members?: {
     adults: number;
     school_aged: number;
@@ -81,38 +36,45 @@ export interface NewClient {
   };
   food_notes?: string;
   office_notes?: string;
-  member_status: MemberStatus;
   total_visits: number;
   total_this_month: number;
+  last_visit?: Date | null;
+  created_at: Date;
+  updated_at: Date;
+  orders?: Order[];
+  phone_logs?: PhoneLog[];
+  connected_families?: ConnectedFamily[];
 }
 
-// Default values for new clients
+export type NewClient = Omit<Client, 'id' | 'created_at' | 'updated_at' | 'orders' | 'phone_logs' | 'connected_families'>;
+
 export const defaultNewClient: NewClient = {
   family_number: '',
   first_name: '',
   last_name: '',
-  address: '',
-  apt_number: '',
-  zip_code: '',
   phone1: '',
   phone2: '',
   email: '',
+  address: '',
+  apt_number: '',
+  zip_code: '',
+  member_status: MemberStatus.Pending,
+  is_unhoused: false,
+  is_temporary: false,
+  family_size: 1,
   adults: 1,
   school_aged: 0,
   small_children: 0,
-  family_size: 1,
-  is_unhoused: false,
-  is_temporary: false,
   temporary_members: {
     adults: 0,
     school_aged: 0,
     small_children: 0
   },
-  member_status: MemberStatus.Pending,
-  total_visits: 0,
-  total_this_month: 0,
   food_notes: '',
-  office_notes: ''
+  office_notes: '',
+  last_visit: null,
+  total_visits: 0,
+  total_this_month: 0
 };
 
 export type UpdateClient = Partial<NewClient>; 

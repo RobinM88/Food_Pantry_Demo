@@ -10,9 +10,11 @@ import {
   MenuItem,
   Typography,
   Paper,
+  SelectChangeEvent
 } from '@mui/material';
 import { format } from 'date-fns';
 import { ContactNote, NewContactNote, ContactMethod, ContactPurpose } from '../../types';
+import { DatePicker } from '@mui/x-date-pickers';
 
 interface ContactNoteFormProps {
   contactNote?: ContactNote;
@@ -23,11 +25,11 @@ interface ContactNoteFormProps {
 }
 
 const initialFormState: NewContactNote = {
-  familySearchId: '',
-  contactDate: new Date(),
+  family_search_id: '',
+  contact_date: new Date(),
   notes: '',
-  contactPurpose: ContactPurpose.RequestAssistance,
-  contactMethod: ContactMethod.Phone
+  contact_purpose: 'general',
+  contact_method: 'phone'
 };
 
 export default function ContactNoteForm({
@@ -43,19 +45,21 @@ export default function ContactNoteForm({
   useEffect(() => {
     if (contactNote) {
       setFormData({
-        ...contactNote,
-        createdAt: undefined,
-        updatedAt: undefined
-      } as NewContactNote);
+        family_search_id: contactNote.family_search_id,
+        contact_date: contactNote.contact_date,
+        notes: contactNote.notes,
+        contact_purpose: contactNote.contact_purpose,
+        contact_method: contactNote.contact_method
+      });
     } else {
       setFormData({
         ...initialFormState,
-        familySearchId
+        family_search_id: familySearchId
       });
     }
   }, [contactNote, familySearchId]);
 
-  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -71,7 +75,7 @@ export default function ContactNoteForm({
     }
   };
 
-  const handleSelectChange = (e: React.ChangeEvent<{ name?: string; value: unknown }>) => {
+  const handleSelectChange = (e: SelectChangeEvent) => {
     const { name, value } = e.target;
     if (name) {
       setFormData(prev => ({
@@ -81,11 +85,11 @@ export default function ContactNoteForm({
     }
   };
 
-  const handleDateChange = (name: string) => (date: Date | null) => {
+  const handleDateChange = (date: Date | null) => {
     if (date) {
       setFormData(prev => ({
         ...prev,
-        [name]: date
+        contact_date: date
       }));
     }
   };
@@ -93,8 +97,8 @@ export default function ContactNoteForm({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
-    if (!formData.contactDate) {
-      newErrors.contactDate = 'Contact date is required';
+    if (!formData.contact_date) {
+      newErrors.contact_date = 'Contact date is required';
     }
     
     setErrors(newErrors);
@@ -123,16 +127,11 @@ export default function ContactNoteForm({
           </Grid>
           
           <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              type="date"
-              name="contactDate"
+            <DatePicker
               label="Contact Date"
-              value={format(formData.contactDate, 'yyyy-MM-dd')}
-              onChange={handleTextChange}
-              error={!!errors.contactDate}
-              helperText={errors.contactDate}
-              InputLabelProps={{ shrink: true }}
+              value={formData.contact_date}
+              onChange={handleDateChange}
+              sx={{ width: '100%' }}
             />
           </Grid>
           
@@ -140,13 +139,15 @@ export default function ContactNoteForm({
             <FormControl fullWidth>
               <InputLabel>Contact Method</InputLabel>
               <Select
-                name="contactMethod"
-                value={formData.contactMethod}
+                name="contact_method"
+                value={formData.contact_method}
                 onChange={handleSelectChange}
+                label="Contact Method"
               >
                 <MenuItem value="phone">Phone</MenuItem>
                 <MenuItem value="email">Email</MenuItem>
-                <MenuItem value="in_person">In Person</MenuItem>
+                <MenuItem value="in-person">In Person</MenuItem>
+                <MenuItem value="text">Text</MenuItem>
                 <MenuItem value="other">Other</MenuItem>
               </Select>
             </FormControl>
@@ -160,7 +161,7 @@ export default function ContactNoteForm({
               name="notes"
               label="Contact Notes"
               value={formData.notes}
-              onChange={handleTextChange}
+              onChange={handleInputChange}
             />
           </Grid>
 
@@ -168,12 +169,15 @@ export default function ContactNoteForm({
             <FormControl fullWidth>
               <InputLabel>Contact Purpose</InputLabel>
               <Select
-                name="contactPurpose"
-                value={formData.contactPurpose}
+                name="contact_purpose"
+                value={formData.contact_purpose}
                 onChange={handleSelectChange}
+                label="Contact Purpose"
               >
-                <MenuItem value="request_assistance">Request Assistance</MenuItem>
-                <MenuItem value="follow_up">Follow Up</MenuItem>
+                <MenuItem value="general">General</MenuItem>
+                <MenuItem value="scheduling">Scheduling</MenuItem>
+                <MenuItem value="follow-up">Follow Up</MenuItem>
+                <MenuItem value="emergency">Emergency</MenuItem>
                 <MenuItem value="other">Other</MenuItem>
               </Select>
             </FormControl>

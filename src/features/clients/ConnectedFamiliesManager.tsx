@@ -22,8 +22,7 @@ import {
   useMediaQuery
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { Client } from '../../types/client';
-import { ConnectedFamily, RelationshipType } from '../../types/connectedFamily';
+import { Client, ConnectedFamily, RelationshipType } from '../../types';
 import { ConnectedFamilyService } from '../../services/connectedFamily.service';
 
 interface ConnectedFamiliesManagerProps {
@@ -48,7 +47,7 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
 
   // Load existing connections
   useEffect(() => {
-    if (client?.id) {
+    if (client?.family_number) {
       console.log('Loading connections for client:', client);
       loadConnections();
     }
@@ -56,7 +55,7 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
 
   const loadConnections = async () => {
     try {
-      const data = await ConnectedFamilyService.getByClientId(client.id);
+      const data = await ConnectedFamilyService.getByClientId(client.family_number);
       console.log('Loaded connections:', data);
       console.log('Available clients:', allClients);
       setConnections(data);
@@ -71,10 +70,10 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
     if (searchTerm.length < 2) return [];
     
     const searchTermLower = searchTerm.toLowerCase().trim();
-    const connectedIds = new Set(connections.map(conn => conn.connected_to));
+    const connectedIds = new Set(connections.map(conn => conn.connected_family_number));
 
     return allClients.filter(c => {
-      if (c.id === clientId || connectedIds.has(c.id)) return false;
+      if (c.family_number === clientId || connectedIds.has(c.family_number)) return false;
 
       // Debug log to check client data
       console.log('Filtering client:', c);
@@ -97,13 +96,13 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
   useEffect(() => {
     const debounceTimeout = setTimeout(() => {
       if (isSearchOpen) {
-        const results = getFilteredResults(searchTerm, allClients, client.id, connections);
+        const results = getFilteredResults(searchTerm, allClients, client.family_number, connections);
         setSearchResults(results);
       }
     }, 300); // 300ms debounce
 
     return () => clearTimeout(debounceTimeout);
-  }, [searchTerm, allClients, client.id, connections, isSearchOpen, getFilteredResults]);
+  }, [searchTerm, allClients, client.family_number, connections, isSearchOpen, getFilteredResults]);
 
   const handleAddConnection = async (connectedClient: Client) => {
     setSelectedClient(connectedClient);
@@ -115,15 +114,15 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
     try {
       // Create the forward connection
       await ConnectedFamilyService.create({
-        client_id: client.id,
-        connected_to: selectedClient.id,
+        family_number: client.family_number,
+        connected_family_number: selectedClient.family_number,
         relationship_type: relationshipType
       });
 
       // Also create the reverse connection
       await ConnectedFamilyService.create({
-        client_id: selectedClient.id,
-        connected_to: client.id,
+        family_number: selectedClient.family_number,
+        connected_family_number: client.family_number,
         relationship_type: relationshipType
       });
 
@@ -145,7 +144,7 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
       
       // Find and remove the reverse connection
       const reverseConnections = await ConnectedFamilyService.getByClientId(connectedClientId);
-      const reverseConnection = reverseConnections.find(c => c.connected_to === client.id);
+      const reverseConnection = reverseConnections.find(c => c.connected_family_number === client.family_number);
       if (reverseConnection) {
         await ConnectedFamilyService.delete(reverseConnection.id);
       }
@@ -173,10 +172,10 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
     return (
       <List>
         {connections.map((connection) => {
-          const connectedClient = allClients.find(c => c.id === connection.connected_to);
+          const connectedClient = allClients.find(c => c.family_number === connection.connected_family_number);
           
           if (!connectedClient) {
-            console.error('Connected client not found:', connection.connected_to);
+            console.error('Connected client not found:', connection.connected_family_number);
             console.log('Available clients:', allClients);
             return null;
           }
@@ -230,17 +229,11 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
                   </Typography>
                 }
               />
-              <ListItemSecondaryAction sx={{ 
-                position: isMobile ? 'relative' : 'absolute',
-                transform: isMobile ? 'none' : undefined,
-                top: isMobile ? undefined : undefined,
-                right: isMobile ? undefined : 16,
-                mt: isMobile ? 1 : 0
-              }}>
+              <ListItemSecondaryAction>
                 <IconButton
                   edge="end"
                   aria-label="delete"
-                  onClick={() => handleRemoveConnection(connection.id, connectedClient.id)}
+                  onClick={() => handleRemoveConnection(connection.id, connectedClient.family_number)}
                 >
                   <DeleteIcon />
                 </IconButton>

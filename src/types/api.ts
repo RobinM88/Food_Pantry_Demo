@@ -2,7 +2,7 @@ import { CallType, CallOutcome } from './phoneLog';
 
 export interface ApiPhoneLog {
   id: string;
-  family_search_id: string;
+  family_number: string;
   phone_number: string;
   call_type: CallType;
   call_outcome: CallOutcome;

@@ -175,6 +175,14 @@ export default function OrderDetails({
           </Box>
 
           <Grid container spacing={3}>
+            <Grid item xs={12} sm={6}>
+              <Typography variant="subtitle1" color="textSecondary">Client</Typography>
+              <Typography variant="body1">{`${client?.first_name} ${client?.last_name}`}</Typography>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Typography variant="subtitle1" color="textSecondary">Family Number</Typography>
+              <Typography variant="body1">{order.family_number || 'Not assigned'}</Typography>
+            </Grid>
             <Grid item xs={12} md={6}>
               <Card variant="outlined" sx={{ height: '100%' }}>
                 <CardContent>
