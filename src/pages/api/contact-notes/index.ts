@@ -11,7 +11,7 @@ export default async function handler(
       const data = req.body;
       const contactNote = await prisma.contactNote.create({
         data: {
-          family_search_id: data.family_search_id,
+          family_number: data.family_number,
           contact_date: new Date(data.contact_date),
           notes: data.notes,
           contact_purpose: data.contact_purpose,
@@ -25,12 +25,12 @@ export default async function handler(
     }
   } else if (req.method === 'GET') {
     try {
-      const { family_search_id } = req.query;
+      const { family_number } = req.query;
       
-      if (family_search_id) {
+      if (family_number) {
         const contactNotes = await prisma.contactNote.findMany({
           where: {
-            family_search_id: family_search_id as string
+            family_number: family_number as string
           },
           orderBy: {
             contact_date: 'desc'

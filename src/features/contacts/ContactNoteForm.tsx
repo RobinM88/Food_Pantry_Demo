@@ -18,14 +18,14 @@ import { DatePicker } from '@mui/x-date-pickers';
 
 interface ContactNoteFormProps {
   contactNote?: ContactNote;
-  familySearchId: string;
+  familyNumber: string;
   onSubmit: (note: NewContactNote) => void;
   onCancel: () => void;
   isEdit?: boolean;
 }
 
 const initialFormState: NewContactNote = {
-  family_search_id: '',
+  family_number: '',
   contact_date: new Date(),
   notes: '',
   contact_purpose: 'general',
@@ -34,7 +34,7 @@ const initialFormState: NewContactNote = {
 
 export default function ContactNoteForm({
   contactNote,
-  familySearchId,
+  familyNumber,
   onSubmit,
   onCancel,
   isEdit = false
@@ -45,7 +45,7 @@ export default function ContactNoteForm({
   useEffect(() => {
     if (contactNote) {
       setFormData({
-        family_search_id: contactNote.family_search_id,
+        family_number: contactNote.family_number,
         contact_date: contactNote.contact_date,
         notes: contactNote.notes,
         contact_purpose: contactNote.contact_purpose,
@@ -54,10 +54,10 @@ export default function ContactNoteForm({
     } else {
       setFormData({
         ...initialFormState,
-        family_search_id: familySearchId
+        family_number: familyNumber
       });
     }
-  }, [contactNote, familySearchId]);
+  }, [contactNote, familyNumber]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

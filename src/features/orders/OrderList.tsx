@@ -46,7 +46,6 @@ import { format } from 'date-fns';
 
 interface OrderListProps {
   orders: Order[];
-  clients: Client[];
   onViewOrder: (order: Order) => void;
   onEditOrder: (order: Order) => void;
   onDeleteOrder: (order: Order) => void;
@@ -55,7 +54,6 @@ interface OrderListProps {
 
 export default function OrderList({
   orders,
-  clients,
   onViewOrder,
   onEditOrder,
   onDeleteOrder,

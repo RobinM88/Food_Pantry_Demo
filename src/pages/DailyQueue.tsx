@@ -81,7 +81,7 @@ export default function DailyQueue() {
       
       // Get only the fields we want to update to avoid any issues with the types
       const updates: Partial<Order> = {
-        family_search_id: orderData.family_search_id,
+        family_number: orderData.family_number,
         status: orderData.status,
         delivery_type: orderData.delivery_type,
         pickup_date: orderData.pickup_date,
@@ -220,7 +220,7 @@ export default function DailyQueue() {
         return selectedOrder ? (
           <OrderDetails 
             order={selectedOrder}
-            client={clients.find(c => c.id === selectedOrder.family_search_id)!}
+            client={clients.find(c => c.family_number === selectedOrder.family_number)!}
             onEdit={handleEditOrder} 
             onDelete={handleDeleteOrder}
             onStatusChange={handleStatusChange}

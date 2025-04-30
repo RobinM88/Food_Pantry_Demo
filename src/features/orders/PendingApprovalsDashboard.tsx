@@ -69,7 +69,7 @@ export default function PendingApprovalsDashboard({
       id: order.id,
       status: order.status,
       approval_status: order.approval_status,
-      family_search_id: order.family_search_id
+      family_number: order.family_number
     });
     const isPending = order.status === 'pending' && order.approval_status === 'pending';
     console.log('Is order pending?', isPending);
@@ -194,7 +194,7 @@ export default function PendingApprovalsDashboard({
   };
 
   const renderOrderCard = (order: Order) => {
-    const client = clients.find(c => c.id === order.family_search_id);
+    const client = clients.find(c => c.family_number === order.family_number);
     
     return (
       <Card key={order.id} sx={{ 

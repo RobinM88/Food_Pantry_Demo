@@ -145,7 +145,7 @@ export const getOrders = (): Order[] => {
 };
 
 export const getOrdersByClientId = (clientId: string): Order[] => {
-  return loadTestData().orders.filter(o => o.family_search_id === clientId);
+  return loadTestData().orders.filter(o => o.family_number === clientId);
 };
 
 export const deleteOrder = (orderId: string): void => {
@@ -175,7 +175,7 @@ export const getPhoneLogs = (): PhoneLog[] => {
 };
 
 export const getPhoneLogsByClientId = (clientId: string): PhoneLog[] => {
-  return loadTestData().phoneLogs.filter(pl => pl.family_search_id === clientId);
+  return loadTestData().phoneLogs.filter(pl => pl.family_number === clientId);
 };
 
 function convertDates(data: any) {

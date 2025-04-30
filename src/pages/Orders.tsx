@@ -162,10 +162,8 @@ export default function Orders() {
 
       <OrderList
         orders={orders}
-        clients={clients}
-        onAddOrder={handleAddOrder}
-        onEditOrder={handleEditOrder}
         onViewOrder={handleViewOrder}
+        onEditOrder={handleEditOrder}
         onDeleteOrder={handleDeleteOrder}
         onStatusChange={handleStatusChange}
       />
@@ -184,10 +182,10 @@ export default function Orders() {
 
       {isDetailsOpen && selectedOrder && (
         <>
-          {clients.find(c => c.id === selectedOrder.family_search_id) ? (
+          {clients.find(c => c.family_number === selectedOrder.family_number) ? (
             <OrderDetails
               order={selectedOrder}
-              client={clients.find(c => c.id === selectedOrder.family_search_id)!}
+              client={clients.find(c => c.family_number === selectedOrder.family_number)!}
               onEdit={handleEditOrder}
               onDelete={handleDeleteOrder}
               onStatusChange={handleStatusChange}
@@ -195,7 +193,7 @@ export default function Orders() {
           ) : (
             <Box sx={{ p: 2, textAlign: 'center' }}>
               <Typography color="error">
-                Error: Could not find client with ID {selectedOrder.family_search_id}
+                Error: Could not find client with family number {selectedOrder.family_number}
               </Typography>
               <Button 
                 variant="contained" 

@@ -18,8 +18,8 @@ export async function createContactNote(data: NewContactNote): Promise<ContactNo
   return response.json();
 }
 
-export async function getContactNotes(familySearchId?: string): Promise<ContactNote[]> {
-  const url = familySearchId ? `${BASE_URL}?family_search_id=${familySearchId}` : BASE_URL;
+export async function getContactNotes(familyNumber?: string): Promise<ContactNote[]> {
+  const url = familyNumber ? `${BASE_URL}?family_number=${familyNumber}` : BASE_URL;
   const response = await fetch(url);
 
   if (!response.ok) {

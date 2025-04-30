@@ -70,7 +70,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
     family_number: initialData?.family_number || '',
     status: initialData ? initialData.status : 'pending',
     pickup_date: initialData?.pickup_date || null,
-    notes: initialData?.notes || null,
+    notes: initialData?.notes || '',
     delivery_type: initialData?.delivery_type || 'pickup',
     is_new_client: initialData?.is_new_client || false,
     approval_status: initialData ? initialData.approval_status : 'pending',
@@ -80,7 +80,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
       small_children: 0,
       school_aged: 0
     },
-    visit_contact: initialData?.visit_contact || null
+    visit_contact: initialData?.visit_contact || ''
   });
 
   const validateForm = (): boolean => {

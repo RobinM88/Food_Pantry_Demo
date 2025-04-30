@@ -85,8 +85,7 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
     if (searchTerm.length < 2) return [];
     
     const searchTermLower = searchTerm.toLowerCase().trim();
-    // Get all family numbers that are already connected (using connection groups)
-    const connectedGroups = new Set(connections.map(conn => conn.connected_family_number));
+    // Get all family numbers that are already connected
     const connectedFamilies = new Set(connections.map(conn => conn.family_number));
 
     return allClients.filter(c => {
@@ -155,7 +154,7 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
     }
   };
 
-  const handleRemoveConnection = async (connectionId: string, connectedClientId: string) => {
+  const handleRemoveConnection = async (connectionId: string) => {
     try {
       // This will remove all connections in the same group
       await ConnectedFamilyService.delete(connectionId);
@@ -236,7 +235,7 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
                 <IconButton
                   edge="end"
                   aria-label="delete"
-                  onClick={() => handleRemoveConnection(connection.id, connectedClient.family_number)}
+                  onClick={() => handleRemoveConnection(connection.id)}
                 >
                   <DeleteIcon />
                 </IconButton>

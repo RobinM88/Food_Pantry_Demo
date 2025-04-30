@@ -100,8 +100,8 @@ export const validateOrder = (order: Order): ValidationErrors => {
   const errors: ValidationErrors = {};
 
   // Required Fields
-  if (!order.family_search_id?.trim()) {
-    errors.family_search_id = 'Family search ID is required';
+  if (!order.family_number?.trim()) {
+    errors.family_number = 'Family number is required';
   }
 
   // Pickup Date Validation
@@ -168,13 +168,13 @@ export const validateOrderBusinessRules = (
   const errors: Record<string, string> = {};
 
   if (!client) {
-    errors.family_search_id = 'Client not found';
+    errors.family_number = 'Client not found';
     return errors;
   }
 
   // Check client status
   if (client.member_status === MemberStatus.Denied) {
-    errors.family_search_id = 'Cannot create orders for denied clients';
+    errors.family_number = 'Cannot create orders for denied clients';
   }
 
   // Check frequency of orders

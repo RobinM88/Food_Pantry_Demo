@@ -97,7 +97,7 @@ export const checkForDuplicatePhone = (client: Client, clients: Client[]): boole
 };
 
 export const getClientOrders = (orders: Order[], familyNumber: string): Order[] => {
-  return orders.filter(o => o.family_search_id === familyNumber);
+  return orders.filter(o => o.family_number === familyNumber);
 };
 
 export const calculateVisitTotals = (

@@ -2,7 +2,7 @@ import { ContactMethod, ContactPurpose } from './index';
 
 export interface ContactNote {
   id: string;
-  family_search_id: string;
+  family_number: string;
   contact_method: ContactMethod;
   contact_purpose: ContactPurpose;
   notes: string;
