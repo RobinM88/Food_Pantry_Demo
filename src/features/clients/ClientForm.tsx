@@ -64,10 +64,16 @@ export default function ClientForm({
   const [connectedFamilyIds, setConnectedFamilyIds] = useState<string[]>([]);
 
   useEffect(() => {
-    if (client?.id) {
-      ConnectedFamilyService.getByClientId(client.id)
+    if (client?.family_number) {
+      ConnectedFamilyService.getByClientId(client.family_number)
         .then(connections => {
-          setConnectedFamilyIds(connections.map(c => c.connected_family_number));
+          // Filter out the client's own connection record and get unique family numbers
+          const connectedFamilyIds = [...new Set(
+            connections
+              .filter(c => c.family_number !== client.family_number)
+              .map(c => c.family_number)
+          )];
+          setConnectedFamilyIds(connectedFamilyIds);
         })
         .catch(error => {
           console.error('Error loading connected families:', error);
@@ -154,25 +160,17 @@ export default function ClientForm({
     try {
       await onSubmit(formData);
 
-      if (client?.id && connectedFamilyIds.length > 0) {
-        await ConnectedFamilyService.deleteByClientId(client.id);
-        await Promise.all(
-          connectedFamilyIds.map(connectedId => 
-            ConnectedFamilyService.create({
-              family_number: client.id!,
-              connected_family_number: connectedId,
-              relationship_type: 'other'
-            })
-          )
-        );
-      }
-
-      // Find and remove the reverse connection
-      if (client) {
-        const reverseConnections = await ConnectedFamilyService.getByClientId(client.family_number);
-        const reverseConnection = reverseConnections.find(c => c.connected_family_number === client.family_number);
-        if (reverseConnection) {
-          await ConnectedFamilyService.delete(reverseConnection.id);
+      if (client?.family_number && connectedFamilyIds.length > 0) {
+        // Delete all existing connections
+        await ConnectedFamilyService.deleteByClientId(client.family_number);
+        
+        // Create new connections
+        for (const connectedId of connectedFamilyIds) {
+          await ConnectedFamilyService.create({
+            family_number: client.family_number,
+            connected_family_number: connectedId,
+            relationship_type: 'other'
+          });
         }
       }
     } catch (error) {

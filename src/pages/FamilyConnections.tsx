@@ -115,16 +115,19 @@ export default function FamilyConnections() {
     if (!selectedClient) return;
 
     try {
-      // Create the connection in both directions
+      // Generate a new connected_family_number for this group
+      const cfNumber = await ConnectedFamilyService.generateConnectedFamilyNumber();
+
+      // Create the connection in both directions with the same cf number
       const connection1 = {
         family_number: selectedClient.family_number,
-        connected_family_number: client.family_number,
+        connected_family_number: cfNumber,
         relationship_type: relationshipType
       };
 
       const connection2 = {
         family_number: client.family_number,
-        connected_family_number: selectedClient.family_number,
+        connected_family_number: cfNumber,
         relationship_type: relationshipType
       };
 
@@ -155,7 +158,7 @@ export default function FamilyConnections() {
       
       // Find and remove the reverse connection
       const reverseConnections = await ConnectedFamilyService.getByClientId(client2Id);
-      const reverseConnection = reverseConnections.find((c: ConnectedFamily) => c.connected_to === client1Id);
+      const reverseConnection = reverseConnections.find((c: ConnectedFamily) => c.connected_family_number === client1Id);
       if (reverseConnection) {
         await ConnectedFamilyService.delete(reverseConnection.id);
       }

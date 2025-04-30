@@ -389,8 +389,9 @@ export const api = {
         .from('ConnectedFamily')
         .select(`
           id,
-          client_id,
-          connected_to,
+          family_number,
+          connected_family_number,
+          relationship_type,
           client:Client(*)
         `)
         .order('created_at', { ascending: false });
@@ -399,52 +400,32 @@ export const api = {
       return data;
     },
 
-    async create(connectedFamily: Omit<ConnectedFamily, 'id'>) {
-      // Format data for Supabase - match schema exactly
-      const connectedFamilyData = {
-        client_id: connectedFamily.client_id,
-        connected_to: connectedFamily.connected_to
-      };
-
-      console.log('Creating connected family with formatted data:', connectedFamilyData); // Debug log
-
-      try {
-        const { data, error } = await supabase
-          .from('ConnectedFamily')
-          .insert([connectedFamilyData])
-          .select(`
-            id,
-            client_id,
-            connected_to
-          `)
-          .single();
-        
-        if (error) {
-          console.error('Supabase error details:', {
-            error,
-            message: error.message,
-            details: error.details,
-            hint: error.hint
-          });
-          throw error;
-        }
-        return data;
-      } catch (error) {
-        console.error('Detailed error:', error);
-        throw error;
-      }
-    },
-
     async getByClientId(clientId: string) {
       const { data, error } = await supabase
         .from('ConnectedFamily')
         .select(`
           id,
-          client_id,
-          connected_to,
-          connected_client:Client!connected_to(*)
+          family_number,
+          connected_family_number,
+          relationship_type,
+          client:Client(*)
         `)
-        .eq('client_id', clientId);
+        .eq('family_number', clientId);
+      
+      if (error) throw error;
+      return data;
+    },
+
+    async create(connectedFamily: Omit<ConnectedFamily, 'id'>) {
+      const { data, error } = await supabase
+        .from('ConnectedFamily')
+        .insert([{
+          family_number: connectedFamily.family_number,
+          connected_family_number: connectedFamily.connected_family_number,
+          relationship_type: connectedFamily.relationship_type
+        }])
+        .select()
+        .single();
       
       if (error) throw error;
       return data;
@@ -459,13 +440,24 @@ export const api = {
       if (error) throw error;
     },
 
-    async deleteConnection(clientId: string, connectedTo: string) {
+    async deleteByClientId(clientId: string) {
       const { error } = await supabase
         .from('ConnectedFamily')
         .delete()
-        .match({ client_id: clientId, connected_to: connectedTo });
+        .eq('family_number', clientId);
       
       if (error) throw error;
+    },
+
+    async getConnection(clientId: string, connectedTo: string) {
+      const { data, error } = await supabase
+        .from('ConnectedFamily')
+        .select('*')
+        .match({ family_number: clientId, connected_family_number: connectedTo })
+        .single();
+      
+      if (error) throw error;
+      return data;
     }
   }
 }; 

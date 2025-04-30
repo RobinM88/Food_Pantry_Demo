@@ -8,11 +8,13 @@ export interface ConnectedFamily {
   relationship_type: RelationshipType;
 }
 
-// For backward compatibility with existing code
+/**
+ * @deprecated Use ConnectedFamily interface instead
+ */
 export interface ConnectedFamilyLegacy {
   id: string;
-  client_id: string;
-  connected_to: string;
+  family_number: string;
+  connected_family_number: string;
   relationship_type: RelationshipType;
 }
 

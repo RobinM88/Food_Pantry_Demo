@@ -55,11 +55,26 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
 
   const loadConnections = async () => {
     try {
+      console.log('Loading connections for client family number:', client.family_number);
       const data = await ConnectedFamilyService.getByClientId(client.family_number);
-      console.log('Loaded connections:', data);
-      console.log('Available clients:', allClients);
-      setConnections(data);
-      onConnectionsChange?.(data);
+      console.log('Raw connections data:', data);
+      
+      // Filter out any invalid connections and the current client's own connection
+      const validConnections = data.filter(conn => {
+        // Skip the current client's own connection record
+        if (conn.family_number === client.family_number) return false;
+
+        const connectedClient = allClients.find(c => c.family_number === conn.family_number);
+        if (!connectedClient) {
+          console.warn('Connected client not found for family number:', conn.family_number);
+          return false;
+        }
+        return true;
+      });
+
+      console.log('Valid connections:', validConnections);
+      setConnections(validConnections);
+      onConnectionsChange?.(validConnections);
     } catch (error) {
       console.error('Error loading connections:', error);
     }
@@ -70,13 +85,13 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
     if (searchTerm.length < 2) return [];
     
     const searchTermLower = searchTerm.toLowerCase().trim();
-    const connectedIds = new Set(connections.map(conn => conn.connected_family_number));
+    // Get all family numbers that are already connected (using connection groups)
+    const connectedGroups = new Set(connections.map(conn => conn.connected_family_number));
+    const connectedFamilies = new Set(connections.map(conn => conn.family_number));
 
     return allClients.filter(c => {
-      if (c.family_number === clientId || connectedIds.has(c.family_number)) return false;
-
-      // Debug log to check client data
-      console.log('Filtering client:', c);
+      // Skip if this is the current client or already connected
+      if (c.family_number === clientId || connectedFamilies.has(c.family_number)) return false;
 
       const firstName = (c.first_name || '').trim();
       const lastName = (c.last_name || '').trim();
@@ -112,17 +127,20 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
     if (!selectedClient) return;
     
     try {
-      // Create the forward connection
+      // Generate a new connected_family_number for this group
+      const cfNumber = await ConnectedFamilyService.generateConnectedFamilyNumber();
+
+      // Create a new connection with the generated cf number
       await ConnectedFamilyService.create({
         family_number: client.family_number,
-        connected_family_number: selectedClient.family_number,
+        connected_family_number: cfNumber,
         relationship_type: relationshipType
       });
 
-      // Also create the reverse connection
+      // Create the reverse connection with the same cf number
       await ConnectedFamilyService.create({
         family_number: selectedClient.family_number,
-        connected_family_number: client.family_number,
+        connected_family_number: cfNumber,
         relationship_type: relationshipType
       });
 
@@ -139,16 +157,9 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
 
   const handleRemoveConnection = async (connectionId: string, connectedClientId: string) => {
     try {
-      // Remove both directions of the connection
+      // This will remove all connections in the same group
       await ConnectedFamilyService.delete(connectionId);
       
-      // Find and remove the reverse connection
-      const reverseConnections = await ConnectedFamilyService.getByClientId(connectedClientId);
-      const reverseConnection = reverseConnections.find(c => c.connected_family_number === client.family_number);
-      if (reverseConnection) {
-        await ConnectedFamilyService.delete(reverseConnection.id);
-      }
-
       // Refresh connections
       await loadConnections();
     } catch (error) {
@@ -172,23 +183,12 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
     return (
       <List>
         {connections.map((connection) => {
-          const connectedClient = allClients.find(c => c.family_number === connection.connected_family_number);
+          // Find the connected client using the family_number
+          const connectedClient = allClients.find(c => c.family_number === connection.family_number);
           
           if (!connectedClient) {
-            console.error('Connected client not found:', connection.connected_family_number);
-            console.log('Available clients:', allClients);
+            console.warn('Connected client not found:', connection.family_number);
             return null;
-          }
-
-          // Debug log to check client data
-          console.log('Rendering connected client:', connectedClient);
-
-          const firstName = (connectedClient.first_name || '').trim();
-          const lastName = (connectedClient.last_name || '').trim();
-          
-          let fullName = 'Unknown Name';
-          if (firstName || lastName) {
-            fullName = [firstName, lastName].filter(Boolean).join(' ');
           }
 
           return (
@@ -205,28 +205,31 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
             >
               <ListItemText
                 primary={
-                  <Typography variant="subtitle1">
-                    {fullName}
+                  <Typography variant="subtitle1" component="span">
+                    {`${connectedClient.first_name} ${connectedClient.last_name}`}
                   </Typography>
                 }
                 secondary={
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary"
-                    sx={{ 
-                      display: 'flex',
-                      flexDirection: isMobile ? 'column' : 'row',
-                      gap: isMobile ? 0.5 : 1,
-                      '& > span': {
-                        display: 'inline-flex',
-                        alignItems: 'center'
-                      }
-                    }}
-                  >
-                    <span>{`Family #: ${connectedClient.family_number || 'N/A'}`}</span>
-                    {connectedClient.phone1 && <span>{`Phone: ${connectedClient.phone1}`}</span>}
-                    {connection.relationship_type && <span>{`Relationship: ${connection.relationship_type}`}</span>}
-                  </Typography>
+                  <Box component="span" sx={{ 
+                    display: 'flex',
+                    flexDirection: isMobile ? 'column' : 'row',
+                    gap: isMobile ? 0.5 : 1,
+                    mt: 0.5
+                  }}>
+                    <Typography variant="body2" color="text.secondary" component="span">
+                      Family #: {connectedClient.family_number}
+                    </Typography>
+                    {connectedClient.phone1 && (
+                      <Typography variant="body2" color="text.secondary" component="span">
+                        Phone: {connectedClient.phone1}
+                      </Typography>
+                    )}
+                    {connection.relationship_type && (
+                      <Typography variant="body2" color="text.secondary" component="span">
+                        Relationship: {connection.relationship_type}
+                      </Typography>
+                    )}
+                  </Box>
                 }
               />
               <ListItemSecondaryAction>
