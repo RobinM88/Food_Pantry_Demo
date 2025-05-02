@@ -3,14 +3,20 @@
  * This provides a centralized way to access configuration values.
  */
 
+// Determine if we're running in demo mode
+const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true';
+
 // Validate required environment variables on startup
 function validateEnv() {
-  const required = [
-    'VITE_SUPABASE_URL', 
-    'VITE_SUPABASE_ANON_KEY',
-    'VITE_APP_NAME',
-    'VITE_APP_DESCRIPTION',
-  ];
+  // In demo mode, we don't need Supabase credentials
+  const required = isDemoMode 
+    ? ['VITE_APP_NAME', 'VITE_APP_DESCRIPTION'] 
+    : [
+        'VITE_SUPABASE_URL', 
+        'VITE_SUPABASE_ANON_KEY',
+        'VITE_APP_NAME',
+        'VITE_APP_DESCRIPTION',
+      ];
   
   const missing = required.filter(variable => !import.meta.env[variable]);
   
@@ -36,21 +42,25 @@ export const config = {
     environment: import.meta.env.MODE as string,
     isProduction: import.meta.env.PROD as boolean,
     isDevelopment: import.meta.env.DEV as boolean,
+    isDemoMode: isDemoMode,
   },
   
   /**
    * Supabase configuration
    */
   supabase: {
-    url: import.meta.env.VITE_SUPABASE_URL as string,
-    anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+    url: isDemoMode ? 'demo-mode-no-supabase' : (import.meta.env.VITE_SUPABASE_URL as string),
+    anonKey: isDemoMode ? 'demo-mode-no-supabase-key' : (import.meta.env.VITE_SUPABASE_ANON_KEY as string),
   },
 
   /**
    * Feature flags
    */
   features: {
-    offlineMode: true, // Default to true for testing
+    // Always enable offline mode in demo mode
+    offlineMode: isDemoMode ? true : (import.meta.env.VITE_OFFLINE_MODE === 'true' || true),
     notifications: (import.meta.env.VITE_ENABLE_NOTIFICATIONS as string) === 'true',
+    forceOfflineOnly: isDemoMode, // New flag to force offline-only operation
+    seedDemoData: isDemoMode, // Flag to enable demo data seeding
   },
 }; 
