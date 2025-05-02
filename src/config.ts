@@ -49,8 +49,8 @@ export const config = {
    * Supabase configuration
    */
   supabase: {
-    url: isDemoMode ? 'demo-mode-no-supabase' : (import.meta.env.VITE_SUPABASE_URL as string),
-    anonKey: isDemoMode ? 'demo-mode-no-supabase-key' : (import.meta.env.VITE_SUPABASE_ANON_KEY as string),
+    url: isDemoMode ? 'https://example.com' : (import.meta.env.VITE_SUPABASE_URL as string),
+    anonKey: isDemoMode ? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZW1vIjp0cnVlfQ.demo' : (import.meta.env.VITE_SUPABASE_ANON_KEY as string),
   },
 
   /**

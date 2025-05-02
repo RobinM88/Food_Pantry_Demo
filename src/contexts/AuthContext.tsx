@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { AuthService } from '../services/auth.service';
 import { api } from '../services/api';
+import { config } from '../config';
 
 interface AuthContextType {
   user: User | null;
@@ -22,6 +23,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isVolunteer, setIsVolunteer] = useState(false);
 
   useEffect(() => {
+    // In demo mode, automatically set authentication without checking Supabase
+    if (config.app.isDemoMode) {
+      console.log('Demo mode: Auto-authenticating as demo user');
+      AuthService.getCurrentUser().then(demoUser => {
+        setUser(demoUser as User);
+        setIsAuthenticated(true);
+        setIsVolunteer(true);
+        setIsLoading(false);
+      });
+      return;
+    }
+    
     // Check for existing session
     const checkSession = async () => {
       try {
@@ -40,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     checkSession();
 
-    // Subscribe to auth state changes
+    // Subscribe to auth state changes (only in non-demo mode)
     const { data: { subscription } } = api.supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setUser(session?.user ?? null);
@@ -50,12 +63,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     return () => {
-      subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { session } = await AuthService.signIn({ email, password });
+    const { session, user: authUser } = await AuthService.signIn({ email, password });
+    
+    // Handle demo mode where session might be structured differently
+    if (config.app.isDemoMode && authUser) {
+      setUser(authUser as User);
+      setIsAuthenticated(true);
+      setIsVolunteer(true);
+      return;
+    }
+    
     if (session) {
       setUser(session.user);
       setIsAuthenticated(true);
@@ -65,10 +89,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
     await AuthService.signUp({ email, password, firstName, lastName });
+    
+    // In demo mode, auto-sign in after sign up
+    if (config.app.isDemoMode) {
+      await signIn(email, password);
+    }
   };
 
   const signOut = async () => {
     await AuthService.signOut();
+    
+    // Always clear local state regardless of demo mode
     setUser(null);
     setIsAuthenticated(false);
     setIsVolunteer(false);
