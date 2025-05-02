@@ -4,25 +4,33 @@ import type { Database } from '../types/database.types';
 import { v4 as uuidv4 } from 'uuid';
 import { config } from '../config';
 import { db } from '../lib/indexedDB';
+import { STORES } from '../lib/indexedDB';
 
-if (!import.meta.env.VITE_SUPABASE_URL) {
-  throw new Error('Missing VITE_SUPABASE_URL environment variable');
+// Only validate environment variables in non-demo mode
+if (!config.app.isDemoMode) {
+  if (!import.meta.env.VITE_SUPABASE_URL) {
+    throw new Error('Missing VITE_SUPABASE_URL environment variable');
+  }
+
+  if (!import.meta.env.VITE_SUPABASE_ANON_KEY) {
+    throw new Error('Missing VITE_SUPABASE_ANON_KEY environment variable');
+  }
 }
 
-if (!import.meta.env.VITE_SUPABASE_ANON_KEY) {
-  throw new Error('Missing VITE_SUPABASE_ANON_KEY environment variable');
+// Use config values which handle demo mode properly
+const supabaseUrl = config.supabase.url;
+const supabaseKey = config.supabase.anonKey;
+
+// Debug environment variables in non-demo mode
+if (!config.app.isDemoMode) {
+  console.log('Environment Check:', {
+    url: supabaseUrl,
+    keyLength: supabaseKey.length,
+    keyPrefix: supabaseKey.substring(0, 10)
+  });
 }
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-// Debug environment variables
-console.log('Environment Check:', {
-  url: supabaseUrl,
-  keyLength: supabaseKey.length,
-  keyPrefix: supabaseKey.substring(0, 10)
-});
-
+// Create Supabase client (will use a valid URL even in demo mode)
 const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
   auth: {
     autoRefreshToken: true,
@@ -31,8 +39,14 @@ const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
   }
 });
 
-// Initialize Supabase connection
+// Initialize Supabase connection only in non-demo mode
 async function initializeSupabase() {
+  // Skip in demo mode
+  if (config.app.isDemoMode) {
+    console.log('Demo mode: Skipping Supabase initialization');
+    return;
+  }
+  
   try {
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
@@ -64,13 +78,28 @@ async function initializeSupabase() {
   }
 }
 
-// Initialize on load
-initializeSupabase();
+// Initialize on load if not in demo mode
+if (!config.app.isDemoMode) {
+  initializeSupabase();
+}
 
 export const api = {
   supabase,
   clients: {
     async getAll() {
+      // In demo mode, go straight to IndexedDB
+      if (config.app.isDemoMode) {
+        console.log('Demo mode: Loading clients from IndexedDB directly');
+        try {
+          const clients = await db.getAll(STORES.CLIENTS);
+          console.log(`Demo mode: Loaded ${clients.length} clients from IndexedDB`);
+          return clients;
+        } catch (error) {
+          console.error('Demo mode: Error loading clients from IndexedDB:', error);
+          return [];
+        }
+      }
+      
       try {
         console.log('Fetching clients...');
         
@@ -97,6 +126,12 @@ export const api = {
     },
 
     async getById(id: string) {
+      // In demo mode, go straight to IndexedDB
+      if (config.app.isDemoMode) {
+        console.log(`Demo mode: Loading client ${id} from IndexedDB directly`);
+        return await db.get(STORES.CLIENTS, id);
+      }
+      
       const { data, error } = await supabase
         .from('Client')
         .select('*')
@@ -221,6 +256,19 @@ export const api = {
 
   orders: {
     getAll: async () => {
+      // In demo mode, go straight to IndexedDB
+      if (config.app.isDemoMode) {
+        console.log('Demo mode: Loading orders from IndexedDB directly');
+        try {
+          const orders = await db.getAll(STORES.ORDERS);
+          console.log(`Demo mode: Loaded ${orders.length} orders from IndexedDB`);
+          return orders;
+        } catch (error) {
+          console.error('Demo mode: Error loading orders from IndexedDB:', error);
+          return [];
+        }
+      }
+      
       const { data, error } = await supabase
         .from('Order')
         .select(`
@@ -300,6 +348,19 @@ export const api = {
 
   phoneLogs: {
     async getAll() {
+      // In demo mode, go straight to IndexedDB
+      if (config.app.isDemoMode) {
+        console.log('Demo mode: Loading phone logs from IndexedDB directly');
+        try {
+          const logs = await db.getAll(STORES.PHONE_LOGS);
+          console.log(`Demo mode: Loaded ${logs.length} phone logs from IndexedDB`);
+          return logs;
+        } catch (error) {
+          console.error('Demo mode: Error loading phone logs from IndexedDB:', error);
+          return [];
+        }
+      }
+      
       const { data, error } = await supabase
         .from('PhoneLog')
         .select(`
@@ -428,6 +489,19 @@ export const api = {
 
   connectedFamilies: {
     async getAll() {
+      // In demo mode, go straight to IndexedDB
+      if (config.app.isDemoMode) {
+        console.log('Demo mode: Loading connected families from IndexedDB directly');
+        try {
+          const connections = await db.getAll(STORES.CONNECTED_FAMILIES);
+          console.log(`Demo mode: Loaded ${connections.length} connections from IndexedDB`);
+          return connections;
+        } catch (error) {
+          console.error('Demo mode: Error loading connections from IndexedDB:', error);
+          return [];
+        }
+      }
+      
       const { data, error } = await supabase
         .from('ConnectedFamily')
         .select(`
