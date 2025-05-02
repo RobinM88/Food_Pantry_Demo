@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emergency Recovery</title>
+  <style>
+    body {
+      font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.5;
+    }
+    h1 { color: #d9534f; }
+    button {
+      background: #d9534f;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      font-size: 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 10px 0;
+    }
+    button:hover { background: #c9302c; }
+    #log {
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      padding: 10px;
+      margin: 10px 0;
+      height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .success { color: green; }
+    .error { color: #d9534f; }
+  </style>
+</head>
+<body>
+  <h1>Emergency Recovery</h1>
+  <p>This page will completely reset your application by unregistering all service workers and clearing all caches.</p>
+  
+  <button id="resetButton">Reset Everything Now</button>
+  <div id="log">Waiting to start...</div>
+  
+  <div id="navigation" style="display:none">
+    <p>Recovery completed. Choose an option:</p>
+    <a href="/"><button>Go to Home Page</button></a>
+    <a href="/?from=recovery"><button>Go to Home Page (safe mode)</button></a>
+  </div>
+  
+  <script>
+    // Direct script with no dependencies
+    const log = document.getElementById('log');
+    const resetButton = document.getElementById('resetButton');
+    const navigation = document.getElementById('navigation');
+    
+    function appendLog(message, type = 'info') {
+      const line = document.createElement('div');
+      line.textContent = message;
+      if (type) line.className = type;
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
+    }
+    
+    async function emergencyReset() {
+      resetButton.disabled = true;
+      log.innerHTML = '';
+      appendLog('Starting emergency reset...');
+      
+      try {
+        // 1. Disable service worker completely in this session
+        appendLog('Disabling service worker for this session...');
+        window.sessionStorage.setItem('swDisabled', 'true');
+        
+        // 2. Unregister all service workers
+        if ('serviceWorker' in navigator) {
+          appendLog('Checking for service workers...');
+          try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            appendLog(`Found ${registrations.length} service worker registrations`);
+            
+            if (registrations.length > 0) {
+              for (const registration of registrations) {
+                try {
+                  await registration.unregister();
+                  appendLog(`Unregistered service worker: ${registration.scope}`, 'success');
+                } catch (err) {
+                  appendLog(`Failed to unregister service worker: ${err.message}`, 'error');
+                }
+              }
+            } else {
+              appendLog('No service workers found');
+            }
+          } catch (err) {
+            appendLog(`Error checking service workers: ${err.message}`, 'error');
+          }
+        } else {
+          appendLog('Service Worker API not available');
+        }
+        
+        // 3. Clear all caches
+        if ('caches' in window) {
+          appendLog('Clearing all caches...');
+          try {
+            const cacheNames = await caches.keys();
+            appendLog(`Found ${cacheNames.length} caches`);
+            
+            for (const name of cacheNames) {
+              try {
+                await caches.delete(name);
+                appendLog(`Cleared cache: ${name}`, 'success');
+              } catch (err) {
+                appendLog(`Failed to clear cache ${name}: ${err.message}`, 'error');
+              }
+            }
+          } catch (err) {
+            appendLog(`Error clearing caches: ${err.message}`, 'error');
+          }
+        } else {
+          appendLog('Cache API not available');
+        }
+        
+        // 4. Clear all storage
+        appendLog('Clearing storage...');
+        
+        try {
+          localStorage.clear();
+          appendLog('Cleared localStorage', 'success');
+        } catch (err) {
+          appendLog(`Failed to clear localStorage: ${err.message}`, 'error');
+        }
+        
+        try {
+          sessionStorage.clear();
+          // Re-set the swDisabled flag
+          window.sessionStorage.setItem('swDisabled', 'true');
+          appendLog('Cleared sessionStorage', 'success');
+        } catch (err) {
+          appendLog(`Failed to clear sessionStorage: ${err.message}`, 'error');
+        }
+        
+        if ('indexedDB' in window) {
+          appendLog('Attempting to clear IndexedDB...');
+          try {
+            const databases = await window.indexedDB.databases();
+            for (const db of databases) {
+              try {
+                window.indexedDB.deleteDatabase(db.name);
+                appendLog(`Requested deletion of IndexedDB: ${db.name}`, 'success');
+              } catch (err) {
+                appendLog(`Failed to delete IndexedDB ${db.name}: ${err.message}`, 'error');
+              }
+            }
+          } catch (err) {
+            appendLog(`Error accessing IndexedDB: ${err.message}`, 'error');
+          }
+        }
+        
+        appendLog('Emergency reset completed!', 'success');
+        appendLog('You can now navigate back to the application safely.');
+        
+        navigation.style.display = 'block';
+        resetButton.textContent = 'Reset Complete';
+      } catch (error) {
+        appendLog(`Error during emergency reset: ${error.message}`, 'error');
+        resetButton.disabled = false;
+      }
+    }
+    
+    resetButton.addEventListener('click', emergencyReset);
+  </script>
+</body>
+</html> 

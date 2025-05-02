@@ -23,6 +23,7 @@ import { generateNextFamilyNumber } from '../utils/familyNumberUtils';
 import { PhoneLogService } from '../services/phoneLog.service';
 import { OrderService } from '../services/order.service';
 import { ClientService } from '../services/client.service';
+import { OfflineStatus } from '../components/OfflineStatus';
 
 type ViewMode = 'list' | 'form' | 'details' | 'clientForm';
 
@@ -125,17 +126,28 @@ const PhoneLogs: React.FC = () => {
 
   const handleSaveOrder = async (order: NewOrder) => {
     try {
-      await OrderService.create(order);
+      const createdOrder = await OrderService.create(order);
       setNotification({
         open: true,
-        message: 'Service request created successfully',
+        message: createdOrder.created_offline 
+          ? 'Service request created locally and will be synced when online' 
+          : 'Service request created successfully',
         severity: 'success',
       });
     } catch (error) {
+      // Check if it's a network error
+      const isNetworkError = 
+        error instanceof Error && 
+        (error.message.includes('Failed to fetch') || 
+         error.message.includes('NetworkError') ||
+         error.message.includes('network'));
+      
       setNotification({
         open: true,
-        message: 'Error creating service request',
-        severity: 'error',
+        message: isNetworkError
+          ? 'You appear to be offline. The service request will be created when you reconnect.'
+          : 'Error creating service request',
+        severity: isNetworkError ? 'warning' : 'error',
       });
     }
   };
@@ -196,9 +208,9 @@ const PhoneLogs: React.FC = () => {
           total_this_month: 0,
           connected_families: [],
           member_status: MemberStatus.Pending,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          last_visit: new Date().toISOString()
+          created_at: new Date(),
+          updated_at: new Date(),
+          last_visit: new Date()
         };
         
         await ClientService.create(newClient);
@@ -251,7 +263,7 @@ const PhoneLogs: React.FC = () => {
         return selectedPhoneLog ? (
           <PhoneLogDetails
             phoneLog={selectedPhoneLog}
-            client={clients.find(c => c.family_number === selectedPhoneLog.familySearchId) || null}
+            client={clients.find(c => c.family_number === selectedPhoneLog.family_number) || null}
           />
         ) : null;
       case 'clientForm':
@@ -275,13 +287,16 @@ const PhoneLogs: React.FC = () => {
           <Typography variant="h5" component="h2">
             Phone Logs
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleAddPhoneLog}
-          >
-            Add Phone Log
-          </Button>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <OfflineStatus compact />
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleAddPhoneLog}
+            >
+              Add Phone Log
+            </Button>
+          </Box>
         </Box>
         {renderContent()}
       </Paper>
@@ -340,7 +355,7 @@ const PhoneLogs: React.FC = () => {
           {selectedPhoneLog && (
             <PhoneLogDetails
               phoneLog={selectedPhoneLog}
-              client={clients.find(c => c.family_number === selectedPhoneLog.familySearchId) || null}
+              client={clients.find(c => c.family_number === selectedPhoneLog.family_number) || null}
             />
           )}
         </DialogContent>

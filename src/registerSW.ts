@@ -1,45 +1,45 @@
-// Only register service worker in production
-if (import.meta.env?.MODE === 'production' && 'serviceWorker' in navigator) {
+/**
+ * Service Worker Registration
+ * 
+ * This file handles service worker registration for the application.
+ * Currently, service workers are DISABLED to prevent further issues.
+ */
+
+// Check URL parameters to see if we should enable service workers
+const urlParams = new URLSearchParams(window.location.search);
+const noServiceWorker = urlParams.get('noserviceworker') === 'true';
+const forceEnable = urlParams.get('enable_sw') === 'true';
+
+// By default, disable service workers unless explicitly enabled
+if (forceEnable && 'serviceWorker' in navigator) {
+  console.log('Service workers are ENABLED because enable_sw=true was passed in URL');
+  
   window.addEventListener('load', async () => {
     try {
-      // First, try to unregister any existing service workers
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      for (let registration of registrations) {
-        await registration.unregister();
-      }
-
-      // Then register the new service worker
+      console.log('Registering service worker...');
       const registration = await navigator.serviceWorker.register('/sw.js', {
-        scope: '/',
-        updateViaCache: 'none'
+        scope: '/'
       });
-      console.log('ServiceWorker registration successful with scope:', registration.scope);
-      
-      // Handle updates
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing;
-        console.log('Service Worker update found!');
-        newWorker?.addEventListener('statechange', () => {
-          console.log('Service Worker state:', newWorker.state);
-        });
-      });
+      console.log('Service worker registered successfully:', registration.scope);
     } catch (error) {
-      console.error('ServiceWorker registration failed:', error);
+      console.error('Service worker registration failed:', error);
     }
   });
-
-  // Handle controller change
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    console.log('Service Worker controller changed');
-  });
 } else {
-  // In development, unregister any existing service workers
+  console.log('Service workers are DISABLED to prevent issues');
+  
+  // Unregister any existing service workers
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(registrations => {
-      for (let registration of registrations) {
-        registration.unregister();
+    window.addEventListener('load', async () => {
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.unregister();
+          console.log('Service worker unregistered');
+        }
+      } catch (error) {
+        console.error('Error unregistering service worker:', error);
       }
-      console.log('Development mode: Service Workers unregistered');
     });
   }
 } 

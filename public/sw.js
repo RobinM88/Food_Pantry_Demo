@@ -1,4 +1,4 @@
-const CACHE_NAME = 'food-pantry-cache-v1';
+const CACHE_NAME = 'food-pantry-cache-v4';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -6,7 +6,14 @@ const STATIC_ASSETS = [
   '/favicon.ico',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
-  '/icons/pwa-512x512.png'
+  '/offline.html',
+  '/app-loader.js',
+  '/sw-injector.js',
+  '/assets/index-s3V4GORz.js',
+  '/assets/vendor-Db_gg_cT.js',
+  '/assets/ui-BjqvvWFt.js',
+  '/assets/browser-B1cOgO3g.js',
+  '/assets/index-C_jsmz29.css'
 ];
 
 // Debug logging
@@ -26,9 +33,7 @@ const shouldHandleRequest = (request) => {
       url.pathname.endsWith('.ts') ||
       url.pathname.includes('hot-update') ||    // HMR updates
       url.pathname.includes('ws') ||            // WebSocket
-      url.hostname.includes('localhost:5173') || // Dev server
-      url.hostname.includes('localhost:5174') || // Dev server alternate port
-      url.pathname.includes('supabase')) {      // Supabase requests
+      url.hostname.includes('localhost:5173')) { // Dev server
     return false;
   }
 
@@ -42,6 +47,8 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME)
       .then(cache => {
         debug('Caching static assets');
+        // Add index.html explicitly with no cache-busting for offline fallback
+        cache.add(new Request('/index.html', { cache: 'reload' }));
         return cache.addAll(STATIC_ASSETS).catch(error => {
           debug('Failed to cache some assets:', error);
           // Continue even if some assets fail to cache
@@ -70,91 +77,181 @@ self.addEventListener('activate', event => {
         })
       );
     })
+    .then(() => {
+      // Ensure service worker takes control immediately
+      debug('Service worker claiming clients');
+      return self.clients.claim();
+    })
   );
-  // Ensure service worker takes control immediately
-  self.clients.claim();
 });
 
 // Fetch event handler
 self.addEventListener('fetch', event => {
-  // Only handle GET requests that pass our filter
-  if (event.request.method !== 'GET' || !shouldHandleRequest(event.request)) {
-    debug('Skipping non-GET or development request:', event.request.url);
+  // Only handle GET requests that should be handled
+  if (event.request.method !== 'GET') {
     return;
   }
 
-  // Check if request is for a static asset
-  const isStaticAsset = STATIC_ASSETS.some(asset => 
-    event.request.url.endsWith(asset)
-  );
+  const url = new URL(event.request.url);
+  
+  // Skip handling of development server requests
+  if (!shouldHandleRequest(event.request)) {
+    debug('Skipping development request:', event.request.url);
+    return;
+  }
 
-  debug('Handling fetch for:', event.request.url, isStaticAsset ? '(static asset)' : '');
-
-  event.respondWith(
-    (async () => {
-      try {
-        // For static assets, try cache first
-        if (isStaticAsset) {
-          const cachedResponse = await caches.match(event.request);
+  // Handle navigation requests differently (pages)
+  if (event.request.mode === 'navigate') {
+    debug('Handling navigation request:', url.pathname);
+    event.respondWith(
+      // Try network first, fallback to cache, then to /index.html
+      fetch(event.request)
+        .then(response => {
+          // Cache successful navigation response
+          if (response.ok) {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME)
+              .then(cache => {
+                debug('Caching navigation response for:', url.pathname);
+                cache.put(event.request, responseToCache);
+              });
+          }
+          return response;
+        })
+        .catch(error => {
+          debug('Navigation fetch failed, trying cache:', error);
+          
+          return caches.match(event.request)
+            .then(cachedResponse => {
+              if (cachedResponse) {
+                debug('Serving navigation from cache:', url.pathname);
+                return cachedResponse;
+              }
+              
+              // If we don't have the specific page, try index.html
+              debug('No cached page, trying index.html as fallback');
+              return caches.match('/index.html')
+                .then(indexResponse => {
+                  if (indexResponse) {
+                    return indexResponse;
+                  }
+                  
+                  // Last resort - basic offline page
+                  return new Response(
+                    `<!DOCTYPE html>
+                    <html>
+                      <head>
+                        <title>Offline - Food Pantry App</title>
+                        <meta name="viewport" content="width=device-width, initial-scale=1">
+                        <style>
+                          body { font-family: sans-serif; padding: 20px; text-align: center; }
+                          h1 { color: #2E3766; }
+                        </style>
+                      </head>
+                      <body>
+                        <h1>You're Offline</h1>
+                        <p>The Food Pantry app can't be loaded right now. Please check your connection.</p>
+                        <button onclick="window.location.reload()">Try Again</button>
+                      </body>
+                    </html>`,
+                    { headers: { 'Content-Type': 'text/html' } }
+                  );
+                });
+            });
+        })
+    );
+    return;
+  }
+  
+  // Special handling for JS and CSS assets - cache first for faster loads
+  if (url.pathname.endsWith('.js') || 
+      url.pathname.endsWith('.css') ||
+      url.pathname.endsWith('.html')) {
+    
+    event.respondWith(
+      caches.match(event.request)
+        .then(cachedResponse => {
           if (cachedResponse) {
-            debug('Serving from cache:', event.request.url);
+            // Return the cached version first (cache-first strategy for assets)
+            debug('Serving asset from cache:', event.request.url);
+            
+            // In the background, try to update the cache
+            fetch(event.request)
+              .then(response => {
+                if (response.ok) {
+                  caches.open(CACHE_NAME)
+                    .then(cache => cache.put(event.request, response));
+                }
+              })
+              .catch(err => debug('Background fetch failed:', err));
+              
             return cachedResponse;
           }
+          
+          // If not in cache, try network
+          return fetch(event.request)
+            .then(response => {
+              // Cache the response for future
+              if (response.ok) {
+                const responseToCache = response.clone();
+                caches.open(CACHE_NAME)
+                  .then(cache => cache.put(event.request, responseToCache));
+              }
+              return response;
+            })
+            .catch(error => {
+              debug('Asset fetch failed:', error);
+              return new Response('Network error occurred', { 
+                status: 408, 
+                headers: { 'Content-Type': 'text/plain' } 
+              });
+            });
+        })
+    );
+    return;
+  }
+  
+  // For other resources (images, API calls, etc.), use network-first with cache fallback
+  event.respondWith(
+    fetch(event.request)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
         }
-
-        // Network request
-        debug('Fetching from network:', event.request.url);
-        const response = await fetch(event.request);
         
-        // Cache successful GET responses
-        if (response.ok) {
-          const cache = await caches.open(CACHE_NAME);
-          cache.put(event.request, response.clone());
-          debug('Cached response for:', event.request.url);
-        }
+        // Cache successful responses
+        const responseToCache = response.clone();
+        caches.open(CACHE_NAME)
+          .then(cache => {
+            cache.put(event.request, responseToCache);
+            debug('Cached network response for:', event.request.url);
+          });
         
         return response;
-      } catch (error) {
-        debug('Fetch failed for:', event.request.url, error);
+      })
+      .catch(error => {
+        debug('Fetch failed, checking cache:', event.request.url, error);
         
-        // Check cache
-        const cachedResponse = await caches.match(event.request);
-        if (cachedResponse) {
-          debug('Serving from cache after fetch failure:', event.request.url);
-          return cachedResponse;
-        }
-
-        // Return basic offline page for document requests
-        if (event.request.mode === 'navigate') {
-          debug('Serving offline page for navigation request');
-          return new Response(
-            `<!DOCTYPE html>
-            <html>
-              <head>
-                <title>Offline - St. Trinity Food Pantry</title>
-                <meta name="viewport" content="width=device-width, initial-scale=1">
-                <style>
-                  body { font-family: sans-serif; padding: 20px; text-align: center; }
-                  h1 { color: #2E3766; }
-                </style>
-              </head>
-              <body>
-                <h1>You're Offline</h1>
-                <p>Please check your internet connection and try again.</p>
-              </body>
-            </html>`,
-            {
-              headers: { 'Content-Type': 'text/html' }
+        return caches.match(event.request)
+          .then(cachedResponse => {
+            if (cachedResponse) {
+              debug('Serving from cache after network failure:', event.request.url);
+              return cachedResponse;
             }
-          );
-        }
-
-        // Return error response for other requests
-        return new Response('Network error occurred', {
-          status: 408,
-          headers: { 'Content-Type': 'text/plain' }
-        });
-      }
-    })()
+            
+            // For API requests that fail and aren't cached
+            if (url.pathname.includes('/api/') || url.hostname.includes('supabase')) {
+              return new Response(JSON.stringify({ error: 'You are offline' }), {
+                headers: { 'Content-Type': 'application/json' }
+              });
+            }
+            
+            // For other resources like images
+            return new Response('Resource unavailable while offline', {
+              status: 503,
+              headers: { 'Content-Type': 'text/plain' }
+            });
+          });
+      })
   );
 }); 

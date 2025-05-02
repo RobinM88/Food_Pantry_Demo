@@ -1,4 +1,4 @@
-import { Order, Client, PhoneLog, MemberStatus, REQUIRED_FIELDS } from '../types';
+import { Order, Client, MemberStatus, REQUIRED_FIELDS } from '../types';
 import type { NewClient } from '../types/client';
 
 type ValidationErrors = Record<string, string>;

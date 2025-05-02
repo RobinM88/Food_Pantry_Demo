@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Box, Button, Container, Snackbar, Alert, CircularProgress } from '@mui/material';
-import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
+import { Box, Button, Container, Snackbar, Alert, CircularProgress, AlertTitle } from '@mui/material';
+import { ArrowBack as ArrowBackIcon, WifiOff as WifiOffIcon } from '@mui/icons-material';
 import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import ClientList from '../features/clients/ClientList';
 import ClientForm from '../features/clients/ClientForm';
@@ -9,6 +9,7 @@ import PendingClientsDashboard from '../features/clients/PendingClientsDashboard
 import { Client, NewClient, UpdateClient, MemberStatus } from '../types';
 import { generateNextFamilyNumber } from '../utils/familyNumberUtils';
 import { ClientService } from '../services/client.service';
+import { config } from '../config';
 
 type ViewMode = 'list' | 'add' | 'edit' | 'view' | 'pending';
 
@@ -22,7 +23,9 @@ export default function Clients() {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
+  const [pendingClients, setPendingClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [notification, setNotification] = useState<Notification>({
     open: false,
     message: '',
@@ -32,25 +35,55 @@ export default function Clients() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Monitor online/offline status
   useEffect(() => {
-    const loadClients = async () => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    const loadData = async () => {
       try {
         setLoading(true);
+        
+        // Load all clients
         const clientsData = await ClientService.getAll();
         setClients(clientsData);
+
+        // Load pending clients specifically
+        if (viewMode === 'pending') {
+          const pendingData = await ClientService.getByStatus(MemberStatus.Pending);
+          setPendingClients(pendingData);
+        }
+        
+        // Debug - log clients in IndexedDB
+        if (config.features.offlineMode) {
+          await ClientService.debugIndexedDB();
+        }
       } catch (error) {
         console.error('Error loading clients:', error);
         setNotification({
           open: true,
-          message: 'Error loading clients',
-          severity: 'error'
+          message: isOffline 
+            ? 'Working in offline mode with cached data' 
+            : 'Error loading clients',
+          severity: isOffline ? 'warning' : 'error'
         });
       } finally {
         setLoading(false);
       }
     };
-    loadClients();
-  }, []);
+    
+    loadData();
+  }, [isOffline, viewMode]);
 
   useEffect(() => {
     // Update view mode based on URL
@@ -115,8 +148,9 @@ export default function Clients() {
   const handleDeleteClient = async (client: Client) => {
     try {
       await ClientService.delete(client.id);
-      const updatedClients = await ClientService.getAll();
-      setClients(updatedClients);
+      
+      // Immediately update the UI by filtering out the deleted client
+      setClients(prevClients => prevClients.filter(c => c.id !== client.id));
       
       if (viewMode === 'view' && selectedClient?.id === client.id) {
         setSelectedClient(null);
@@ -162,7 +196,7 @@ export default function Clients() {
           ...existingClient,
           ...clientData,
           family_size: calculateFamilySize(clientData),
-          updated_at: new Date().toISOString(),
+          updated_at: new Date(),
           // Preserve these fields from the existing client
           created_at: existingClient.created_at,
           last_visit: existingClient.last_visit,
@@ -238,9 +272,9 @@ export default function Clients() {
           total_visits: 0,
           total_this_month: 0,
           member_status: MemberStatus.Pending,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          last_visit: new Date().toISOString()
+          created_at: new Date(),
+          updated_at: new Date(),
+          last_visit: new Date()
         };
 
         // Save the new client directly
@@ -304,8 +338,44 @@ export default function Clients() {
     navigate('/clients/pending');
   };
 
+  // Debug function for development
+  const debugOfflineClients = async () => {
+    await ClientService.debugIndexedDB();
+    const pendingClientsData = await ClientService.getByStatus(MemberStatus.Pending);
+    setPendingClients(pendingClientsData);
+    setNotification({
+      open: true,
+      message: `Found ${pendingClientsData.length} pending clients in IndexedDB`,
+      severity: 'info'
+    });
+  };
+
   return (
     <Container maxWidth="lg">
+      {isOffline && config.features.offlineMode && (
+        <Box sx={{ mt: 2, mb: 2 }}>
+          <Alert 
+            severity="warning" 
+            sx={{ mb: 1 }}
+            icon={<WifiOffIcon />}
+          >
+            <AlertTitle>Offline Mode</AlertTitle>
+            You are currently working offline. Changes will be synchronized when you reconnect.
+          </Alert>
+          
+          {viewMode === 'pending' && (
+            <Button 
+              variant="outlined" 
+              size="small" 
+              onClick={debugOfflineClients}
+              sx={{ mt: 1, mr: 1 }}
+            >
+              Check IndexedDB for pending clients
+            </Button>
+          )}
+        </Box>
+      )}
+      
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
           <CircularProgress />
@@ -381,7 +451,8 @@ export default function Clients() {
               path="/pending" 
               element={
                 <PendingClientsDashboard 
-                  clients={clients}
+                  clients={viewMode === 'pending' ? pendingClients : 
+                           clients.filter(c => c.member_status === MemberStatus.Pending)}
                   onViewClient={handleViewClient}
                   onEditClient={handleEditClient}
                   onDeleteClient={handleDeleteClient}

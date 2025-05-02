@@ -1,5 +1,4 @@
 import { RelationshipType } from './index';
-import { Client } from './client';
 
 export interface ConnectedFamily {
   id: string;

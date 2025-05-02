@@ -41,7 +41,7 @@ import {
   Inventory as BoxesIcon,
   Person as PersonIcon
 } from '@mui/icons-material';
-import { Order, Client } from '../../types';
+import { Order } from '../../types';
 import { format } from 'date-fns';
 
 interface OrderListProps {
@@ -349,42 +349,44 @@ export default function OrderList({
         </CardContent>
       </Card>
 
-      <Menu
-        anchorEl={menuAnchorEl}
-        open={Boolean(menuAnchorEl)}
-        onClose={handleMenuClose}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
-      >
-        {selectedOrder?.status === 'pending' && (
-          <>
-            <MenuItem onClick={() => handleStatusChange('approved')}>
-              <ListItemIcon>
-                <ApproveIcon color="success" />
-              </ListItemIcon>
-              <ListItemText>Approve</ListItemText>
-            </MenuItem>
-            <MenuItem onClick={() => handleStatusChange('denied')}>
-              <ListItemIcon>
-                <DenyIcon color="error" />
-              </ListItemIcon>
-              <ListItemText>Deny</ListItemText>
-            </MenuItem>
-          </>
-        )}
-        <MenuItem onClick={() => selectedOrder && onDeleteOrder(selectedOrder)} sx={{ color: 'error.main' }}>
-          <ListItemIcon>
-            <DeleteIcon color="error" />
-          </ListItemIcon>
-          <ListItemText>Delete</ListItemText>
-        </MenuItem>
-      </Menu>
+      {menuAnchorEl && (
+        <Menu
+          anchorEl={menuAnchorEl}
+          open={Boolean(menuAnchorEl)}
+          onClose={handleMenuClose}
+          anchorOrigin={{
+            vertical: 'bottom',
+            horizontal: 'right',
+          }}
+          transformOrigin={{
+            vertical: 'top',
+            horizontal: 'right',
+          }}
+        >
+          {selectedOrder?.status === 'pending' && (
+            <>
+              <MenuItem onClick={() => handleStatusChange('approved')}>
+                <ListItemIcon>
+                  <ApproveIcon color="success" />
+                </ListItemIcon>
+                <ListItemText>Approve</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={() => handleStatusChange('denied')}>
+                <ListItemIcon>
+                  <DenyIcon color="error" />
+                </ListItemIcon>
+                <ListItemText>Deny</ListItemText>
+              </MenuItem>
+            </>
+          )}
+          <MenuItem onClick={() => selectedOrder && onDeleteOrder(selectedOrder)} sx={{ color: 'error.main' }}>
+            <ListItemIcon>
+              <DeleteIcon color="error" />
+            </ListItemIcon>
+            <ListItemText>Delete</ListItemText>
+          </MenuItem>
+        </Menu>
+      )}
     </Box>
   );
 } 

@@ -26,7 +26,8 @@ import {
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import { Client } from '../types/client';
-import { ConnectedFamily, RelationshipType } from '../types/connectedFamily';
+import { ConnectedFamily } from '../types/connectedFamily';
+import { RelationshipType } from '../types';
 import { ConnectedFamilyService } from '../services/connectedFamily.service';
 import { ClientService } from '../services/client.service';
 

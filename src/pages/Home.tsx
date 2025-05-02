@@ -1,4 +1,4 @@
-import { Grid, Card, CardContent, Typography, CardActionArea, Box } from '@mui/material'
+import { Grid, Card, CardContent, Typography, CardActionArea } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import {
   People as PeopleIcon,

@@ -64,14 +64,24 @@ export default function PendingApprovalsDashboard({
   // Filter orders to only show pending ones
   console.log('All orders received by PendingApprovalsDashboard:', orders);
   console.log('Orders array type:', Array.isArray(orders) ? 'Array' : typeof orders);
+  
+  // Specifically log offline orders
+  const offlineOrders = orders.filter(order => order.created_offline === true);
+  console.log('Offline orders count:', offlineOrders.length);
+  console.log('Offline orders:', offlineOrders);
+  
   const pendingOrders = orders.filter(order => {
     console.log('Checking order:', {
       id: order.id,
       status: order.status,
       approval_status: order.approval_status,
-      family_number: order.family_number
+      family_number: order.family_number,
+      created_offline: order.created_offline
     });
-    const isPending = order.status === 'pending' && order.approval_status === 'pending';
+    // Include both regular pending orders and those created offline 
+    const isPending = (order.status === 'pending' && order.approval_status === 'pending') || 
+                      // Also consider offline-created orders as pending
+                      (order.created_offline === true);
     console.log('Is order pending?', isPending);
     return isPending;
   });
@@ -195,13 +205,17 @@ export default function PendingApprovalsDashboard({
 
   const renderOrderCard = (order: Order) => {
     const client = clients.find(c => c.family_number === order.family_number);
+    const isOfflineOrder = order.created_offline === true;
     
     return (
       <Card key={order.id} sx={{ 
         mb: 2, 
         width: '100%',
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        // Add distinctive border for offline orders
+        border: isOfflineOrder ? '2px dashed #ff9800' : 'none',
+        boxShadow: isOfflineOrder ? '0 0 8px rgba(255, 152, 0, 0.3)' : undefined
       }}>
         <CardContent sx={{ 
           flex: '1 0 auto', 
@@ -218,11 +232,21 @@ export default function PendingApprovalsDashboard({
                 {client?.phone1 || 'No phone'}
               </Typography>
             </Box>
-            <Chip 
-              label="Pending Approval" 
-              color="warning"
-              size="small"
-            />
+            <Box>
+              <Chip 
+                label="Pending Approval" 
+                color="warning"
+                size="small"
+              />
+              {isOfflineOrder && (
+                <Chip 
+                  label="Created Offline" 
+                  color="info"
+                  size="small"
+                  sx={{ ml: 1 }}
+                />
+              )}
+            </Box>
           </Box>
           
           <Box sx={{ mt: 1 }}>

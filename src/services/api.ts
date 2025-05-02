@@ -2,6 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import type { Client, PhoneLog, ConnectedFamily } from '../types';
 import type { Database } from '../types/database.types';
 import { v4 as uuidv4 } from 'uuid';
+import { config } from '../config';
+import { db } from '../lib/indexedDB';
 
 if (!import.meta.env.VITE_SUPABASE_URL) {
   throw new Error('Missing VITE_SUPABASE_URL environment variable');
@@ -94,6 +96,17 @@ export const api = {
       }
     },
 
+    async getById(id: string) {
+      const { data, error } = await supabase
+        .from('Client')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+
     async create(client: Omit<Client, 'id' | 'created_at' | 'updated_at'>) {
       // Convert camelCase to snake_case for database
       const now = new Date().toISOString();
@@ -157,12 +170,42 @@ export const api = {
     },
 
     async delete(id: string) {
-      const { error } = await supabase
-        .from('Client')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
+      try {
+        // Log what we're trying to delete
+        console.log('Attempting to delete client with ID:', id);
+        
+        // Make explicit call to supabase with error handling
+        const { error } = await supabase
+          .from('Client')
+          .delete()
+          .eq('id', id);
+        
+        if (error) {
+          console.error('Supabase delete error:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          });
+          throw error;
+        }
+
+        console.log('Successfully deleted client from Supabase:', id);
+        
+        // Also delete from IndexedDB if offline mode is enabled
+        if (config.features.offlineMode) {
+          try {
+            // Using the correct store name 'clients' from STORES.CLIENTS
+            await db.delete('clients', id);
+            console.log('Successfully deleted client from IndexedDB:', id);
+          } catch (e) {
+            console.error('Failed to delete from IndexedDB:', e);
+          }
+        }
+      } catch (error) {
+        console.error('Client deletion failed:', error);
+        throw error;
+      }
     },
 
     async getByPhone(phone: string) {

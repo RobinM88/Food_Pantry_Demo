@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#2E3766" />
+    <title>You're Offline - Food Pantry App</title>
+    <link rel="icon" href="/icons/icon-192x192.png">
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        background-color: #f5f5f5;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        color: #333;
+      }
+      header {
+        background-color: #2E3766;
+        color: white;
+        padding: 16px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      main {
+        padding: 32px;
+        max-width: 800px;
+        margin: 0 auto;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+      .icon {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 24px;
+        color: #2E3766;
+      }
+      h1 {
+        font-size: 24px;
+        margin-bottom: 16px;
+      }
+      p {
+        font-size: 16px;
+        line-height: 1.5;
+        margin-bottom: 24px;
+        color: #666;
+      }
+      .btn {
+        display: inline-block;
+        background-color: #2E3766;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-weight: 500;
+        margin: 8px;
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: background-color 0.3s;
+      }
+      .btn:hover {
+        background-color: #3a4580;
+      }
+      .btn-outline {
+        background-color: transparent;
+        border: 1px solid #2E3766;
+        color: #2E3766;
+      }
+      .btn-outline:hover {
+        background-color: rgba(46, 55, 102, 0.1);
+      }
+      .message {
+        background-color: #fff;
+        border-radius: 8px;
+        padding: 24px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 24px;
+        width: 100%;
+        max-width: 600px;
+      }
+      .navigation {
+        margin-top: 24px;
+      }
+      footer {
+        padding: 16px;
+        text-align: center;
+        font-size: 14px;
+        color: #666;
+        border-top: 1px solid #eee;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h2>Food Pantry Client Management</h2>
+    </header>
+    
+    <main>
+      <div class="message">
+        <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M0 0h24v24H0z" fill="none"/>
+          <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4c-1.48 0-2.85.43-4.01 1.17l1.46 1.46C10.21 6.23 11.08 6 12 6c3.04 0 5.5 2.46 5.5 5.5v.5H19c1.66 0 3 1.34 3 3 0 1.13-.64 2.11-1.56 2.62l1.45 1.45C23.16 18.16 24 16.68 24 15c0-2.64-2.05-4.78-4.65-4.96zM3 5.27L5.75 8.01C2.56 8.15 0 10.77 0 14c0 3.31 2.69 6 6 6h11.73l2 2L21 20.73 4.27 4 3 5.27zM7.73 10l8 8H6c-2.21 0-4-1.79-4-4s1.79-4 4-4h1.73z"/>
+        </svg>
+        
+        <h1>You're Offline</h1>
+        <p>You don't have an internet connection right now, but you can still access previously visited pages and work with your data.</p>
+        
+        <div class="actions">
+          <button class="btn" id="retry-button">Retry Connection</button>
+          <button class="btn btn-outline" id="continue-offline">Continue Offline</button>
+        </div>
+      </div>
+      
+      <div class="navigation">
+        <p>Quick Navigation:</p>
+        <a href="/" class="btn btn-outline">Home</a>
+        <a href="/clients" class="btn btn-outline">Clients</a>
+        <a href="/orders" class="btn btn-outline">Orders</a>
+      </div>
+    </main>
+    
+    <footer>
+      <p>Food Pantry Client Management System</p>
+    </footer>
+
+    <script>
+      // Check connection status
+      function updateOnlineStatus() {
+        if (navigator.onLine) {
+          // We're back online! Try to reload the page
+          window.location.reload();
+        }
+      }
+
+      // Set up event listeners
+      window.addEventListener('online', updateOnlineStatus);
+      
+      // Setup retry button
+      document.getElementById('retry-button').addEventListener('click', function() {
+        window.location.reload();
+      });
+      
+      // Setup continue offline button
+      document.getElementById('continue-offline').addEventListener('click', function() {
+        // Try to go back to the application
+        if (window.history.length > 1) {
+          window.history.back();
+        } else {
+          // If no history, go to the home page
+          window.location.href = '/';
+        }
+      });
+    </script>
+  </body>
+</html> 

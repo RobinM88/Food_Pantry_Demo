@@ -53,6 +53,7 @@ interface FormErrors {
   };
   visit_contact?: string;
   family_number?: string;
+  created_offline?: string;
 }
 
 export const OrderForm: React.FC<OrderFormProps> = ({
@@ -64,7 +65,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   const theme = useTheme();
 
   const [errors, setErrors] = useState<FormErrors>({});
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'error' as 'error' | 'success' });
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'error' as 'error' | 'success' | 'info' });
 
   const [orderData, setOrderData] = React.useState<NewOrder>({
     family_number: initialData?.family_number || '',
@@ -142,17 +143,44 @@ export const OrderForm: React.FC<OrderFormProps> = ({
       }
 
       await onSubmit(orderData);
+      
+      // Success is handled by the parent component
+    } catch (error: any) {
+      console.error('Error submitting order:', error);
+      
+      // More robust network error detection
+      const isNetworkError = 
+        error instanceof Error && 
+        (error.message.includes('Failed to fetch') || 
+         error.message.includes('NetworkError') ||
+         error.message.includes('network') ||
+         error.message.includes('offline') ||
+         (typeof error === 'object' && 'code' in error && error.code === 'ERR_NETWORK') ||
+         !navigator.onLine);
+         
+      // If we're offline, still try to submit (IndexedDB will handle it)
+      if (isNetworkError) {
+        try {
+          await onSubmit(orderData);
+          setSnackbar({
+            open: true,
+            message: 'Order saved in offline mode. It will sync when you reconnect.',
+            severity: 'info'
+          });
+          return;
+        } catch (offlineError) {
+          console.error('Failed to save order in offline mode:', offlineError);
+        }
+      }
+         
       setSnackbar({
         open: true,
-        message: 'Order saved successfully',
-        severity: 'success'
-      });
-    } catch (error) {
-      console.error('Error submitting form:', error);
-      setSnackbar({
-        open: true,
-        message: error && typeof error === 'object' && 'message' in error ? error.message as string : 'Failed to submit order. Please try again.',
-        severity: 'error'
+        message: isNetworkError
+          ? 'Failed to submit while offline. Your changes will be saved locally and synced when you reconnect.'
+          : error && typeof error === 'object' && 'message' in error 
+              ? error.message as string 
+              : 'Failed to submit order. Please try again.',
+        severity: isNetworkError ? 'info' : 'error'
       });
     }
   };

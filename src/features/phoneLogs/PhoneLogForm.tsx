@@ -33,6 +33,8 @@ interface PhoneLogFormProps {
   onComplete?: () => void;
   onClose?: () => void;
   initialPhoneNumber?: string;
+  phoneLog?: PhoneLog | null;
+  open?: boolean;
 }
 
 const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
@@ -42,6 +44,8 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
   onComplete = () => {},
   onClose = () => {},
   initialPhoneNumber = '',
+  phoneLog,
+  open,
 }) => {
   const navigate = useNavigate();
   const theme = useTheme();
@@ -63,7 +67,8 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
       adults: 0,
       small_children: 0,
       school_aged: 0
-    }
+    },
+    visit_contact: null
   });
 
   const {
@@ -105,6 +110,16 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
   useEffect(() => {
     if (matchingClients.length === 1 && !state.selected_client) {
       handleClientSelect(matchingClients[0]);
+    } else if (matchingClients.length > 0 && state.selected_client) {
+      // If we have a selected client, check if it's still in the matching list
+      const currentClientStillMatches = matchingClients.some(
+        client => client.id === state.selected_client?.id
+      );
+      
+      // If the current selected client is no longer in matches, clear it
+      if (!currentClientStillMatches) {
+        handleClientSelect(null);
+      }
     }
   }, [matchingClients, state.selected_client, handleClientSelect]);
 
@@ -138,6 +153,33 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
     }
   }, [state.phone_number, nameSearch, clients]);
 
+  // Add a useEffect to initialize form with phoneLog data when provided
+  useEffect(() => {
+    if (phoneLog) {
+      // Initialize form with existing phoneLog data
+      handlePhoneNumberChange(phoneLog.phone_number);
+      handleCallTypeChange(phoneLog.call_type);
+      handleCallOutcomeChange(phoneLog.call_outcome);
+      if (phoneLog.notes) {
+        handleNotesChange(phoneLog.notes);
+      }
+      
+      // Find and select the client
+      const client = clients.find(c => c.family_number === phoneLog.family_number);
+      if (client) {
+        handleClientSelect(client);
+      }
+    }
+  }, [phoneLog, clients, handlePhoneNumberChange, handleCallTypeChange, handleCallOutcomeChange, handleNotesChange, handleClientSelect]);
+
+  // Add a useEffect to handle the open state
+  useEffect(() => {
+    if (open) {
+      // If the form is newly opened, we might want to reset or initialize
+      // Only do something specific here if needed for open/close state management
+    }
+  }, [open]);
+
   const handleClose = () => {
     if (!isSaving) {
       reset();
@@ -170,7 +212,8 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
               if (onSaveOrder) {
                 await onSaveOrder(orderWithDates);
               } else {
-                await OrderService.create(orderWithDates);
+                const createdOrder = await OrderService.create(orderWithDates);
+                console.log('Order saved:', createdOrder.created_offline ? 'locally (offline)' : 'to server');
               }
               console.log('Order saved successfully'); // Debug log
             } catch (error: any) {
@@ -180,7 +223,19 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
                 details: error.details,
                 hint: error.hint
               });
-              throw error;
+              
+              // Check if it's a network error - don't throw if offline
+              const isNetworkError = 
+                error instanceof Error && 
+                (error.message.includes('Failed to fetch') || 
+                 error.message.includes('NetworkError') ||
+                 error.message.includes('network'));
+                 
+              if (!isNetworkError) {
+                throw error;
+              } else {
+                console.log('Network error detected during order creation, continuing with phone log save');
+              }
             }
           } catch (error) {
             console.error('Error in order creation:', error);
@@ -190,13 +245,13 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
 
         try {
           const newPhoneLog: PhoneLog = {
-            id: Date.now().toString(),
+            id: phoneLog?.id || Date.now().toString(),
             family_number: state.selected_client.family_number,
             phone_number: state.phone_number,
             call_type: state.call_type,
             call_outcome: state.call_outcome,
             notes: state.notes,
-            created_at: new Date(),
+            created_at: phoneLog?.created_at || new Date(),
             updated_at: new Date()
           };
 
@@ -237,7 +292,7 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
         family_number: state.selected_client?.family_number || '',
         status: 'pending',
         notes: state.notes || '',
-        pickup_date: undefined,
+        pickup_date: new Date(),
         delivery_type: 'pickup',
         is_new_client: false,
         approval_status: 'pending',
@@ -246,7 +301,8 @@ const PhoneLogForm: React.FC<PhoneLogFormProps> = ({
           adults: state.selected_client?.adults || 0,
           small_children: state.selected_client?.small_children || 0,
           school_aged: state.selected_client?.school_aged || 0
-        }
+        },
+        visit_contact: null
       });
     }
   };

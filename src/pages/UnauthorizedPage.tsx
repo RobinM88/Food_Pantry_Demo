@@ -1,12 +1,5 @@
-import React from 'react';
+import { Box, Typography, Button, Paper, Container } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
-import {
-  Box,
-  Button,
-  Container,
-  Typography,
-  Paper,
-} from '@mui/material';
 
 export default function UnauthorizedPage() {
   return (

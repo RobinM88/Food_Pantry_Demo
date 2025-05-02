@@ -19,11 +19,11 @@ export const calculateAddressMatches = (
   let hardMatch = 0;
 
   clients.forEach(client => {
-    if (client.familyNumber === currentClient.familyNumber) return;
+    if (client.family_number === currentClient.family_number) return;
 
     if (client.address?.toLowerCase() === currentClient.address?.toLowerCase()) {
       softMatch++;
-      if (client.aptNumber?.toLowerCase() === currentClient.aptNumber?.toLowerCase()) {
+      if (client.apt_number?.toLowerCase() === currentClient.apt_number?.toLowerCase()) {
         hardMatch++;
       }
     }
@@ -40,7 +40,7 @@ export const calculatePhoneMatches = (
   let phone2Matches = 0;
 
   clients.forEach(client => {
-    if (client.familyNumber === currentClient.familyNumber) return;
+    if (client.family_number === currentClient.family_number) return;
 
     if (client.phone1 === currentClient.phone1) phone1Matches++;
     if (client.phone2 === currentClient.phone2) phone2Matches++;
@@ -63,7 +63,7 @@ export const calculateTotalThisMonth = (orders: Order[]): number => {
 
 export const checkForDuplicateAddress = (client: Client, clients: Client[]): boolean => {
   for (const currentClient of clients) {
-    if (client.family_number === currentClient.family_number) return;
+    if (client.family_number === currentClient.family_number) continue;
     
     // Check for exact address match
     if (client.address && currentClient.address) {
@@ -79,7 +79,7 @@ export const checkForDuplicateAddress = (client: Client, clients: Client[]): boo
 
 export const checkForDuplicatePhone = (client: Client, clients: Client[]): boolean => {
   for (const currentClient of clients) {
-    if (client.family_number === currentClient.family_number) return;
+    if (client.family_number === currentClient.family_number) continue;
     
     // Check for phone number matches
     if (client.phone1) {

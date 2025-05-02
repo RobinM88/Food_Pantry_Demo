@@ -1,3 +1,24 @@
+// Define the missing types based on the Prisma schema
+type OrderStatus = 
+  | 'pending'
+  | 'approved'
+  | 'denied'
+  | 'confirmed'
+  | 'ready'
+  | 'out_for_delivery'
+  | 'picked_up'
+  | 'delivered'
+  | 'no_show'
+  | 'failed_delivery'
+  | 'cancelled'
+  | 'scheduled'
+  | 'in_queue'
+  | 'completed';
+
+type DeliveryType = 'pickup' | 'delivery';
+
+type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+
 export interface Database {
   public: {
     Tables: {
@@ -58,7 +79,7 @@ export interface Database {
           id: string;
           family_number: string;
           status: OrderStatus;
-          pickup_date: Date | null;
+          pickup_date: string | null;
           notes: string | null;
           delivery_type: DeliveryType;
           is_new_client: boolean;
@@ -70,14 +91,14 @@ export interface Database {
             small_children: number;
           };
           visit_contact: string | null;
-          created_at: Date;
-          updated_at: Date;
+          created_at: string;
+          updated_at: string;
         };
         Insert: {
           id?: string;
           family_number: string;
           status?: OrderStatus;
-          pickup_date?: Date | null;
+          pickup_date?: string | null;
           notes?: string | null;
           delivery_type?: DeliveryType;
           is_new_client?: boolean;
@@ -89,14 +110,14 @@ export interface Database {
             small_children: number;
           };
           visit_contact?: string | null;
-          created_at?: Date;
-          updated_at?: Date;
+          created_at?: string;
+          updated_at?: string;
         };
         Update: {
           id?: string;
           family_number?: string;
           status?: OrderStatus;
-          pickup_date?: Date | null;
+          pickup_date?: string | null;
           notes?: string | null;
           delivery_type?: DeliveryType;
           is_new_client?: boolean;
@@ -108,8 +129,8 @@ export interface Database {
             small_children: number;
           };
           visit_contact?: string | null;
-          created_at?: Date;
-          updated_at?: Date;
+          created_at?: string;
+          updated_at?: string;
         };
       };
     };

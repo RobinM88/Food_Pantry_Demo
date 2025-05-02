@@ -1,14 +1,13 @@
-import React from 'react';
+import { Typography, Box, Grid } from '@mui/material';
+import { ContactNote } from '../../types';
+import { format } from 'date-fns';
 import {
-  Box,
   Card,
   CardContent,
-  Typography,
   Chip,
-  Grid,
-  Divider,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Divider
 } from '@mui/material';
 import {
   Phone as PhoneIcon,
@@ -17,8 +16,6 @@ import {
   Sms as TextIcon,
   MoreHoriz as OtherIcon
 } from '@mui/icons-material';
-import { format } from 'date-fns';
-import { ContactNote } from '../../types';
 
 interface ContactNoteDetailsProps {
   contactNote: ContactNote;

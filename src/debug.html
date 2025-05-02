@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debug Page</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    #output {
+      background-color: #f5f5f5;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-wrap: break-word;
+      margin-top: 20px;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    h1 {
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <h1>Food Pantry Application Debug</h1>
+  <p>Use the buttons below to diagnose issues with the application:</p>
+  
+  <div>
+    <button id="checkServiceWorkers">Check Service Workers</button>
+    <button id="unregisterSW">Unregister All Service Workers</button>
+    <button id="clearCaches">Clear All Caches</button>
+    <button id="resetLocalStorage">Reset LocalStorage</button>
+    <button id="resetIndexedDB">Reset IndexedDB</button>
+    <button id="checkLocalStorage">Check LocalStorage</button>
+    <button id="restart">Restart App</button>
+  </div>
+  
+  <div id="output">Results will appear here...</div>
+
+  <script>
+    const output = document.getElementById('output');
+    
+    // Check service workers
+    document.getElementById('checkServiceWorkers').addEventListener('click', async () => {
+      try {
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          if (registrations.length === 0) {
+            output.innerHTML = 'No service workers are registered.';
+          } else {
+            let html = `<p>${registrations.length} service worker(s) found:</p><ul>`;
+            for (const registration of registrations) {
+              html += `<li>Scope: ${registration.scope}, State: ${registration.active ? 'active' : 'inactive'}</li>`;
+            }
+            html += '</ul>';
+            output.innerHTML = html;
+          }
+        } else {
+          output.innerHTML = 'Service Workers are not supported in this browser.';
+        }
+      } catch (error) {
+        output.innerHTML = `Error checking service workers: ${error.message}`;
+      }
+    });
+    
+    // Unregister service workers
+    document.getElementById('unregisterSW').addEventListener('click', async () => {
+      try {
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          if (registrations.length === 0) {
+            output.innerHTML = 'No service workers to unregister.';
+            return;
+          }
+          
+          for (const registration of registrations) {
+            await registration.unregister();
+          }
+          output.innerHTML = `Unregistered ${registrations.length} service worker(s).`;
+        } else {
+          output.innerHTML = 'Service Workers are not supported in this browser.';
+        }
+      } catch (error) {
+        output.innerHTML = `Error unregistering service workers: ${error.message}`;
+      }
+    });
+    
+    // Clear caches
+    document.getElementById('clearCaches').addEventListener('click', async () => {
+      try {
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          if (cacheNames.length === 0) {
+            output.innerHTML = 'No caches to clear.';
+            return;
+          }
+          
+          for (const cacheName of cacheNames) {
+            await caches.delete(cacheName);
+          }
+          output.innerHTML = `Cleared ${cacheNames.length} cache(s): ${cacheNames.join(', ')}`;
+        } else {
+          output.innerHTML = 'Cache API is not supported in this browser.';
+        }
+      } catch (error) {
+        output.innerHTML = `Error clearing caches: ${error.message}`;
+      }
+    });
+    
+    // Check localStorage
+    document.getElementById('checkLocalStorage').addEventListener('click', () => {
+      try {
+        const keys = Object.keys(localStorage);
+        if (keys.length === 0) {
+          output.innerHTML = 'LocalStorage is empty.';
+          return;
+        }
+        
+        let html = `<p>${keys.length} item(s) in localStorage:</p><ul>`;
+        for (const key of keys) {
+          const value = localStorage.getItem(key);
+          const truncatedValue = value.length > 100 ? value.substring(0, 100) + '...' : value;
+          html += `<li>${key}: ${truncatedValue}</li>`;
+        }
+        html += '</ul>';
+        output.innerHTML = html;
+      } catch (error) {
+        output.innerHTML = `Error checking localStorage: ${error.message}`;
+      }
+    });
+    
+    // Reset localStorage
+    document.getElementById('resetLocalStorage').addEventListener('click', () => {
+      try {
+        localStorage.clear();
+        output.innerHTML = 'LocalStorage has been cleared.';
+      } catch (error) {
+        output.innerHTML = `Error clearing localStorage: ${error.message}`;
+      }
+    });
+    
+    // Reset IndexedDB
+    document.getElementById('resetIndexedDB').addEventListener('click', async () => {
+      try {
+        if ('indexedDB' in window) {
+          const dbNames = await indexedDB.databases();
+          if (dbNames.length === 0) {
+            output.innerHTML = 'No IndexedDB databases found.';
+            return;
+          }
+          
+          let html = '<p>Attempting to delete IndexedDB databases:</p><ul>';
+          for (const db of dbNames) {
+            try {
+              const deleteRequest = indexedDB.deleteDatabase(db.name);
+              deleteRequest.onsuccess = () => {
+                html += `<li>Successfully deleted database: ${db.name}</li>`;
+              };
+              deleteRequest.onerror = () => {
+                html += `<li>Failed to delete database: ${db.name}</li>`;
+              };
+            } catch (e) {
+              html += `<li>Error deleting database ${db.name}: ${e.message}</li>`;
+            }
+          }
+          html += '</ul>';
+          output.innerHTML = html;
+        } else {
+          output.innerHTML = 'IndexedDB is not supported in this browser.';
+        }
+      } catch (error) {
+        output.innerHTML = `Error resetting IndexedDB: ${error.message}`;
+      }
+    });
+    
+    // Restart app
+    document.getElementById('restart').addEventListener('click', () => {
+      try {
+        // Add a query parameter to bypass any cached versions
+        window.location.href = '/?nocache=' + new Date().getTime();
+      } catch (error) {
+        output.innerHTML = `Error restarting app: ${error.message}`;
+      }
+    });
+  </script>
+</body>
+</html> 

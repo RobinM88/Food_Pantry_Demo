@@ -17,4 +17,47 @@ body {
 
 #root {
   min-height: 100vh;
+}
+
+/* Add styles for offline mode */
+.offline-mode a:not([download]):not([href^="tel:"]):not([href^="mailto:"]) {
+  cursor: default;
+  text-decoration: none;
+  color: inherit;
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+/* Gray out elements that require online access when offline */
+.offline-mode [data-requires-online="true"] {
+  opacity: 0.5;
+  pointer-events: none;
+  position: relative;
+}
+
+.offline-mode [data-requires-online="true"]::after {
+  content: "Requires connection";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Add a subtle indicator to show that data was created offline */
+.created-offline {
+  position: relative;
+}
+
+.created-offline::after {
+  content: "📱";
+  display: inline-block;
+  margin-left: 5px;
+  font-size: 14px;
+  opacity: 0.8;
 } 

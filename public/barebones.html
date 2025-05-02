@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Barebones App</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      color: #2E3766;
+    }
+    .card {
+      border: 1px solid #ddd;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    button {
+      background-color: #2E3766;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Food Pantry App - Barebones Mode</h1>
+  <p>This is a minimal version of the app with no dependencies.</p>
+  
+  <div class="card">
+    <h2>Application Status</h2>
+    <p>You're seeing this page because there may be an issue with the main application.</p>
+    <p id="status">Checking status...</p>
+    
+    <div>
+      <button id="clearButton">Clear All Browser Data</button>
+      <button id="homeButton">Try Main App Again</button>
+    </div>
+  </div>
+  
+  <script>
+    // Simple script with no dependencies
+    document.getElementById('status').textContent = navigator.onLine 
+      ? 'You are online. Service worker issues are likely the problem.' 
+      : 'You are offline. Network connectivity is the problem.';
+    
+    document.getElementById('clearButton').addEventListener('click', async function() {
+      // Clear all caches
+      if ('caches' in window) {
+        try {
+          const keys = await caches.keys();
+          for (const key of keys) {
+            await caches.delete(key);
+          }
+          alert('All caches cleared');
+        } catch (e) {
+          alert('Failed to clear caches: ' + e.message);
+        }
+      }
+      
+      // Unregister service workers
+      if ('serviceWorker' in navigator) {
+        try {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          for (const registration of registrations) {
+            await registration.unregister();
+          }
+          alert('All service workers unregistered');
+        } catch (e) {
+          alert('Failed to unregister service workers: ' + e.message);
+        }
+      }
+      
+      // Clear storage
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      alert('All browser data cleared. The page will now reload.');
+      window.location.href = '/?noserviceworker=true';
+    });
+    
+    document.getElementById('homeButton').addEventListener('click', function() {
+      window.location.href = '/?noserviceworker=true';
+    });
+  </script>
+</body>
+</html> 

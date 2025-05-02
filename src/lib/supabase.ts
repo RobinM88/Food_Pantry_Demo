@@ -1,13 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
+import { config } from '../config';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+/**
+ * Supabase client instance.
+ * Configuration is loaded from the centralized config module.
+ */
+export const supabase = createClient(config.supabase.url, config.supabase.anonKey);
 
-console.log('Supabase URL:', supabaseUrl);
-console.log('Supabase Key exists:', !!supabaseKey);
-
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing Supabase environment variables. Please check your .env file and ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set.');
-}
-
-export const supabase = createClient(supabaseUrl, supabaseKey); 
+/**
+ * Helper function to determine if we're connected to Supabase.
+ * This can be used to check connection status for offline handling.
+ */
+export async function isSupabaseConnected(): Promise<boolean> {
+  try {
+    const { error } = await supabase.from('healthcheck').select('*').limit(1);
+    return !error;
+  } catch (error) {
+    return false;
+  }
+} 

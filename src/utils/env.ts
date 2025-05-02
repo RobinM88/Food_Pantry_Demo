@@ -15,17 +15,4 @@ export const ENABLE_NOTIFICATIONS = import.meta.env.VITE_ENABLE_NOTIFICATIONS !=
 
 // PWA Configuration
 export const PWA_ENABLED = import.meta.env.VITE_PWA_ENABLED !== 'false'
-export const PWA_THEME_COLOR = import.meta.env.VITE_PWA_THEME_COLOR || '#ffffff'
-
-// Type definitions for environment variables
-declare global {
-  interface ImportMetaEnv {
-    VITE_APP_NAME: string
-    VITE_APP_DESCRIPTION: string
-    VITE_API_URL: string
-    VITE_ENABLE_ANALYTICS: string
-    VITE_ENABLE_NOTIFICATIONS: string
-    VITE_PWA_ENABLED: string
-    VITE_PWA_THEME_COLOR: string
-  }
-} 
+export const PWA_THEME_COLOR = import.meta.env.VITE_PWA_THEME_COLOR || '#ffffff' 

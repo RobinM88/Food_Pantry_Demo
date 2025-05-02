@@ -42,10 +42,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Subscribe to auth state changes
     const { data: { subscription } } = api.supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (_event, session) => {
         setUser(session?.user ?? null);
         setIsAuthenticated(!!session);
-        setIsVolunteer(session?.user?.user_metadata?.role === 'volunteer' ?? false);
+        setIsVolunteer(session?.user?.user_metadata?.role === 'volunteer');
       }
     );
 

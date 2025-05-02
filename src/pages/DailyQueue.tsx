@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Box, Button, Tabs, Tab, Snackbar, Alert, CircularProgress } from '@mui/material';
-import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
+import { ArrowBack as ArrowBackIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import DailyQueueDashboard from '../features/orders/DailyQueueDashboard';
 import PendingApprovalsDashboard from '../features/orders/PendingApprovalsDashboard';
 import OrderDetails from '../features/orders/OrderDetails';
@@ -9,6 +9,8 @@ import { Order, Client } from '../types';
 import { OrderService } from '../services/order.service';
 import { ClientService } from '../services/client.service';
 import { NewOrder } from '../types/order';
+import { useOfflineStatus } from '../hooks/useOfflineStatus';
+import OfflineIndicator from '../components/OfflineIndicator';
 
 type ViewMode = 'dashboard' | 'edit' | 'view';
 
@@ -31,6 +33,9 @@ export default function DailyQueue() {
     message: '',
     severity: 'success'
   });
+  
+  // Get offline status
+  const { isOnline } = useOfflineStatus();
 
   const loadData = async () => {
     console.log('loadData called');
@@ -41,6 +46,11 @@ export default function DailyQueue() {
         ClientService.getAll()
       ]);
       console.log('Raw orders data:', ordersData);
+      
+      // Debug log for offline orders
+      const offlineOrders = ordersData.filter(order => order.created_offline === true);
+      console.log(`Found ${offlineOrders.length} offline orders:`, offlineOrders);
+      
       console.log('Raw clients data:', clientsData);
       setOrders(ordersData || []);
       setClients(clientsData || []);
@@ -105,14 +115,26 @@ export default function DailyQueue() {
       
       setNotification({
         open: true,
-        message: 'Order updated successfully',
+        message: updatedOrder.created_offline 
+          ? 'Order saved locally and will be synced when online' 
+          : 'Order updated successfully',
         severity: 'success'
       });
     } catch (error) {
       console.error('Error updating order:', error);
+      
+      // Check if it's a network error
+      const isNetworkError = 
+        error instanceof Error && 
+        (error.message.includes('Failed to fetch') || 
+         error.message.includes('NetworkError') ||
+         error.message.includes('network'));
+      
       setNotification({
         open: true,
-        message: 'Error updating order',
+        message: isNetworkError
+          ? 'You appear to be offline. Please try again when online or check your connection.'
+          : 'Error updating order',
         severity: 'error'
       });
     }
@@ -120,19 +142,31 @@ export default function DailyQueue() {
 
   const handleDeleteOrder = async (order: Order) => {
     try {
-      await OrderService.delete(order.id);
+      const result = await OrderService.delete(order.id);
       setOrders(orders.filter(o => o.id !== order.id));
       
       setNotification({
         open: true,
-        message: 'Order deleted successfully',
+        message: typeof result === 'boolean' && result 
+          ? 'Order marked for deletion and will be removed when online' 
+          : 'Order deleted successfully',
         severity: 'success'
       });
     } catch (error) {
       console.error('Error deleting order:', error);
+      
+      // Check if it's a network error
+      const isNetworkError = 
+        error instanceof Error && 
+        (error.message.includes('Failed to fetch') || 
+         error.message.includes('NetworkError') ||
+         error.message.includes('network'));
+      
       setNotification({
         open: true,
-        message: 'Error deleting order',
+        message: isNetworkError
+          ? 'You appear to be offline. Please try again when online or check your connection.'
+          : 'Error deleting order',
         severity: 'error'
       });
     }
@@ -174,14 +208,26 @@ export default function DailyQueue() {
       
       setNotification({
         open: true,
-        message: `Order status updated to ${newStatus}`,
+        message: updatedOrder.created_offline 
+          ? `Order status changed to ${newStatus} and will be synced when online` 
+          : `Order status updated to ${newStatus}`,
         severity: 'success'
       });
     } catch (error) {
       console.error('Error updating order status:', error);
+      
+      // Check if it's a network error
+      const isNetworkError = 
+        error instanceof Error && 
+        (error.message.includes('Failed to fetch') || 
+         error.message.includes('NetworkError') ||
+         error.message.includes('network'));
+      
       setNotification({
         open: true,
-        message: 'Error updating order status',
+        message: isNetworkError
+          ? 'You appear to be offline. Please try again when online or check your connection.'
+          : 'Error updating order status',
         severity: 'error'
       });
     }
@@ -235,12 +281,14 @@ export default function DailyQueue() {
         if (selectedTab === 1) {
           // Show pending approvals
           console.log('Showing pending orders:', orders.filter(order => 
-            order.status === 'pending' && order.approval_status === 'pending'
+            (order.status === 'pending' && order.approval_status === 'pending') || 
+            order.created_offline === true
           ));
           return (
             <PendingApprovalsDashboard
               orders={orders.filter(order => 
-                order.status === 'pending' && order.approval_status === 'pending'
+                (order.status === 'pending' && order.approval_status === 'pending') ||
+                order.created_offline === true
               )}
               clients={clients}
               onStatusChange={handleStatusChange}
@@ -286,15 +334,33 @@ export default function DailyQueue() {
 
   return (
     <Box>
-      {viewMode !== 'dashboard' && (
-        <Button 
-          startIcon={<ArrowBackIcon />} 
-          onClick={handleCancel}
-          sx={{ mb: 2 }}
-        >
-          Back to Dashboard
-        </Button>
+      {!isOnline && (
+        <Box sx={{ mb: 2 }}>
+          <OfflineIndicator />
+        </Box>
       )}
+      
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        {viewMode !== 'dashboard' ? (
+          <Button 
+            startIcon={<ArrowBackIcon />} 
+            onClick={handleCancel}
+          >
+            Back to Dashboard
+          </Button>
+        ) : (
+          <Box />
+        )}
+        
+        <Button
+          startIcon={<RefreshIcon />}
+          variant="outlined"
+          onClick={loadData}
+          size="small"
+        >
+          Refresh Data
+        </Button>
+      </Box>
       
       {viewMode === 'dashboard' && (
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>

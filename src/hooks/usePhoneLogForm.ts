@@ -66,10 +66,23 @@ export const usePhoneLogForm = ({ onComplete, onCreateNewClient }: UsePhoneLogFo
   }, []);
 
   const handleClientSelect = useCallback((client: Client | null) => {
-    setState(prev => ({
-      ...prev,
-      selected_client: client
-    }));
+    setState(prev => {
+      // If a client is selected and we don't have a phone number yet,
+      // or the current phone number doesn't match client's phones,
+      // use the client's primary phone number
+      let phoneNumber = prev.phone_number;
+      if (client && (!phoneNumber || 
+          (client.phone1 && !phoneNumber.includes(client.phone1.replace(/\D/g, '')) && 
+           client.phone2 && !phoneNumber.includes(client.phone2.replace(/\D/g, ''))))) {
+        phoneNumber = formatPhoneNumber(client.phone1);
+      }
+      
+      return {
+        ...prev,
+        selected_client: client,
+        phone_number: phoneNumber
+      };
+    });
     
     // Clear any client-related errors
     setErrors(prev => {

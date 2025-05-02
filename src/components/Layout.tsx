@@ -12,6 +12,10 @@ import {
   ListItemText,
   Toolbar,
   Typography,
+  Snackbar,
+  Alert,
+  Divider,
+  Stack,
 } from '@mui/material'
 import {
   Menu as MenuIcon,
@@ -22,6 +26,8 @@ import {
   ViewList as QueueIcon,
   Groups as GroupsIcon,
 } from '@mui/icons-material'
+import { useOfflineStatus } from '../hooks/useOfflineStatus'
+import { OfflineStatus } from './OfflineStatus'
 
 const drawerWidth = 240
 
@@ -40,11 +46,17 @@ const menuItems = [
 
 export default function Layout({ children }: LayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' as 'info' | 'success' | 'error' })
+  const { offlineModeEnabled } = useOfflineStatus()
   const navigate = useNavigate()
   const location = useLocation()
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)
+  }
+
+  const handleCloseNotification = () => {
+    setNotification(prev => ({ ...prev, open: false }))
   }
 
   const drawer = (
@@ -66,6 +78,15 @@ export default function Layout({ children }: LayoutProps) {
           </ListItem>
         ))}
       </List>
+      
+      {offlineModeEnabled && (
+        <>
+          <Divider />
+          <Box sx={{ p: 2 }}>
+            <OfflineStatus />
+          </Box>
+        </>
+      )}
     </div>
   )
 
@@ -89,9 +110,16 @@ export default function Layout({ children }: LayoutProps) {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div">
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             Food Pantry Client Management
           </Typography>
+          
+          {/* Add offline status indicator in app bar */}
+          {offlineModeEnabled && (
+            <Stack direction="row" spacing={2} alignItems="center">
+              <OfflineStatus compact />
+            </Stack>
+          )}
         </Toolbar>
       </AppBar>
       <Box
@@ -139,6 +167,21 @@ export default function Layout({ children }: LayoutProps) {
       >
         <Toolbar />
         {children}
+        
+        {/* General notification */}
+        <Snackbar
+          open={notification.open}
+          autoHideDuration={3000}
+          onClose={handleCloseNotification}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <Alert 
+            onClose={handleCloseNotification}
+            severity={notification.severity}
+          >
+            {notification.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </Box>
   )

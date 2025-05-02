@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import OrderList from '../features/orders/OrderList';
 import { OrderForm } from '../features/orders/OrderForm';
 import OrderDetails from '../features/orders/OrderDetails';
-import { api } from '../services/api';
 import { Order, Client } from '../types';
 import { NewOrder } from '../types/order';
 import { Box, Button, Typography, Snackbar, Alert } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
+import { OrderService } from '../services/order.service';
+import { ClientService } from '../services/client.service';
+import { OfflineStatus } from '../components/OfflineStatus';
 
 export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -17,7 +19,7 @@ export default function Orders() {
   const [notification, setNotification] = useState<{
     open: boolean;
     message: string;
-    severity: 'success' | 'error';
+    severity: 'success' | 'error' | 'warning';
   }>({
     open: false,
     message: '',
@@ -31,7 +33,7 @@ export default function Orders() {
 
   const fetchOrders = async () => {
     try {
-      const fetchedOrders = await api.orders.getAll();
+      const fetchedOrders = await OrderService.getAll();
       setOrders(fetchedOrders);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -45,7 +47,7 @@ export default function Orders() {
 
   const fetchClients = async () => {
     try {
-      const fetchedClients = await api.clients.getAll();
+      const fetchedClients = await ClientService.getAll();
       setClients(fetchedClients);
     } catch (error) {
       console.error('Error fetching clients:', error);
@@ -75,17 +77,21 @@ export default function Orders() {
   const handleSubmitOrder = async (orderData: NewOrder) => {
     try {
       if (selectedOrder) {
-        await api.orders.update(selectedOrder.id, orderData);
+        const updatedOrder = await OrderService.update(selectedOrder.id, orderData);
         setNotification({
           open: true,
-          message: 'Order updated successfully',
+          message: updatedOrder.created_offline 
+            ? 'Order updated locally and will be synced when online' 
+            : 'Order updated successfully',
           severity: 'success'
         });
       } else {
-        await api.orders.create(orderData);
+        const createdOrder = await OrderService.create(orderData);
         setNotification({
           open: true,
-          message: 'Order created successfully',
+          message: createdOrder.created_offline 
+            ? 'Order created locally and will be synced when online' 
+            : 'Order created successfully',
           severity: 'success'
         });
       }
@@ -94,38 +100,60 @@ export default function Orders() {
       setSelectedOrder(undefined);
     } catch (error: any) {
       console.error('Error submitting order:', error);
+      
+      // Check if it's a network error
+      const isNetworkError = 
+        error instanceof Error && 
+        (error.message.includes('Failed to fetch') || 
+         error.message.includes('NetworkError') ||
+         error.message.includes('network'));
+      
       setNotification({
         open: true,
-        message: error.message || 'Error submitting order',
-        severity: 'error'
+        message: isNetworkError
+          ? 'You appear to be offline. Please try again when online or check your connection.'
+          : error.message || 'Error submitting order',
+        severity: isNetworkError ? 'warning' : 'error'
       });
     }
   };
 
   const handleDeleteOrder = async (order: Order) => {
     try {
-      await api.orders.delete(order.id);
+      const result = await OrderService.delete(order.id);
       await fetchOrders();
       setIsDetailsOpen(false);
       setSelectedOrder(undefined);
       setNotification({
         open: true,
-        message: 'Order deleted successfully',
+        message: typeof result === 'boolean' && result 
+          ? 'Order marked for deletion and will be synced when online' 
+          : 'Order deleted successfully',
         severity: 'success'
       });
     } catch (error) {
       console.error('Error deleting order:', error);
+      
+      // Check if it's a network error
+      const isNetworkError = 
+        error instanceof Error && 
+        (error.message.includes('Failed to fetch') || 
+         error.message.includes('NetworkError') ||
+         error.message.includes('network'));
+      
       setNotification({
         open: true,
-        message: 'Error deleting order',
-        severity: 'error'
+        message: isNetworkError
+          ? 'You appear to be offline. Please try again when online or check your connection.'
+          : 'Error deleting order',
+        severity: isNetworkError ? 'warning' : 'error'
       });
     }
   };
 
   const handleStatusChange = async (order: Order, newStatus: Order['status']) => {
     try {
-      await api.orders.update(order.id, { ...order, status: newStatus });
+      await OrderService.update(order.id, { ...order, status: newStatus });
       await fetchOrders();
       setNotification({
         open: true,
@@ -150,14 +178,17 @@ export default function Orders() {
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5">Orders</Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={handleAddOrder}
-        >
-          Add Order
-        </Button>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <OfflineStatus compact />
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={handleAddOrder}
+          >
+            Add Order
+          </Button>
+        </Box>
       </Box>
 
       <OrderList

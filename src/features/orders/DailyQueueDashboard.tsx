@@ -71,6 +71,12 @@ export default function DailyQueueDashboard({
   const filteredOrders = orders.filter(order => {
     console.log('Processing order:', order);
     
+    // Check for offline orders first
+    if (order.created_offline === true) {
+      console.log('Including offline-created order:', order.id);
+      return true;
+    }
+    
     // Filter by status if selected
     const statusMatch = !selectedStatus || order.status === selectedStatus;
     console.log('Status match:', { 

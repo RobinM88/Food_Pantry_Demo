@@ -15,6 +15,10 @@ interface ImportMetaEnv {
   readonly VITE_ENABLE_NOTIFICATIONS?: string
   readonly VITE_ENABLE_DARK_MODE?: string
   readonly VITE_ENABLE_BETA_FEATURES?: string
+  
+  // PWA Configuration
+  readonly VITE_PWA_ENABLED?: string
+  readonly VITE_PWA_THEME_COLOR?: string
 }
 
 interface ImportMeta {

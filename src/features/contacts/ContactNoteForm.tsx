@@ -1,20 +1,21 @@
-import { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Button,
-  Grid,
   TextField,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
+  Grid,
   Typography,
   Paper,
   SelectChangeEvent
 } from '@mui/material';
-import { format } from 'date-fns';
-import { ContactNote, NewContactNote, ContactMethod, ContactPurpose } from '../../types';
-import { DatePicker } from '@mui/x-date-pickers';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { ContactNote, NewContactNote } from '../../types';
 
 interface ContactNoteFormProps {
   contactNote?: ContactNote;
@@ -42,7 +43,7 @@ export default function ContactNoteForm({
   const [formData, setFormData] = useState<NewContactNote>(initialFormState);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (contactNote) {
       setFormData({
         family_number: contactNote.family_number,
@@ -127,12 +128,14 @@ export default function ContactNoteForm({
           </Grid>
           
           <Grid item xs={12} sm={6}>
-            <DatePicker
-              label="Contact Date"
-              value={formData.contact_date}
-              onChange={handleDateChange}
-              sx={{ width: '100%' }}
-            />
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <DatePicker
+                label="Contact Date"
+                value={formData.contact_date}
+                onChange={handleDateChange}
+                sx={{ width: '100%' }}
+              />
+            </LocalizationProvider>
           </Grid>
           
           <Grid item xs={12} sm={6}>

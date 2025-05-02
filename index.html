@@ -10,10 +10,46 @@
     <link rel="mask-icon" href="/icons/pwa-512x512.png" color="#2E3766" />
     <link rel="manifest" href="/manifest.json" />
     <title>St. Trinity Food Pantry</title>
+    <style>
+      /* Styles for offline indicator */
+      .offline-mode body::before {
+        content: 'Offline Mode';
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background-color: #f44336;
+        color: white;
+        text-align: center;
+        padding: 4px;
+        font-size: 14px;
+        z-index: 9999;
+      }
+      .offline-mode body {
+        padding-top: 28px;
+      }
+      /* Help button styles */
+      .help-button {
+        position: fixed;
+        bottom: 60px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.6);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 5px 10px;
+        font-size: 12px;
+        cursor: pointer;
+        z-index: 9998;
+        text-decoration: none;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script type="module" src="/src/registerSW.ts"></script>
+    <!-- Help link for recovery -->
+    <a href="/reset.html" class="help-button">Having Problems?</a>
   </body>
 </html> 

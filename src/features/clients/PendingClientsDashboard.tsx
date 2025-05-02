@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import ClientList from './ClientList';
 import { Client, MemberStatus } from '../../types';
@@ -18,8 +17,6 @@ export default function PendingClientsDashboard({
   onDeleteClient,
   onStatusChange
 }: PendingClientsDashboardProps) {
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-
   const handleApproveClient = (client: Client) => {
     onStatusChange(client, MemberStatus.Active);
   };
