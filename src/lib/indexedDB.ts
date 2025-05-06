@@ -53,7 +53,7 @@ export class IndexedDBManager {
 
     try {
       this.db = await openDB(DB_NAME, DB_VERSION, {
-        upgrade(db, oldVersion, newVersion, transaction) {
+        upgrade(db, oldVersion, newVersion, _transaction) {
           console.log(`Upgrading IndexedDB from version ${oldVersion} to ${newVersion}`);
           
           // Create object stores if they don't exist

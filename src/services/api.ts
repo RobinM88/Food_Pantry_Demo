@@ -39,16 +39,6 @@ const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
   }
 });
 
-// Helper function to create demo mode responses without network calls
-const createDemoResponse = <T>(data: T) => {
-  // Return a fake successful response without making a network call
-  if (config.app.isDemoMode) {
-    // This mimics a successful Supabase response pattern
-    return { data, error: null };
-  }
-  return null; // Not in demo mode, should proceed with actual API call
-};
-
 // Initialize Supabase connection only in non-demo mode
 async function initializeSupabase() {
   // Skip in demo mode
@@ -416,7 +406,7 @@ export const api = {
         
         try {
           const allOrders = await db.getAll(STORES.ORDERS);
-          const familyOrders = allOrders.filter(order => order.family_number === familyNumber);
+          const familyOrders = allOrders.filter((order: any) => order.family_number === familyNumber);
           console.log(`Demo mode: Found ${familyOrders.length} orders for family ${familyNumber}`);
           return familyOrders;
         } catch (error) {
@@ -635,7 +625,7 @@ export const api = {
             console.log('Demo mode: Saving sample connected family data to IndexedDB');
             // Store the demo data in IndexedDB
             for (const conn of demoConnections) {
-              await db.put(STORES.CONNECTED_FAMILIES, conn, true);
+              await db.put(STORES.CONNECTED_FAMILIES, conn as any, true);
             }
             connectedFamilies = demoConnections;
           }
@@ -670,7 +660,7 @@ export const api = {
           
           // In demo mode, include connections where the client is either the family_number OR
           // the connected_family_number - this is necessary to show all connections properly
-          let clientConnections = allConnections.filter(conn => {
+          let clientConnections = allConnections.filter((conn: any) => {
             // Direct match on family_number
             if (conn.family_number === clientId) return true;
             
@@ -695,7 +685,7 @@ export const api = {
               ['f1001', 'f1002', 'f1003', 'f1004'].includes(clientId)) {
             
             // Demo connection data by client ID
-            const demoConnectionsMap = {
+            const demoConnectionsMap: Record<string, any[]> = {
               // For clients in group 1 (f1001 and f1002)
               'f1001': [
                 {
@@ -746,7 +736,7 @@ export const api = {
             if (clientConnections.length > 0) {
               // Store in IndexedDB
               for (const conn of clientConnections) {
-                await db.put(STORES.CONNECTED_FAMILIES, conn, true);
+                await db.put(STORES.CONNECTED_FAMILIES, conn as any, true);
               }
               console.log(`Demo mode: Created demo connections for client ${clientId}`);
             }
@@ -835,10 +825,10 @@ export const api = {
         console.log(`Demo mode: Deleting all connected families for client ${clientId} from IndexedDB`);
         try {
           const allConnections = await db.getAll(STORES.CONNECTED_FAMILIES);
-          const clientConnections = allConnections.filter(conn => conn.family_number === clientId);
+          const clientConnections = allConnections.filter((conn: any) => conn.family_number === clientId);
           
           for (const conn of clientConnections) {
-            await db.delete(STORES.CONNECTED_FAMILIES, conn.id);
+            await db.delete(STORES.CONNECTED_FAMILIES, (conn as any).id);
           }
         } catch (error) {
           console.log(`Demo mode: Error deleting connected families for client ${clientId}, ignoring`);
@@ -863,7 +853,7 @@ export const api = {
         try {
           const allConnections = await db.getAll(STORES.CONNECTED_FAMILIES);
           return allConnections.find(
-            conn => conn.family_number === clientId && conn.connected_family_number === connectedTo
+            (conn: any) => conn.family_number === clientId && conn.connected_family_number === connectedTo
           );
         } catch (error) {
           // Just return null on error instead of warning

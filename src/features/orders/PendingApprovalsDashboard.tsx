@@ -53,7 +53,7 @@ export default function PendingApprovalsDashboard({
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error' | 'warning'>('success');
   
   // Scheduling dialog state
   const [schedulingDialogOpen, setSchedulingDialogOpen] = useState(false);
@@ -89,23 +89,39 @@ export default function PendingApprovalsDashboard({
 
   const handleApprove = (order: Order) => {
     setSelectedOrder(order);
-    // Initialize with current date if no pickup date
+    
+    // Initialize date and time values based on order's pickup_date if available
     let initialDate = new Date();
+    initialDate.setHours(10, 0, 0, 0); // Default to 10:00 AM
     
-    // Set initial time to 10:00 AM
-    initialDate.setHours(10, 0, 0, 0);
-    
-    // If order has a pickup date, use it for both date and time
-    if (order.pickup_date && order.pickup_date instanceof Date && !isNaN(order.pickup_date.getTime())) {
-      initialDate = new Date(order.pickup_date);
+    // Check if order has a pickup date and use it
+    if (order.pickup_date) {
+      try {
+        // Handle various date formats (Date object or string)
+        const pickupDate = order.pickup_date instanceof Date 
+          ? order.pickup_date 
+          : new Date(order.pickup_date);
+        
+        // Only use the date if it's valid
+        if (!isNaN(pickupDate.getTime())) {
+          initialDate = pickupDate;
+          console.log('Using existing pickup date from order:', pickupDate);
+        } else {
+          console.log('Order has invalid pickup date, using default');
+        }
+      } catch (error) {
+        console.error('Error parsing pickup date:', error);
+      }
+    } else {
+      console.log('Order has no pickup date, using default');
     }
     
-    // Set the initial values
+    // Set the date and time values
     setScheduledDate(initialDate);
     setScheduledTime(initialDate);
     
-    // Set delivery type from order
-    setDeliveryType(order.delivery_type);
+    // Set delivery type from order (with default fallback)
+    setDeliveryType(order.delivery_type || 'pickup');
     setSchedulingDialogOpen(true);
   };
 
@@ -195,9 +211,9 @@ export default function PendingApprovalsDashboard({
     onStatusChange(updatedOrder, 'denied');
     console.log('DEBUG: Called onStatusChange');
     
-    // Show success message
-    setSnackbarMessage('Order denied successfully');
-    setSnackbarSeverity('success');
+    // Show appropriate message for denial
+    setSnackbarMessage('Order has been denied');
+    setSnackbarSeverity('warning');
     setSnackbarOpen(true);
   };
 

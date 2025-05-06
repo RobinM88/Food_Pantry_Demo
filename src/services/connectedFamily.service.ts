@@ -3,7 +3,18 @@ import { v4 as uuidv4 } from 'uuid';
 import { db } from '../lib/indexedDB';
 import { config } from '../config';
 import { STORES } from '../lib/indexedDB';
-import type { Client } from '../types';
+// Import RelationshipType from the application types
+import { RelationshipType } from '../types';
+
+// Define the ConnectedFamily type that matches the app's existing type
+export interface ConnectedFamily {
+  id: string;
+  family_number: string;
+  connected_family_number: string;
+  relationship_type?: RelationshipType;
+  created_at?: string;
+  updated_at?: string;
+}
 
 export const ConnectedFamilyService = {
   async getByClientId(clientId: string) {
@@ -57,7 +68,7 @@ export const ConnectedFamilyService = {
           
           // Filter connections related to this client
           const clientConnections = allConnections.filter(
-            conn => conn.family_number === clientId
+            (conn: any) => conn.family_number === clientId
           );
           
           if (clientConnections.length === 0) {
@@ -65,9 +76,9 @@ export const ConnectedFamilyService = {
           }
           
           // Get all connections in the same groups
-          const connectionGroups = clientConnections.map(c => c.connected_family_number);
+          const connectionGroups = clientConnections.map((c: any) => c.connected_family_number);
           const groupConnections = allConnections.filter(
-            conn => connectionGroups.includes(conn.connected_family_number)
+            (conn: any) => connectionGroups.includes(conn.connected_family_number)
           );
           
           console.log(`Found ${groupConnections.length} connected families in IndexedDB`);
@@ -83,10 +94,55 @@ export const ConnectedFamilyService = {
     }
   },
 
+  async getAll() {
+    // In demo mode, directly use the API functions
+    if (config.app.isDemoMode) {
+      return await api.connectedFamilies.getAll();
+    }
+    
+    try {
+      // Get all connections from Supabase
+      const { data, error } = await api.supabase
+        .from('ConnectedFamily')
+        .select('*');
+      
+      if (error) throw error;
+      
+      // If offline mode is enabled, cache the results
+      if (config.features.offlineMode) {
+        try {
+          for (const connection of data || []) {
+            await db.put(STORES.CONNECTED_FAMILIES, connection, true);
+          }
+        } catch (err) {
+          console.warn('Failed to cache connected families in IndexedDB:', err);
+        }
+      }
+      
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching all connected families from API:', error);
+      
+      // If offline mode is enabled, try to get from IndexedDB
+      if (config.features.offlineMode) {
+        try {
+          return await db.getAll(STORES.CONNECTED_FAMILIES);
+        } catch (dbError) {
+          console.error('Failed to fetch connected families from IndexedDB:', dbError);
+          return [];
+        }
+      }
+      
+      return [];
+    }
+  },
+
   async create(data: { family_number: string, connected_family_number: string, relationship_type: string }) {
     // In demo mode, use the API helper directly
     if (config.app.isDemoMode) {
-      return await api.connectedFamilies.create(data);
+      // Double cast through unknown to force the type conversion
+      // This is safe in demo mode where we control the data
+      return await api.connectedFamilies.create(data as any);
     }
     
     try {
@@ -196,12 +252,12 @@ export const ConnectedFamilyService = {
             // Delete all connections with the same connected_family_number
             const allConnections = await db.getAll(STORES.CONNECTED_FAMILIES);
             const groupConnections = allConnections.filter(
-              conn => conn.connected_family_number === connection.connected_family_number
+              (conn: any) => conn.connected_family_number === (connection as any).connected_family_number
             );
             
             // Delete each connection in the group
             for (const conn of groupConnections) {
-              await db.delete(STORES.CONNECTED_FAMILIES, conn.id);
+              await db.delete(STORES.CONNECTED_FAMILIES, (conn as any).id);
             }
             
             console.log('Connections marked for deletion in offline queue');
@@ -256,17 +312,17 @@ export const ConnectedFamilyService = {
         try {
           // Get all connections for this client
           const allConnections = await db.getAll(STORES.CONNECTED_FAMILIES);
-          const clientConnections = allConnections.filter(conn => conn.family_number === clientId);
+          const clientConnections = allConnections.filter((conn: any) => conn.family_number === clientId);
           
           if (clientConnections.length === 0) return;
           
           // Get all connection groups this client is part of
-          const connectionGroups = clientConnections.map(c => c.connected_family_number);
+          const connectionGroups = clientConnections.map((c: any) => c.connected_family_number);
           
           // Delete all connections in these groups
           for (const conn of allConnections) {
-            if (connectionGroups.includes(conn.connected_family_number)) {
-              await db.delete(STORES.CONNECTED_FAMILIES, conn.id);
+            if (connectionGroups.includes((conn as any).connected_family_number)) {
+              await db.delete(STORES.CONNECTED_FAMILIES, (conn as any).id);
             }
           }
           
