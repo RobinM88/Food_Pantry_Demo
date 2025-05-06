@@ -1,5 +1,5 @@
 import { db } from '../lib/indexedDB';
-import { Client } from '../types/client';
+import { Client, MemberStatus } from '../types/client';
 import { Order } from '../types/order';
 import { PhoneLog } from '../types/phoneLog';
 import { STORES } from '../lib/indexedDB';
@@ -14,62 +14,93 @@ const sampleClients: Client[] = [
     family_number: 'f1001',
     first_name: 'John',
     last_name: 'Smith',
-    phone: '555-123-4567',
+    phone1: '5551234567',
+    phone2: '',
     email: 'john.smith@example.com',
     address: '123 Main St',
-    city: 'Anytown',
-    state: 'CA',
-    zip: '12345',
+    apt_number: '',
+    zip_code: '12345',
+    is_unhoused: false,
+    is_temporary: false,
     family_size: 4,
     adults: 2,
-    children: 2,
-    seniors: 0,
-    notes: 'Sample client for demo purposes',
-    member_status: 'active',
-    last_visit: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+    school_aged: 1,
+    small_children: 1,
+    temporary_members: {
+      adults: 0,
+      school_aged: 0,
+      small_children: 0
+    },
+    member_status: MemberStatus.Active,
+    food_notes: '',
+    office_notes: 'Sample client for demo purposes',
+    total_visits: 5,
+    total_this_month: 1,
+    last_visit: new Date(),
+    created_at: new Date(),
+    updated_at: new Date()
   },
   {
     id: '2b3c4d5e-6f7g-8h9i-0j1k-2l3m4n5o6p7q',
     family_number: 'f1002',
     first_name: 'Jane',
     last_name: 'Doe',
-    phone: '555-987-6543',
+    phone1: '5559876543',
+    phone2: '',
     email: 'jane.doe@example.com',
     address: '456 Oak St',
-    city: 'Othertown',
-    state: 'NY',
-    zip: '67890',
+    apt_number: '',
+    zip_code: '67890',
+    is_unhoused: false,
+    is_temporary: false,
     family_size: 3,
     adults: 1,
-    children: 2,
-    seniors: 0,
-    notes: 'Single parent household',
-    member_status: 'active',
-    last_visit: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+    school_aged: 1,
+    small_children: 1,
+    temporary_members: {
+      adults: 0,
+      school_aged: 0,
+      small_children: 0
+    },
+    member_status: MemberStatus.Active,
+    food_notes: '',
+    office_notes: 'Single parent household',
+    total_visits: 3,
+    total_this_month: 1,
+    last_visit: new Date(),
+    created_at: new Date(),
+    updated_at: new Date()
   },
   {
     id: '3c4d5e6f-7g8h-9i0j-1k2l-3m4n5o6p7q8r',
     family_number: 'f1003',
     first_name: 'Robert',
     last_name: 'Johnson',
-    phone: '555-456-7890',
+    phone1: '5554567890',
+    phone2: '',
     email: 'robert.johnson@example.com',
     address: '789 Pine St',
-    city: 'Sometown',
-    state: 'TX',
-    zip: '23456',
+    apt_number: '',
+    zip_code: '23456',
+    is_unhoused: false,
+    is_temporary: false,
     family_size: 5,
     adults: 2,
-    children: 2,
-    seniors: 1,
-    notes: 'Has dietary restrictions',
-    member_status: 'pending',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+    school_aged: 2,
+    small_children: 0,
+    temporary_members: {
+      adults: 0,
+      school_aged: 0,
+      small_children: 1
+    },
+    member_status: MemberStatus.Pending,
+    food_notes: 'Has dietary restrictions',
+    office_notes: '',
+    total_visits: 0,
+    total_this_month: 0,
+    last_visit: null,
+    created_at: new Date(),
+    updated_at: new Date()
   }
 ];
 
@@ -81,9 +112,8 @@ const sampleOrders: Order[] = [
     id: '1a2b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p',
     family_number: 'f1001',
     status: 'completed',
-    order_type: 'standard',
     delivery_type: 'pickup',
-    pickup_date: new Date().toISOString(),
+    pickup_date: new Date(),
     number_of_boxes: 2,
     notes: 'Sample order for demo purposes',
     additional_people: {
@@ -93,8 +123,9 @@ const sampleOrders: Order[] = [
     },
     is_new_client: false,
     approval_status: 'approved',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    created_at: new Date(),
+    updated_at: new Date(),
+    visit_contact: null,
     Client: {
       first_name: 'John',
       last_name: 'Smith'
@@ -104,9 +135,8 @@ const sampleOrders: Order[] = [
     id: '2b3c4d5e-6f7g-8h9i-0j1k-2l3m4n5o6p7q',
     family_number: 'f1002',
     status: 'pending',
-    order_type: 'emergency',
     delivery_type: 'delivery',
-    pickup_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Tomorrow
+    pickup_date: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
     number_of_boxes: 1,
     notes: 'Urgent need',
     additional_people: {
@@ -116,11 +146,35 @@ const sampleOrders: Order[] = [
     },
     is_new_client: false,
     approval_status: 'pending',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    created_at: new Date(),
+    updated_at: new Date(),
+    visit_contact: null,
     Client: {
       first_name: 'Jane',
       last_name: 'Doe'
+    }
+  },
+  {
+    id: '3c4d5e6f-7g8h-9i0j-1k2l-3m4n5o6p7q8r',
+    family_number: 'f1003',
+    status: 'pending',
+    delivery_type: 'pickup',
+    pickup_date: new Date(),
+    number_of_boxes: 3,
+    notes: 'First order for Robert Johnson',
+    additional_people: {
+      adults: 2,
+      small_children: 1,
+      school_aged: 2
+    },
+    is_new_client: true,
+    approval_status: 'pending',
+    created_at: new Date(),
+    updated_at: new Date(),
+    visit_contact: null,
+    Client: {
+      first_name: 'Robert',
+      last_name: 'Johnson'
     }
   }
 ];
@@ -132,28 +186,22 @@ const samplePhoneLogs: PhoneLog[] = [
   {
     id: '1a2b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p',
     family_number: 'f1001',
-    call_date: new Date().toISOString(),
-    call_purpose: 'schedule pickup',
+    phone_number: '5551234567',
+    call_type: 'incoming',
+    call_outcome: 'successful',
     notes: 'Client scheduled a pickup for Thursday',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    Client: {
-      first_name: 'John',
-      last_name: 'Smith'
-    }
+    created_at: new Date(),
+    updated_at: new Date()
   },
   {
     id: '2b3c4d5e-6f7g-8h9i-0j1k-2l3m4n5o6p7q',
     family_number: 'f1002',
-    call_date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
-    call_purpose: 'information',
+    phone_number: '5559876543',
+    call_type: 'outgoing',
+    call_outcome: 'voicemail',
     notes: 'Client called with questions about services',
-    created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    Client: {
-      first_name: 'Jane',
-      last_name: 'Doe'
-    }
+    created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+    updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
   }
 ];
 
@@ -166,16 +214,16 @@ const sampleConnectedFamilies = [
     family_number: 'f1001',
     connected_family_number: 'cf0001',
     relationship_type: 'relative',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+    created_at: new Date(),
+    updated_at: new Date()
   },
   {
     id: '2b3c4d5e-6f7g-8h9i-0j1k-2l3m4n5o6p7q',
     family_number: 'f1002',
     connected_family_number: 'cf0001',
     relationship_type: 'relative',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+    created_at: new Date(),
+    updated_at: new Date()
   }
 ];
 

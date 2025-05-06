@@ -49,7 +49,7 @@ export const config = {
    * Supabase configuration
    */
   supabase: {
-    url: isDemoMode ? 'https://example.com' : (import.meta.env.VITE_SUPABASE_URL as string),
+    url: isDemoMode ? 'http://localhost:0' : (import.meta.env.VITE_SUPABASE_URL as string),
     anonKey: isDemoMode ? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZW1vIjp0cnVlfQ.demo' : (import.meta.env.VITE_SUPABASE_ANON_KEY as string),
   },
 

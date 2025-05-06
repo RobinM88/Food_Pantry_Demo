@@ -137,6 +137,12 @@ export class SyncManager {
    * Attempt to sync with retry logic
    */
   private async attemptSync(): Promise<void> {
+    // Skip sync attempts in demo mode
+    if (config.app.isDemoMode) {
+      // No need to log every attempt in demo mode as it would flood the console
+      return;
+    }
+    
     // Always update the pending count first
     await this.updatePendingCount();
     
@@ -193,6 +199,12 @@ export class SyncManager {
    * Sync data with the server
    */
   public async syncData(): Promise<void> {
+    // Skip sync in demo mode
+    if (config.app.isDemoMode) {
+      console.log('Demo mode: Skipping sync operation in SyncManager');
+      return;
+    }
+
     if (!config.features.offlineMode) {
       console.log('Offline mode is disabled, skipping sync');
       return;

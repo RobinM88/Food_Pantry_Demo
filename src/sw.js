@@ -14,6 +14,10 @@ const urlsToCache = [
 // Cache names
 const CACHE_NAME = 'food-pantry-cache-v1';
 
+// Check for demo mode
+const isDemoMode = self.location.search.includes('demo=true') || 
+                  (caches.match('demo-flag').then(r => !!r).catch(() => false));
+
 // Installation
 self.addEventListener('install', event => {
   self.skipWaiting();
@@ -41,6 +45,20 @@ self.addEventListener('fetch', event => {
   if (url.pathname.startsWith('/@') || 
       url.pathname.startsWith('/src/') || 
       url.pathname.includes('react-refresh')) {
+    return;
+  }
+  
+  // In demo mode, block requests to example.com and other real APIs
+  if (isDemoMode && (
+    url.hostname === 'example.com' || 
+    url.hostname.endsWith('.supabase.co') ||
+    url.pathname.includes('/api/')
+  )) {
+    event.respondWith(
+      new Response(JSON.stringify({ error: 'Demo mode - No external API requests' }), {
+        headers: { 'Content-Type': 'application/json' }
+      })
+    );
     return;
   }
   

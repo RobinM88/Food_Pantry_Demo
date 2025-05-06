@@ -64,13 +64,54 @@ export const OrderForm: React.FC<OrderFormProps> = ({
 }) => {
   const theme = useTheme();
 
+  // Function to get the next available Monday or Wednesday
+  const getNextPickupDay = (): Date => {
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    
+    let daysToAdd = 0;
+    
+    // If today is Sunday, next pickup is Monday (+1)
+    if (dayOfWeek === 0) {
+      daysToAdd = 1;
+    }
+    // If today is Monday, next pickup is Wednesday (+2)
+    else if (dayOfWeek === 1) {
+      daysToAdd = 2;
+    }
+    // If today is Tuesday, next pickup is Wednesday (+1)
+    else if (dayOfWeek === 2) {
+      daysToAdd = 1;
+    }
+    // If today is Wednesday, next pickup is next Monday (+5)
+    else if (dayOfWeek === 3) {
+      daysToAdd = 5;
+    }
+    // If today is Thursday, next pickup is next Monday (+4)
+    else if (dayOfWeek === 4) {
+      daysToAdd = 4;
+    }
+    // If today is Friday, next pickup is next Monday (+3)
+    else if (dayOfWeek === 5) {
+      daysToAdd = 3;
+    }
+    // If today is Saturday, next pickup is next Monday (+2)
+    else if (dayOfWeek === 6) {
+      daysToAdd = 2;
+    }
+    
+    const nextPickupDate = new Date(today);
+    nextPickupDate.setDate(today.getDate() + daysToAdd);
+    return nextPickupDate;
+  };
+
   const [errors, setErrors] = useState<FormErrors>({});
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'error' as 'error' | 'success' | 'info' });
 
   const [orderData, setOrderData] = React.useState<NewOrder>({
     family_number: initialData?.family_number || '',
     status: initialData ? initialData.status : 'pending',
-    pickup_date: initialData?.pickup_date || null,
+    pickup_date: initialData?.pickup_date || getNextPickupDay(),
     notes: initialData?.notes || '',
     delivery_type: initialData?.delivery_type || 'pickup',
     is_new_client: initialData?.is_new_client || false,
@@ -186,14 +227,22 @@ export const OrderForm: React.FC<OrderFormProps> = ({
   };
 
   const handleDateChange = (date: Date | null) => {
+    // Make sure the date is valid by creating a new Date object if it exists
+    const validDate = date ? new Date(date) : null;
+    
     setOrderData(prev => ({
       ...prev,
-      pickup_date: date
+      pickup_date: validDate
     }));
   };
 
   // Function to determine if a date is valid (Monday or Wednesday)
-  const isValidPickupDay = (date: Date): boolean => {
+  const isValidPickupDay = (date: Date | null): boolean => {
+    // Return true for null dates to avoid errors (the DatePicker will handle null validation)
+    if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+      return false;
+    }
+    
     const day = date.getDay();
     // 1 is Monday, 3 is Wednesday
     return day === 1 || day === 3;
@@ -320,7 +369,7 @@ export const OrderForm: React.FC<OrderFormProps> = ({
                           label="Pickup Date"
                           value={orderData.pickup_date}
                           onChange={handleDateChange}
-                          shouldDisableDate={(date) => !isValidPickupDay(date)}
+                          shouldDisableDate={(date) => date ? !isValidPickupDay(date) : false}
                           slotProps={{
                             textField: {
                               fullWidth: true,

@@ -7,6 +7,11 @@ import type { Client } from '../types';
 
 export const ConnectedFamilyService = {
   async getByClientId(clientId: string) {
+    // In demo mode, directly use the API functions that handle demo mode properly
+    if (config.app.isDemoMode) {
+      return await api.connectedFamilies.getByClientId(clientId);
+    }
+    
     try {
       // First, get this client's connection group
       const { data: connections, error } = await api.supabase
@@ -79,6 +84,11 @@ export const ConnectedFamilyService = {
   },
 
   async create(data: { family_number: string, connected_family_number: string, relationship_type: string }) {
+    // In demo mode, use the API helper directly
+    if (config.app.isDemoMode) {
+      return await api.connectedFamilies.create(data);
+    }
+    
     try {
       // Generate a new cf number if not provided
       const cfNumber = data.connected_family_number.startsWith('cf') 
@@ -146,6 +156,11 @@ export const ConnectedFamilyService = {
   },
 
   async delete(id: string) {
+    // In demo mode, use the API helper directly
+    if (config.app.isDemoMode) {
+      return await api.connectedFamilies.delete(id);
+    }
+    
     try {
       // Check if we're offline before even trying the API call
       if (!navigator.onLine && config.features.offlineMode) {
@@ -168,6 +183,7 @@ export const ConnectedFamilyService = {
         .eq('connected_family_number', connection.connected_family_number);
       
       if (error) throw error;
+      return true;
     } catch (error) {
       console.log('Error in connection deletion, checking if offline:', error);
       
@@ -204,6 +220,11 @@ export const ConnectedFamilyService = {
   },
 
   async deleteByClientId(clientId: string) {
+    // In demo mode, use the API helper directly
+    if (config.app.isDemoMode) {
+      return await api.connectedFamilies.deleteByClientId(clientId);
+    }
+    
     try {
       // Check if we're offline before even trying the API call
       if (!navigator.onLine && config.features.offlineMode) {
@@ -250,10 +271,11 @@ export const ConnectedFamilyService = {
           }
           
           console.log('Client connections marked for deletion in offline queue');
-          return;
+          return true;
         } catch (dbError) {
           console.error('Failed to mark client connections for deletion in IndexedDB:', dbError);
-          return;
+          // Return true anyway to prevent UI errors
+          return true;
         }
       }
       throw error;
@@ -261,37 +283,49 @@ export const ConnectedFamilyService = {
   },
 
   async generateConnectedFamilyNumber() {
+    // In demo mode, generate a predictable ID
+    if (config.app.isDemoMode) {
+      return `cfDemo${Date.now().toString().slice(-6)}`;
+    }
+    
     try {
-      const { data: lastConnection } = await api.supabase
+      // Get the latest cf number
+      const { data, error } = await api.supabase
         .from('ConnectedFamily')
         .select('connected_family_number')
         .like('connected_family_number', 'cf%')
         .order('connected_family_number', { ascending: false })
         .limit(1);
-
-      let nextNumber = 1;
-      if (lastConnection && lastConnection.length > 0) {
-        const lastNumber = parseInt(lastConnection[0].connected_family_number.substring(2));
-        nextNumber = lastNumber + 1;
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        // Extract the number from the existing cf number
+        const lastCfNumber = data[0].connected_family_number;
+        const lastNumber = parseInt(lastCfNumber.replace('cf', ''), 10) || 0;
+        const newNumber = lastNumber + 1;
+        
+        // Format to ensure leading zeros
+        return `cf${newNumber.toString().padStart(6, '0')}`;
+      } else {
+        // No existing cf numbers, start with 1
+        return 'cf000001';
       }
-
-      return `cf${nextNumber.toString().padStart(4, '0')}`;
     } catch (error) {
-      // If offline, generate a temporary connected family number with timestamp
-      if (config.features.offlineMode) {
-        const timestamp = Date.now().toString().slice(-6);
-        return `cfTMP${timestamp}`;
-      }
-      throw error;
+      console.error('Error generating connected family number:', error);
+      
+      // In case of error, generate a reasonably unique number
+      return `cf${Date.now().toString().slice(-8)}`;
     }
   },
 
-  // Helper function to convert between family number formats
   convertFamilyNumber(familyNumber: string, addPrefix: boolean = true): string {
-    if (addPrefix) {
-      return familyNumber.startsWith('cf') ? familyNumber : `cf${familyNumber}`;
+    if (!familyNumber) return '';
+    
+    if (familyNumber.startsWith('f')) {
+      return addPrefix ? familyNumber : familyNumber.substring(1);
     } else {
-      return familyNumber.startsWith('cf') ? familyNumber.substring(2) : familyNumber;
+      return addPrefix ? `f${familyNumber}` : familyNumber;
     }
   }
 }; 

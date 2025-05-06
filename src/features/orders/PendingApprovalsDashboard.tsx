@@ -168,14 +168,35 @@ export default function PendingApprovalsDashboard({
   };
 
   const handleDeny = (order: Order) => {
+    // Set the selectedOrder to access it in the log
+    setSelectedOrder(order);
+    
+    console.log('DEBUG: Starting deny operation for order:', order.id);
+    console.log('DEBUG: Original order:', JSON.stringify(order, null, 2));
+    
+    // Create complete updated order object with all necessary fields
     const updatedOrder: Order = {
       ...order,
-      status: 'cancelled',
+      status: 'denied',
       approval_status: 'rejected',
       updated_at: new Date()
     };
-    onStatusChange(updatedOrder, 'cancelled');
-    setSnackbarMessage('Order denied');
+    
+    // Log the operation to help with debugging
+    console.log('DEBUG: Denying order with updated data:', { 
+      orderId: order.id, 
+      originalStatus: order.status,
+      newStatus: 'denied',
+      updatedOrder: JSON.stringify(updatedOrder, null, 2)
+    });
+    
+    // Call the parent component's status change handler with the complete order
+    console.log('DEBUG: About to call onStatusChange');
+    onStatusChange(updatedOrder, 'denied');
+    console.log('DEBUG: Called onStatusChange');
+    
+    // Show success message
+    setSnackbarMessage('Order denied successfully');
     setSnackbarSeverity('success');
     setSnackbarOpen(true);
   };

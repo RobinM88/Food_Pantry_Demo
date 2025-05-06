@@ -30,6 +30,7 @@ import { ConnectedFamily } from '../types/connectedFamily';
 import { RelationshipType } from '../types';
 import { ConnectedFamilyService } from '../services/connectedFamily.service';
 import { ClientService } from '../services/client.service';
+import { config } from '../config';
 
 interface FamilyGroup {
   mainClient: Client;
@@ -69,46 +70,116 @@ export default function FamilyConnections() {
       
       // Get all connections first
       let allConnectionsData: ConnectedFamily[] = [];
-      for (const client of clientsData) {
-        const clientConnections = await ConnectedFamilyService.getByClientId(client.family_number);
-        allConnectionsData = [...allConnectionsData, ...clientConnections];
+      
+      // In demo mode, handle possible errors silently
+      if (config.app.isDemoMode) {
+        console.log('Demo mode: Loading connected families data');
+        try {
+          // First try to get all connections at once
+          allConnectionsData = await ConnectedFamilyService.getAll();
+          console.log('Demo mode: All connections data:', allConnectionsData);
+        } catch (error) {
+          console.log('Demo mode: Error getting all connections, trying per client');
+          // If that fails, try per client
+          for (const client of clientsData) {
+            try {
+              const clientConnections = await ConnectedFamilyService.getByClientId(client.family_number);
+              if (clientConnections && Array.isArray(clientConnections)) {
+                allConnectionsData = [...allConnectionsData, ...clientConnections];
+              }
+            } catch (connError) {
+              console.log(`Demo mode: Skipping connections for client ${client.family_number}`);
+            }
+          }
+        }
+      } else {
+        // Regular mode
+        for (const client of clientsData) {
+          const clientConnections = await ConnectedFamilyService.getByClientId(client.family_number);
+          allConnectionsData = [...allConnectionsData, ...clientConnections];
+        }
       }
+      
+      // Debug log all connections
+      console.log('All connection data:', allConnectionsData);
       
       // Build family groups
       const groups: FamilyGroup[] = [];
       const processedClients = new Set<string>();
-
+      const processedGroups = new Set<string>();
+      
+      // First, identify all connection groups
+      const connectionGroups: Record<string, string[]> = {};
+      
+      for (const conn of allConnectionsData) {
+        const groupId = conn.connected_family_number;
+        if (!connectionGroups[groupId]) {
+          connectionGroups[groupId] = [];
+        }
+        if (!connectionGroups[groupId].includes(conn.family_number)) {
+          connectionGroups[groupId].push(conn.family_number);
+        }
+      }
+      
+      console.log('Connection groups:', connectionGroups);
+      
+      // For each client, create a family group if needed
       for (const client of clientsData) {
         if (processedClients.has(client.family_number)) continue;
-
-        const clientConnections = allConnectionsData.filter(conn => conn.family_number === client.family_number);
-        if (clientConnections.length > 0) {
+        
+        // Find all groups this client is part of
+        const clientGroupIds = Object.entries(connectionGroups)
+          .filter(([_groupId, members]) => members.includes(client.family_number))
+          .map(([groupId]) => groupId);
+        
+        for (const groupId of clientGroupIds) {
+          if (processedGroups.has(groupId)) continue;
+          processedGroups.add(groupId);
+          
           const group: FamilyGroup = {
             mainClient: client,
             connections: []
           };
-
-          for (const conn of clientConnections) {
-            const connectedClient = clientsData.find((c: Client) => c.family_number === conn.connected_family_number);
-            if (connectedClient) {
+          
+          // Find all other clients in this group
+          const otherClients = connectionGroups[groupId]
+            .filter(familyNumber => familyNumber !== client.family_number)
+            .map(familyNumber => clientsData.find(c => c.family_number === familyNumber))
+            .filter(Boolean) as Client[];
+          
+          // Add each other client as a connection
+          for (const otherClient of otherClients) {
+            // Find the connection record for this relationship
+            const connectionRecord = allConnectionsData.find(
+              conn => conn.family_number === client.family_number && 
+                     conn.connected_family_number === groupId
+            );
+            
+            if (connectionRecord) {
               group.connections.push({
-                client: connectedClient,
-                connectionId: conn.id,
-                relationshipType: conn.relationship_type
+                client: otherClient,
+                connectionId: connectionRecord.id,
+                relationshipType: connectionRecord.relationship_type as RelationshipType
               });
-              processedClients.add(connectedClient.family_number);
             }
           }
-
-          groups.push(group);
-          processedClients.add(client.family_number);
+          
+          if (group.connections.length > 0) {
+            groups.push(group);
+          }
         }
+        
+        processedClients.add(client.family_number);
       }
-
+      
+      console.log('Final family groups:', groups);
       setFamilyGroups(groups);
     } catch (error) {
       console.error('Error loading data:', error);
-      showNotification('Error loading family connections', 'error');
+      // In demo mode, don't show error notifications
+      if (!config.app.isDemoMode) {
+        showNotification('Error loading family connections', 'error');
+      }
     }
   };
 
@@ -157,18 +228,27 @@ export default function FamilyConnections() {
       // Remove both directions of the connection
       await ConnectedFamilyService.delete(connectionId);
       
-      // Find and remove the reverse connection
-      const reverseConnections = await ConnectedFamilyService.getByClientId(client2Id);
-      const reverseConnection = reverseConnections.find((c: ConnectedFamily) => c.connected_family_number === client1Id);
-      if (reverseConnection) {
-        await ConnectedFamilyService.delete(reverseConnection.id);
+      // In demo mode, don't try to fetch reverse connections which might fail
+      if (!config.app.isDemoMode) {
+        // Find and remove the reverse connection
+        const reverseConnections = await ConnectedFamilyService.getByClientId(client2Id);
+        const reverseConnection = reverseConnections.find((c: ConnectedFamily) => c.connected_family_number === client1Id);
+        if (reverseConnection) {
+          await ConnectedFamilyService.delete(reverseConnection.id);
+        }
       }
 
       await loadData(); // Refresh data
       showNotification('Family connection removed successfully', 'success');
     } catch (error) {
       console.error('Error removing connection:', error);
-      showNotification('Error removing family connection', 'error');
+      // In demo mode, don't show error notifications
+      if (!config.app.isDemoMode) {
+        showNotification('Error removing family connection', 'error');
+      } else {
+        // In demo mode, still refresh data to update UI
+        await loadData();
+      }
     }
   };
 
@@ -276,7 +356,7 @@ export default function FamilyConnections() {
                         <IconButton
                           edge="end"
                           aria-label="delete"
-                          onClick={() => handleRemoveConnection(connectionId, group.mainClient.id, client.id)}
+                          onClick={() => handleRemoveConnection(connectionId, group.mainClient.family_number, client.family_number)}
                         >
                           <DeleteIcon />
                         </IconButton>

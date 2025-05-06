@@ -39,6 +39,16 @@ const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
   }
 });
 
+// Helper function to create demo mode responses without network calls
+const createDemoResponse = <T>(data: T) => {
+  // Return a fake successful response without making a network call
+  if (config.app.isDemoMode) {
+    // This mimics a successful Supabase response pattern
+    return { data, error: null };
+  }
+  return null; // Not in demo mode, should proceed with actual API call
+};
+
 // Initialize Supabase connection only in non-demo mode
 async function initializeSupabase() {
   // Skip in demo mode
@@ -255,7 +265,7 @@ export const api = {
   },
 
   orders: {
-    getAll: async () => {
+    async getAll() {
       // In demo mode, go straight to IndexedDB
       if (config.app.isDemoMode) {
         console.log('Demo mode: Loading orders from IndexedDB directly');
@@ -269,77 +279,163 @@ export const api = {
         }
       }
       
+      // Regular API call for non-demo mode
       const { data, error } = await supabase
         .from('Order')
         .select(`
           *,
-          Client:family_number (
+          Client (
             first_name,
             last_name
           )
         `)
         .order('created_at', { ascending: false });
-
+      
       if (error) throw error;
       return data;
     },
-    getByFamilyNumber: async (familyNumber: string) => {
+    
+    async getById(id: string) {
+      // In demo mode, go straight to IndexedDB
+      if (config.app.isDemoMode) {
+        console.log(`Demo mode: Loading order ${id} from IndexedDB directly`);
+        return await db.get(STORES.ORDERS, id);
+      }
+      
       const { data, error } = await supabase
         .from('Order')
         .select(`
           *,
-          Client:family_number (
+          Client (
+            first_name,
+            last_name
+          )
+        `)
+        .eq('id', id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    
+    async create(order: any) {
+      // In demo mode, add directly to IndexedDB
+      if (config.app.isDemoMode) {
+        console.log('Demo mode: Creating order in IndexedDB directly');
+        const now = new Date();
+        const newOrder = {
+          ...order,
+          id: crypto.randomUUID(),
+          created_at: now,
+          updated_at: now
+        };
+        
+        await db.add(STORES.ORDERS, newOrder);
+        return newOrder;
+      }
+      
+      const { data, error } = await supabase
+        .from('Order')
+        .insert([order])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    
+    async update(id: string, updates: any) {
+      // In demo mode, update in IndexedDB
+      if (config.app.isDemoMode) {
+        console.log(`Demo mode: Updating order ${id} in IndexedDB directly`);
+        
+        // Get current order
+        const currentOrder = await db.get(STORES.ORDERS, id);
+        if (!currentOrder) {
+          throw new Error(`Order with ID ${id} not found`);
+        }
+        
+        // Apply updates
+        const updatedOrder = {
+          ...currentOrder,
+          ...updates,
+          updated_at: new Date()
+        };
+        
+        await db.put(STORES.ORDERS, updatedOrder, true);
+        return updatedOrder;
+      }
+      
+      const { data, error } = await supabase
+        .from('Order')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    
+    async delete(id: string) {
+      // In demo mode, delete from IndexedDB
+      if (config.app.isDemoMode) {
+        console.log(`Demo mode: Deleting order ${id} from IndexedDB directly`);
+        
+        try {
+          // First check if the order exists
+          const order = await db.get(STORES.ORDERS, id);
+          if (!order) {
+            console.log(`Demo mode: Order ${id} not found, nothing to delete`);
+            return true;
+          }
+          
+          // Delete the order
+          await db.delete(STORES.ORDERS, id, true);
+          console.log(`Demo mode: Successfully deleted order ${id}`);
+          return true;
+        } catch (error) {
+          console.error(`Demo mode: Error deleting order ${id}:`, error);
+          throw error;
+        }
+      }
+      
+      const { error } = await supabase
+        .from('Order')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      return true;
+    },
+    
+    async getByFamilyNumber(familyNumber: string) {
+      // In demo mode, filter from IndexedDB
+      if (config.app.isDemoMode) {
+        console.log(`Demo mode: Loading orders for family ${familyNumber} from IndexedDB directly`);
+        
+        try {
+          const allOrders = await db.getAll(STORES.ORDERS);
+          const familyOrders = allOrders.filter(order => order.family_number === familyNumber);
+          console.log(`Demo mode: Found ${familyOrders.length} orders for family ${familyNumber}`);
+          return familyOrders;
+        } catch (error) {
+          console.error(`Demo mode: Error loading orders for family ${familyNumber}:`, error);
+          return [];
+        }
+      }
+      
+      const { data, error } = await supabase
+        .from('Order')
+        .select(`
+          *,
+          Client (
             first_name,
             last_name
           )
         `)
         .eq('family_number', familyNumber)
         .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data;
-    },
-    create: async (data: Database['public']['Tables']['Order']['Insert']) => {
-      const { data: newOrder, error } = await supabase
-        .from('Order')
-        .insert([data])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return newOrder;
-    },
-    update: async (id: string, updates: Database['public']['Tables']['Order']['Update']) => {
-      const { data: updatedOrder, error } = await supabase
-        .from('Order')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return updatedOrder;
-    },
-    delete: async (id: string) => {
-      const { error } = await supabase
-        .from('Order')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-    },
-    getById: async (id: string) => {
-      const { data, error } = await supabase
-        .from('Order')
-        .select(`
-          *,
-          Client:family_number (
-            first_name,
-            last_name
-          )
-        `)
-        .eq('id', id)
-        .single();
       
       if (error) throw error;
       return data;
@@ -491,56 +587,219 @@ export const api = {
     async getAll() {
       // In demo mode, go straight to IndexedDB
       if (config.app.isDemoMode) {
-        console.log('Demo mode: Loading connected families from IndexedDB directly');
+        console.log('Demo mode: Getting all connected families from IndexedDB');
         try {
-          const connections = await db.getAll(STORES.CONNECTED_FAMILIES);
-          console.log(`Demo mode: Loaded ${connections.length} connections from IndexedDB`);
-          return connections;
+          let connectedFamilies = await db.getAll(STORES.CONNECTED_FAMILIES);
+          // If no connections found in IndexedDB, provide some demo data
+          if (!connectedFamilies || connectedFamilies.length === 0) {
+            console.log('Demo mode: No connected families found, creating demo data');
+            
+            // Create demo connection groups with consistent IDs
+            const demoConnections = [
+              // Group 1: John Smith and Jane Doe
+              {
+                id: 'demo-conn-1001',
+                family_number: 'f1001',
+                connected_family_number: 'cf000001',
+                relationship_type: 'parent',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              },
+              {
+                id: 'demo-conn-1002',
+                family_number: 'f1002',
+                connected_family_number: 'cf000001',
+                relationship_type: 'child',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              },
+              // Group 2: Robert Johnson and Mary Williams
+              {
+                id: 'demo-conn-1003',
+                family_number: 'f1003',
+                connected_family_number: 'cf000002',
+                relationship_type: 'spouse',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              },
+              {
+                id: 'demo-conn-1004',
+                family_number: 'f1004',
+                connected_family_number: 'cf000002',
+                relationship_type: 'spouse',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              }
+            ];
+            
+            console.log('Demo mode: Saving sample connected family data to IndexedDB');
+            // Store the demo data in IndexedDB
+            for (const conn of demoConnections) {
+              await db.put(STORES.CONNECTED_FAMILIES, conn, true);
+            }
+            connectedFamilies = demoConnections;
+          }
+          return connectedFamilies;
         } catch (error) {
-          console.error('Demo mode: Error loading connections from IndexedDB:', error);
+          // In demo mode, return empty array rather than throwing
+          console.log('Demo mode: Returning empty connected families list');
           return [];
+        }
+      }
+      
+      try {
+        const { data, error } = await supabase
+          .from('ConnectedFamily')
+          .select('*');
+        
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        console.error('Error fetching connected families from API:', error);
+        throw error;
+      }
+    },
+
+    async getByClientId(clientId: string) {
+      // In demo mode, return consistent demo data without making network calls
+      if (config.app.isDemoMode) {
+        console.log(`Demo mode: Getting connected families for client ${clientId}`);
+        try {
+          // First try to get from IndexedDB
+          const allConnections = await db.getAll(STORES.CONNECTED_FAMILIES);
+          
+          // In demo mode, include connections where the client is either the family_number OR
+          // the connected_family_number - this is necessary to show all connections properly
+          let clientConnections = allConnections.filter(conn => {
+            // Direct match on family_number
+            if (conn.family_number === clientId) return true;
+            
+            // Check if this client is in a connection group
+            // This helps show the other side of the relationship
+            if (conn.connected_family_number === 'cf000001' && 
+                (clientId === 'f1001' || clientId === 'f1002')) {
+              return true;
+            }
+            
+            if (conn.connected_family_number === 'cf000002' && 
+                (clientId === 'f1003' || clientId === 'f1004')) {
+              return true;
+            }
+            
+            return false;
+          });
+          
+          // If we didn't find connections but this is a known family number,
+          // create demo connections
+          if ((!clientConnections || clientConnections.length === 0) && 
+              ['f1001', 'f1002', 'f1003', 'f1004'].includes(clientId)) {
+            
+            // Demo connection data by client ID
+            const demoConnectionsMap = {
+              // For clients in group 1 (f1001 and f1002)
+              'f1001': [
+                {
+                  id: `conn-demo-${Date.now()}-1a`,
+                  family_number: 'f1002', // Show Jane Doe as connection for John Smith
+                  connected_family_number: 'cf000001',
+                  relationship_type: 'child',
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                }
+              ],
+              'f1002': [
+                {
+                  id: `conn-demo-${Date.now()}-2a`,
+                  family_number: 'f1001', // Show John Smith as connection for Jane Doe
+                  connected_family_number: 'cf000001',
+                  relationship_type: 'parent', 
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                }
+              ],
+              // For clients in group 2 (f1003 and f1004)
+              'f1003': [
+                {
+                  id: `conn-demo-${Date.now()}-3a`,
+                  family_number: 'f1004', // Show Mary Williams as connection for Robert Johnson
+                  connected_family_number: 'cf000002',
+                  relationship_type: 'spouse',
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                }
+              ],
+              'f1004': [
+                {
+                  id: `conn-demo-${Date.now()}-4a`,
+                  family_number: 'f1003', // Show Robert Johnson as connection for Mary Williams
+                  connected_family_number: 'cf000002',
+                  relationship_type: 'spouse',
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                }
+              ]
+            };
+            
+            // Get the client's demo connections
+            clientConnections = demoConnectionsMap[clientId] || [];
+            
+            if (clientConnections.length > 0) {
+              // Store in IndexedDB
+              for (const conn of clientConnections) {
+                await db.put(STORES.CONNECTED_FAMILIES, conn, true);
+              }
+              console.log(`Demo mode: Created demo connections for client ${clientId}`);
+            }
+          }
+          
+          console.log(`Demo mode: Found ${clientConnections.length} connected families for client ${clientId}`);
+          return clientConnections;
+        } catch (error) {
+          // On error, just return empty array instead of throwing an error
+          console.log(`Demo mode: Returning empty connected families for client ${clientId}`);
+          return [];
+        }
+      }
+      
+      try {
+        const { data, error } = await supabase
+          .from('ConnectedFamily')
+          .select('*')
+          .eq('family_number', clientId);
+        
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        console.error('Error fetching connected families from API:', error);
+        throw error;
+      }
+    },
+
+    async create(connectedFamily: Omit<ConnectedFamily, 'id'>) {
+      // In demo mode, go straight to IndexedDB
+      if (config.app.isDemoMode) {
+        console.log('Demo mode: Creating connected family in IndexedDB');
+        try {
+          const familyWithId = {
+            ...connectedFamily,
+            id: uuidv4(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          return await db.add(STORES.CONNECTED_FAMILIES, familyWithId);
+        } catch (error) {
+          console.log('Demo mode: Error creating connected family, returning mock data');
+          // Return a mock success result instead of throwing
+          return {
+            ...connectedFamily,
+            id: uuidv4()
+          };
         }
       }
       
       const { data, error } = await supabase
         .from('ConnectedFamily')
-        .select(`
-          id,
-          family_number,
-          connected_family_number,
-          relationship_type,
-          client:Client(*)
-        `)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data;
-    },
-
-    async getByClientId(clientId: string) {
-      const { data, error } = await supabase
-        .from('ConnectedFamily')
-        .select(`
-          id,
-          family_number,
-          connected_family_number,
-          relationship_type,
-          client:Client(*)
-        `)
-        .eq('family_number', clientId);
-      
-      if (error) throw error;
-      return data;
-    },
-
-    async create(connectedFamily: Omit<ConnectedFamily, 'id'>) {
-      const { data, error } = await supabase
-        .from('ConnectedFamily')
-        .insert([{
-          family_number: connectedFamily.family_number,
-          connected_family_number: connectedFamily.connected_family_number,
-          relationship_type: connectedFamily.relationship_type
-        }])
+        .insert([connectedFamily])
         .select()
         .single();
       
@@ -549,29 +808,76 @@ export const api = {
     },
 
     async delete(id: string) {
+      // In demo mode, go straight to IndexedDB
+      if (config.app.isDemoMode) {
+        console.log(`Demo mode: Deleting connected family ${id} from IndexedDB`);
+        try {
+          await db.delete(STORES.CONNECTED_FAMILIES, id);
+        } catch (error) {
+          console.log(`Demo mode: Error deleting connected family ${id}, ignoring`);
+          // Suppress the error in demo mode
+        }
+        return true;
+      }
+      
       const { error } = await supabase
         .from('ConnectedFamily')
         .delete()
         .eq('id', id);
       
       if (error) throw error;
+      return true;
     },
 
     async deleteByClientId(clientId: string) {
+      // In demo mode, handle this through IndexedDB
+      if (config.app.isDemoMode) {
+        console.log(`Demo mode: Deleting all connected families for client ${clientId} from IndexedDB`);
+        try {
+          const allConnections = await db.getAll(STORES.CONNECTED_FAMILIES);
+          const clientConnections = allConnections.filter(conn => conn.family_number === clientId);
+          
+          for (const conn of clientConnections) {
+            await db.delete(STORES.CONNECTED_FAMILIES, conn.id);
+          }
+        } catch (error) {
+          console.log(`Demo mode: Error deleting connected families for client ${clientId}, ignoring`);
+          // Suppress the error in demo mode
+        }
+        return true;
+      }
+      
       const { error } = await supabase
         .from('ConnectedFamily')
         .delete()
         .eq('family_number', clientId);
       
       if (error) throw error;
+      return true;
     },
 
     async getConnection(clientId: string, connectedTo: string) {
+      // In demo mode, return null without making API calls
+      if (config.app.isDemoMode) {
+        console.log(`Demo mode: Getting connection between clients ${clientId} and ${connectedTo} from IndexedDB`);
+        try {
+          const allConnections = await db.getAll(STORES.CONNECTED_FAMILIES);
+          return allConnections.find(
+            conn => conn.family_number === clientId && conn.connected_family_number === connectedTo
+          );
+        } catch (error) {
+          // Just return null on error instead of warning
+          console.log(`Demo mode: Error getting connection between clients ${clientId} and ${connectedTo}, returning null`);
+          return null;
+        }
+      }
+      
       const { data, error } = await supabase
         .from('ConnectedFamily')
         .select('*')
-        .match({ family_number: clientId, connected_family_number: connectedTo })
-        .single();
+        .eq('family_number', clientId)
+        .eq('connected_family_number', connectedTo)
+        .maybeSingle();
       
       if (error) throw error;
       return data;

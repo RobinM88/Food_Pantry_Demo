@@ -182,13 +182,21 @@ export default function DailyQueue() {
         updated_at: new Date()
       };
       
+      // For denied orders, ensure approval_status is set to rejected
+      if (newStatus === 'denied') {
+        updates.approval_status = 'rejected';
+      }
+      // For approved orders, ensure approval_status is set to approved
+      else if (newStatus === 'approved') {
+        updates.approval_status = 'approved';
+      }
+      else if (order.approval_status) {
+        updates.approval_status = order.approval_status;
+      }
+      
       // Copy important fields that might have been updated
       if (order.pickup_date) {
         updates.pickup_date = order.pickup_date;
-      }
-      
-      if (order.approval_status) {
-        updates.approval_status = order.approval_status;
       }
       
       if (order.delivery_type) {
@@ -204,6 +212,7 @@ export default function DailyQueue() {
       const updatedOrder = await OrderService.update(order.id, updates);
       console.log('Received updated order from server:', updatedOrder);
 
+      // Make sure the orders state is updated
       setOrders(orders.map(o => o.id === updatedOrder.id ? updatedOrder : o));
       
       setNotification({

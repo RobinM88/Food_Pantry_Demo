@@ -70,7 +70,8 @@ export default function PhoneLogList({
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 
   // Format phone number to xxx-xxx-xxxx
-  const formatPhoneNumberDisplay = (value: string): string => {
+  const formatPhoneNumberDisplay = (value: string | undefined | null): string => {
+    if (!value) return 'N/A';
     return formatPhoneNumber(value);
   };
 
@@ -95,10 +96,14 @@ export default function PhoneLogList({
     const clientName = client ? `${client.first_name} ${client.last_name}`.toLowerCase() : '';
     const searchLower = searchQuery.toLowerCase();
     
+    // Safely handle undefined phone numbers and notes
+    const phoneNumber = log.phone_number || '';
+    const notes = log.notes || '';
+    
     const matchesSearch = 
       clientName.includes(searchLower) || 
-      log.phone_number.toLowerCase().includes(searchLower) ||
-      log.notes?.toLowerCase().includes(searchLower) || '';
+      phoneNumber.toLowerCase().includes(searchLower) ||
+      notes.toLowerCase().includes(searchLower);
     
     const matchesCallType = filterCallType === 'all' || log.call_type === filterCallType;
     const matchesCallOutcome = filterCallOutcome === 'all' || log.call_outcome === filterCallOutcome;

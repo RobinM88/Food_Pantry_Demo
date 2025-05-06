@@ -1,3 +1,4 @@
+
 import {
   Box,
   Paper,
@@ -26,6 +27,7 @@ import {
 import { format } from 'date-fns';
 import { PhoneLog, Client } from '../../types';
 import { CallType, CallOutcome } from '../../types';
+import { formatPhoneNumber } from '../../utils/phoneNumberUtils';
 
 interface PhoneLogDetailsProps {
   phoneLog: PhoneLog;
@@ -133,7 +135,7 @@ export default function PhoneLogDetails({ phoneLog, client }: PhoneLogDetailsPro
                   }
                   secondary={
                     <Typography variant={isMobile ? "body1" : "h6"} sx={{ mt: 0.5 }}>
-                      {phoneLog.phone_number}
+                      {formatPhoneNumber(phoneLog.phone_number)}
                     </Typography>
                   }
                 />

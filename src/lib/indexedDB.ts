@@ -212,6 +212,15 @@ export class IndexedDBManager {
    */
   async processSyncQueue(): Promise<void> {
     try {
+      // Import config first to check for demo mode
+      const { config } = await import('../config');
+      
+      // Skip sync process entirely when in demo mode
+      if (config.app.isDemoMode) {
+        console.log('Demo mode: Skipping sync queue processing');
+        return;
+      }
+      
       const db = await this.ensureDB();
       const queue = await db.getAllFromIndex(STORES.SYNC_QUEUE, 'timestamp');
       

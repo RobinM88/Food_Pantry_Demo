@@ -24,6 +24,7 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import { Client, ConnectedFamily, RelationshipType } from '../../types';
 import { ConnectedFamilyService } from '../../services/connectedFamily.service';
+import { config } from '../../config';
 
 interface ConnectedFamiliesManagerProps {
   client: Client;
@@ -60,7 +61,7 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
       console.log('Raw connections data:', data);
       
       // Filter out any invalid connections and the current client's own connection
-      const validConnections = data.filter(conn => {
+      const validConnections = (data || []).filter(conn => {
         // Skip the current client's own connection record
         if (conn.family_number === client.family_number) return false;
 
@@ -76,6 +77,13 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
       setConnections(validConnections);
       onConnectionsChange?.(validConnections);
     } catch (error) {
+      // In demo mode, fail silently to avoid console errors
+      if (config?.app?.isDemoMode) {
+        console.log('Demo mode: Using empty connections for client', client.family_number);
+        setConnections([]);
+        onConnectionsChange?.([]);
+        return;
+      }
       console.error('Error loading connections:', error);
     }
   };
@@ -150,6 +158,16 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
       setRelationshipType('other');
       setIsSearchOpen(false);
     } catch (error) {
+      // In demo mode, suppress errors and still update UI
+      if (config?.app?.isDemoMode) {
+        console.log('Demo mode: Silently handling connection creation error');
+        await loadConnections(); // Still refresh UI
+        setSearchTerm('');
+        setSelectedClient(null);
+        setRelationshipType('other');
+        setIsSearchOpen(false);
+        return;
+      }
       console.error('Error adding connection:', error);
     }
   };
@@ -162,6 +180,12 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
       // Refresh connections
       await loadConnections();
     } catch (error) {
+      // In demo mode, suppress errors in the console
+      if (config?.app?.isDemoMode) {
+        console.log('Demo mode: Silently handling connection removal error');
+        await loadConnections(); // Still refresh UI
+        return;
+      }
       console.error('Error removing connection:', error);
     }
   };

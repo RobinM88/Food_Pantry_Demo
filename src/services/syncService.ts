@@ -114,6 +114,12 @@ export class SyncService {
    * Perform data synchronization
    */
   private async syncData(): Promise<void> {
+    // Skip sync in demo mode
+    if (config.app.isDemoMode) {
+      console.log('Demo mode: Skipping sync operation');
+      return;
+    }
+
     if (!this.isOnline) {
       console.log('Not online, skipping sync');
       return;

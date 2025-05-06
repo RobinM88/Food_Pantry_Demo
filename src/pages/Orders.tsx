@@ -9,6 +9,7 @@ import { Add as AddIcon } from '@mui/icons-material';
 import { OrderService } from '../services/order.service';
 import { ClientService } from '../services/client.service';
 import { OfflineStatus } from '../components/OfflineStatus';
+import React from 'react';
 
 export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -197,6 +198,7 @@ export default function Orders() {
         onEditOrder={handleEditOrder}
         onDeleteOrder={handleDeleteOrder}
         onStatusChange={handleStatusChange}
+        clients={clients}
       />
 
       {isFormOpen && (
