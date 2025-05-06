@@ -54,37 +54,113 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
     }
   }, [client]);
 
+  // Demo client data for well-known family numbers
+  const getDemoClient = (familyNumber: string): Partial<Client> | null => {
+    const demoClientMap: Record<string, Partial<Client>> = {
+      'f1001': { first_name: 'John', last_name: 'Smith', phone1: '5551234567' },
+      'f1002': { first_name: 'Jane', last_name: 'Doe', phone1: '5552345678' },
+      'f1003': { first_name: 'Robert', last_name: 'Johnson', phone1: '5553456789' },
+      'f1004': { first_name: 'Mary', last_name: 'Williams', phone1: '5554567890' },
+    };
+    return familyNumber in demoClientMap ? demoClientMap[familyNumber] : null;
+  };
+
   const loadConnections = async () => {
     try {
       console.log('Loading connections for client family number:', client.family_number);
+      
+      // Get connections for this client
       const data = await ConnectedFamilyService.getByClientId(client.family_number);
       console.log('Raw connections data:', data);
       
-      // Filter out any invalid connections and the current client's own connection
-      const validConnections = (data || []).filter(conn => {
-        // Skip the current client's own connection record
-        if (conn.family_number === client.family_number) return false;
+      // Special handling for demo mode
+      if (config.app.isDemoMode) {
+        // Make sure data is not empty and handle demo families specifically
+        if (client.family_number.startsWith('f100')) {
+          const knownDemoFamilies = ['f1001', 'f1002', 'f1003', 'f1004'];
+          const clientIndex = knownDemoFamilies.indexOf(client.family_number);
+          
+          if (clientIndex >= 0) {
+            // Get paired family based on demo family number
+            let pairedFamily: string | undefined;
+            if (clientIndex === 0) pairedFamily = 'f1002';      // f1001 <-> f1002 (parent/child)
+            else if (clientIndex === 1) pairedFamily = 'f1001'; // f1002 <-> f1001 (child/parent)
+            else if (clientIndex === 2) pairedFamily = 'f1004'; // f1003 <-> f1004 (spouse/spouse)
+            else if (clientIndex === 3) pairedFamily = 'f1003'; // f1004 <-> f1003 (spouse/spouse)
+            
+            // Find the paired client
+            const pairedClient = allClients.find(c => c.family_number === pairedFamily);
+            
+            if (pairedClient && pairedFamily) {
+              // Create a demo connection
+              const demoConnections: ConnectedFamily[] = [{
+                id: `demo-conn-${Date.now()}`,
+                family_number: pairedFamily,
+                connected_family_number: client.family_number.replace('f', 'cf'),
+                relationship_type: clientIndex <= 1 ? (clientIndex === 0 ? 'child' : 'parent') : 'spouse'
+              }];
+              
+              console.log('Demo mode: Created demo connection for display', demoConnections);
+              setConnections(demoConnections);
+              onConnectionsChange?.(demoConnections);
 
-        const connectedClient = allClients.find(c => c.family_number === conn.family_number);
-        if (!connectedClient) {
-          console.warn('Connected client not found for family number:', conn.family_number);
-          return false;
+              // Add client info to the connection for display purposes
+              if (pairedFamily) {
+                const demoClientInfo = getDemoClient(pairedFamily);
+                if (demoClientInfo) {
+                  // Create a modified copy with client information
+                  const enhancedConnections = demoConnections.map(conn => ({
+                    ...conn,
+                    client: {
+                      id: `demo-${conn.family_number}`,
+                      family_number: conn.family_number,
+                      ...demoClientInfo,
+                      // Add other required fields with defaults
+                      adults: 1,
+                      school_aged: 0,
+                      small_children: 0,
+                      family_size: 1,
+                      member_status: 'active',
+                      // Convert string dates to Date objects to match Client type
+                      created_at: new Date(),
+                      updated_at: new Date()
+                    } as unknown as Client
+                  }));
+                  
+                  setConnections(enhancedConnections);
+                }
+              }
+
+              return;
+            }
+          }
         }
-        return true;
+      }
+      
+      // Normal processing for non-demo mode or if demo special case didn't apply
+      const validConnections = (data || []).filter(conn => {
+        // Skip connections for the current client (we want to show the other client)
+        if (conn.family_number === client.family_number) {
+          // This is the client's own connection, find others in the group
+          const connectedFamily = allClients.find(c => 
+            conn.connected_family_number.startsWith('f') && 
+            c.family_number === conn.connected_family_number
+          );
+          return !!connectedFamily;
+        }
+        
+        // This shows other clients connected to this one
+        const connectedClient = allClients.find(c => c.family_number === conn.family_number);
+        return !!connectedClient;
       });
 
-      console.log('Valid connections:', validConnections);
+      console.log('Valid connections after filtering:', validConnections);
       setConnections(validConnections);
       onConnectionsChange?.(validConnections);
     } catch (error) {
-      // In demo mode, fail silently to avoid console errors
-      if (config?.app?.isDemoMode) {
-        console.log('Demo mode: Using empty connections for client', client.family_number);
-        setConnections([]);
-        onConnectionsChange?.([]);
-        return;
-      }
       console.error('Error loading connections:', error);
+      setConnections([]);
+      onConnectionsChange?.([]);
     }
   };
 
@@ -194,6 +270,8 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
   const ConnectionsList = React.memo(({ connections, allClients }: { connections: ConnectedFamily[], allClients: Client[] }) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+    
+    console.log('ConnectionsList render with connections:', connections);
 
     if (!connections || connections.length === 0) {
       return (
@@ -206,8 +284,10 @@ export const ConnectedFamiliesManager: React.FC<ConnectedFamiliesManagerProps> =
     return (
       <List>
         {connections.map((connection) => {
-          // Find the connected client using the family_number
-          const connectedClient = allClients.find(c => c.family_number === connection.family_number);
+          // Try to use attached client property first (from demo mode)
+          const connectedClient = (connection as any).client || 
+            // Fall back to finding client in the allClients array
+            allClients.find(c => c.family_number === connection.family_number);
           
           if (!connectedClient) {
             console.warn('Connected client not found:', connection.family_number);

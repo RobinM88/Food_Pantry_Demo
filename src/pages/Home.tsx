@@ -33,7 +33,10 @@ export default function Home() {
   return (
     <div>
       <Typography variant="h4" component="h1" gutterBottom>
-        Welcome to Food Pantry Client Management
+        Nourishing Communities, One Family at a Time
+      </Typography>
+      <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 2 }}>
+        Food Pantry Client Management System
       </Typography>
       <Typography variant="body1" paragraph>
         Select an option below to get started:
